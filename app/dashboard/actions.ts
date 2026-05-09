@@ -3,17 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { CreateGoalSchema } from "@/lib/schemas";
 
 export async function createGoal(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const title = formData.get("title") as string;
-  const groupId = formData.get("group_id") as string;
-  const goalType = (formData.get("goal_type") as string) || "concrete";
-  const importance = (formData.get("importance") as string) || "normal";
-  const dueDate = (formData.get("due_date") as string) || null;
 
   const milestoneTitles: string[] = [];
   for (let i = 1; i <= 6; i++) {
@@ -21,16 +16,32 @@ export async function createGoal(formData: FormData) {
     if (t?.trim()) milestoneTitles.push(t.trim());
   }
 
-  if (!title?.trim() || !groupId || milestoneTitles.length === 0) {
-    redirect("/dashboard?error=Missing+required+fields");
+  const raw = {
+    title: (formData.get("title") as string)?.trim() ?? "",
+    group_id: (formData.get("group_id") as string) ?? "",
+    goal_type: (formData.get("goal_type") as string) || "concrete",
+    importance: (formData.get("importance") as string) || "normal",
+    due_date: (formData.get("due_date") as string) || null,
+  };
+
+  const parsed = CreateGoalSchema.safeParse(raw);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Validation error";
+    redirect(`/dashboard?error=${encodeURIComponent(msg)}`);
   }
+
+  if (milestoneTitles.length === 0) {
+    redirect("/dashboard?error=At+least+one+milestone+is+required");
+  }
+
+  const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
 
   const { data: goal, error: goalError } = await supabase
     .from("goals")
     .insert({
       user_id: user.id,
       group_id: groupId,
-      title: title.trim(),
+      title,
       goal_type: goalType,
       importance,
       status: "active",
@@ -58,7 +69,7 @@ export async function createGoal(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
-  redirect("/dashboard");
+  redirect("/dashboard?created=1");
 }
 
 export async function completeMilestone(milestoneId: string, goalId: string) {
@@ -104,5 +115,8 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
 
 export async function ensureDefaults() {
   const supabase = await createClient();
-  await supabase.rpc("ensure_default_groups");
+  const { error } = await supabase.rpc("ensure_default_groups");
+  if (error) {
+    console.error("ensure_default_groups failed:", error.message);
+  }
 }
