@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   height: 100%;
@@ -9,4 +13,32 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+/* Thin, clean scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1dae3;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8b4c0;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(23, 105, 255, 0.12);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #1769ff;
+  outline-offset: 2px;
+  border-radius: 4px;
 }

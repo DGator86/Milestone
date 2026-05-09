@@ -1,63 +1,108 @@
-import { AlertCircle, AlertTriangle, Clock, CheckCircle, ChevronRight, HelpCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { getTaskHealth } from "@/lib/progress";
 import type { GoalWithDetails } from "@/lib/types";
 
 export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
   const { stuck, needsAttention, waiting, onTrack } = getTaskHealth(goals);
+  const total = stuck.length + needsAttention.length + waiting.length + onTrack.length;
+  const healthScore = total > 0 ? Math.round((onTrack.length / total) * 100) : 100;
 
   const rows = [
     {
-      icon: <AlertCircle size={20} className="text-milestone-red" />,
+      icon: <AlertCircle size={18} className="text-milestone-red shrink-0" />,
       count: stuck.length,
       label: "Stuck",
-      labelColor: "text-milestone-red",
-      sample: stuck.slice(0, 2).map((g) => g.title),
+      color: "text-milestone-red",
+      bg: "bg-milestone-red-dim",
+      bar: "#EA4335",
     },
     {
-      icon: <AlertTriangle size={20} className="text-milestone-amber" />,
+      icon: <AlertTriangle size={18} className="text-milestone-amber shrink-0" />,
       count: needsAttention.length,
       label: "Needs Attention",
-      labelColor: "text-milestone-amber",
-      sample: needsAttention.slice(0, 2).map((g) => g.title),
+      color: "text-milestone-amber",
+      bg: "bg-milestone-amber-dim",
+      bar: "#F8B400",
     },
     {
-      icon: <Clock size={20} className="text-milestone-blue" />,
+      icon: <Clock size={18} className="text-milestone-blue shrink-0" />,
       count: waiting.length,
       label: "Waiting",
-      labelColor: "text-milestone-blue",
-      sample: waiting.slice(0, 2).map((g) => g.title),
+      color: "text-milestone-blue",
+      bg: "bg-milestone-blue-dim",
+      bar: "#1769FF",
     },
     {
-      icon: <CheckCircle size={20} className="text-milestone-green" />,
+      icon: <CheckCircle size={18} className="text-milestone-green shrink-0" />,
       count: onTrack.length,
       label: "On Track",
-      labelColor: "text-milestone-green",
-      sample: onTrack.length > 0 ? ["All good"] : [],
+      color: "text-milestone-green",
+      bg: "bg-milestone-green-dim",
+      bar: "#36A852",
     },
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-milestone-line p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
-          B. Current Task Health
-        </h2>
-        <HelpCircle size={14} className="text-gray-400" />
+    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">
+            Task Health
+          </h2>
+          <p className="text-xs text-gray-400 mt-0.5">{total} active goals</p>
+        </div>
+        <div className="text-right">
+          <p
+            className={`text-2xl font-bold tabular-nums ${
+              healthScore >= 75
+                ? "text-milestone-green"
+                : healthScore >= 50
+                ? "text-milestone-amber"
+                : "text-milestone-red"
+            }`}
+          >
+            {healthScore}%
+          </p>
+          <p className="text-[11px] text-gray-400">on track</p>
+        </div>
       </div>
 
-      <div className="space-y-3">
-        {rows.map(({ icon, count, label, labelColor, sample }) => (
+      {/* Stacked health bar */}
+      {total > 0 && (
+        <div className="flex h-2 rounded-full overflow-hidden mb-4 gap-px">
+          {rows.map(({ bar, count, label }) =>
+            count > 0 ? (
+              <div
+                key={label}
+                title={`${label}: ${count}`}
+                className="transition-all duration-500"
+                style={{ width: `${(count / total) * 100}%`, backgroundColor: bar }}
+              />
+            ) : null
+          )}
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        {rows.map(({ icon, count, label, color, bg }) => (
           <div
             key={label}
             className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
           >
             {icon}
-            <span className="text-2xl font-bold text-gray-900 w-8 shrink-0">{count}</span>
-            <span className={`text-sm font-semibold w-32 shrink-0 ${labelColor}`}>{label}</span>
-            <span className="text-sm text-gray-400 flex-1 truncate">
-              {sample.length > 0 ? sample.join(" · ") : "—"}
+            <span className={`text-xl font-bold tabular-nums w-7 shrink-0 ${color}`}>
+              {count}
             </span>
-            <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 shrink-0" />
+            <span className="text-sm font-semibold text-gray-700 flex-1">{label}</span>
+            {count > 0 && (
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${bg} ${color}`}>
+                {count}
+              </span>
+            )}
+            <ChevronRight
+              size={14}
+              className="text-gray-200 group-hover:text-gray-400 transition-colors shrink-0"
+            />
           </div>
         ))}
       </div>

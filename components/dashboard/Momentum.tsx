@@ -1,4 +1,4 @@
-import { CheckCircle, Flag, TrendingUp, HelpCircle } from "lucide-react";
+import { CheckCircle, Flag, TrendingUp } from "lucide-react";
 import type { GoalWithDetails } from "@/lib/types";
 
 export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
@@ -17,7 +17,6 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
   }
   goalsAdvancedToday = goalsAdvancedSet.size;
 
-  // Week streak: days with at least one milestone completed in last 7 days
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -34,98 +33,106 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
   }
 
   let streak = 0;
-  const todayStr = new Date().toDateString();
   const checkDate = new Date();
-  while (activeDays.has(checkDate.toDateString()) || checkDate.toDateString() === todayStr) {
-    if (activeDays.has(checkDate.toDateString())) streak++;
-    else break;
+  while (activeDays.has(checkDate.toDateString())) {
+    streak++;
     checkDate.setDate(checkDate.getDate() - 1);
   }
 
   const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-milestone-line p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
-          C. Streak / Accomplishment
+    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+      <div className="mb-4">
+        <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">
+          Momentum
         </h2>
-        <HelpCircle size={14} className="text-gray-400" />
+        <p className="text-xs text-gray-400 mt-0.5">Your streak and daily progress</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-5">
         {/* Streak ring */}
-        <div className="flex flex-col items-center justify-center">
-          <div className="relative w-24 h-24">
+        <div className="flex flex-col items-center justify-center shrink-0">
+          <div className="relative w-[88px] h-[88px]">
             <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#F3F4F6" strokeWidth="8" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" strokeWidth="8" />
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="none"
-                stroke="#F8B400"
+                stroke={streak > 0 ? "#F8B400" : "#E2E8F0"}
                 strokeWidth="8"
                 strokeLinecap="round"
-                strokeDasharray={`${Math.min(streak / 30, 1) * 251} 251`}
+                strokeDasharray={`${Math.min(streak / 30, 1) * 251.2} 251.2`}
+                className="transition-all duration-700"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl">🔥</span>
-              <span className="text-xl font-bold text-gray-900 leading-none">{streak}</span>
+              <span className="text-xl leading-none">{streak > 0 ? "🔥" : "💤"}</span>
+              <span className="text-[22px] font-bold text-gray-900 leading-tight tabular-nums">
+                {streak}
+              </span>
             </div>
           </div>
-          <p className="text-xs font-semibold text-gray-600 mt-1">Day Streak</p>
-          <p className="text-xs text-gray-400">Keep it going!</p>
+          <p className="text-[11px] font-semibold text-gray-500 mt-1.5">Day Streak</p>
         </div>
 
-        {/* Stats */}
+        {/* Stats + week */}
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-3">
-            <CheckCircle size={18} className="text-milestone-green" />
+            <div className="w-8 h-8 rounded-lg bg-milestone-green-dim flex items-center justify-center shrink-0">
+              <CheckCircle size={16} className="text-milestone-green" />
+            </div>
             <div>
-              <span className="text-xl font-bold text-gray-900">{goalsAdvancedToday}</span>
-              <span className="text-sm text-gray-500 ml-2">Goals advanced today</span>
+              <span className="text-lg font-bold text-gray-900 tabular-nums">
+                {goalsAdvancedToday}
+              </span>
+              <span className="text-xs text-gray-400 ml-1.5">goals advanced today</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Flag size={18} className="text-milestone-blue" />
+            <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center shrink-0">
+              <Flag size={16} className="text-milestone-blue" />
+            </div>
             <div>
-              <span className="text-xl font-bold text-gray-900">{milestonesCompletedToday}</span>
-              <span className="text-sm text-gray-500 ml-2">Milestones completed today</span>
+              <span className="text-lg font-bold text-gray-900 tabular-nums">
+                {milestonesCompletedToday}
+              </span>
+              <span className="text-xs text-gray-400 ml-1.5">milestones completed</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <TrendingUp size={18} className="text-milestone-green" />
+            <div className="w-8 h-8 rounded-lg bg-milestone-green-dim flex items-center justify-center shrink-0">
+              <TrendingUp size={16} className="text-milestone-green" />
+            </div>
             <div>
-              <span className="text-xl font-bold text-milestone-green">+12%</span>
-              <span className="text-sm text-gray-500 ml-2">vs last week</span>
+              <span className="text-lg font-bold text-milestone-green tabular-nums">+12%</span>
+              <span className="text-xs text-gray-400 ml-1.5">vs last week</span>
             </div>
           </div>
 
-          {/* Week dots */}
-          <div className="flex items-center gap-1.5 pt-1">
+          {/* Week calendar */}
+          <div className="flex items-end gap-1 pt-1">
             {weekDays.map((day, i) => {
               const isActive = activeDays.has(day.toDateString());
               const isToday = day.toDateString() === new Date().toDateString();
               return (
-                <div key={i} className="flex flex-col items-center gap-1">
+                <div key={i} className="flex flex-col items-center gap-1 flex-1">
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    className={`w-full aspect-square rounded-md flex items-center justify-center text-[11px] font-semibold transition-all ${
                       isActive
-                        ? "bg-milestone-green"
+                        ? "bg-milestone-green text-white"
                         : isToday
-                        ? "border-2 border-milestone-green bg-white"
-                        : "bg-gray-100"
+                        ? "ring-2 ring-milestone-green ring-offset-1 text-milestone-green bg-white"
+                        : "bg-gray-100 text-gray-300"
                     }`}
                   >
-                    {isActive && (
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                      </svg>
-                    )}
+                    {day.getDate()}
                   </div>
-                  <span className="text-xs text-gray-400">{dayLabels[day.getDay() === 0 ? 6 : day.getDay() - 1]}</span>
+                  <span className="text-[10px] text-gray-300 font-medium">
+                    {dayLabels[day.getDay() === 0 ? 6 : day.getDay() - 1]}
+                  </span>
                 </div>
               );
             })}
