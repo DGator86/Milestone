@@ -10,6 +10,7 @@ import Momentum from "@/components/dashboard/Momentum";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
 import { ToastTrigger } from "@/components/ui/ToastTrigger";
 import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
+import GroupTabs from "@/components/dashboard/GroupTabs";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, GoalImportance } from "@/lib/types";
 
@@ -105,7 +106,13 @@ export default async function DashboardPage({
           currentSort={sortBy}
           currentStatus={filterStatus}
         />
-        <div className="p-6 space-y-6">
+        <GroupTabs
+          groups={safeGroups}
+          currentGroup={filterGroup}
+          currentSort={sortBy}
+          currentStatus={filterStatus}
+        />
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
           <MilestoneCharts goals={goals} groups={safeGroups} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TaskHealth goals={goals} />
