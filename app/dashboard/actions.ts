@@ -58,7 +58,7 @@ export async function createGoal(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
-  redirect("/dashboard");
+  redirect("/dashboard?created=1");
 }
 
 export async function completeMilestone(milestoneId: string, goalId: string) {

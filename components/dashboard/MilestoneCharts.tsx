@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target } from "lucide-react";
 import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
+import { useToast } from "@/lib/toast-context";
 import type { GoalWithDetails, Group, Milestone } from "@/lib/types";
 
 const GROUP_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -40,6 +41,7 @@ function MilestoneNode({
   isLast: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const { show } = useToast();
   const color = getMilestoneColor(ms, index, allMs);
   const isCompleted = ms.status === "completed";
   const isActive = ms.status === "in_progress" || ms.status === "waiting";
@@ -49,6 +51,7 @@ function MilestoneNode({
     if (!isClickable) return;
     startTransition(async () => {
       await completeMilestone(ms.id, goalId);
+      show(`"${ms.title}" completed!`, "success");
     });
   }
 
