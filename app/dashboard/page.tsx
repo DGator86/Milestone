@@ -9,6 +9,7 @@ import TaskHealth from "@/components/dashboard/TaskHealth";
 import Momentum from "@/components/dashboard/Momentum";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
 import { ToastTrigger } from "@/components/ui/ToastTrigger";
+import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, GoalImportance } from "@/lib/types";
 
@@ -96,6 +97,7 @@ export default async function DashboardPage({
       <Suspense>
         <ToastTrigger />
       </Suspense>
+      <RealtimeDashboard />
       <div className="flex flex-col">
         <TopBar
           groups={safeGroups}

@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { CreateGroupSchema } from "@/lib/schemas";
 
 export async function createGroup(
   _prev: unknown,
@@ -14,10 +14,17 @@ export async function createGroup(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
-  const name = (formData.get("name") as string)?.trim();
-  const color = (formData.get("color") as string) || "#1769FF";
+  const raw = {
+    name: (formData.get("name") as string)?.trim() ?? "",
+    color: (formData.get("color") as string) || "#1769FF",
+  };
 
-  if (!name) return { error: "Group name is required" };
+  const parsed = CreateGroupSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Validation error" };
+  }
+
+  const { name, color } = parsed.data;
 
   const { data: existing } = await supabase
     .from("groups")
