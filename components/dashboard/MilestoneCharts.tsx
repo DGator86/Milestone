@@ -6,15 +6,6 @@ import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, Milestone } from "@/lib/types";
 
-const STATUS_COLORS: Record<string, string> = {
-  completed: "#36A852",
-  in_progress: "#F8B400",
-  next: "#1769FF",
-  waiting: "#1769FF",
-  stuck: "#EA4335",
-  upcoming: "#DFE6EF",
-};
-
 const GROUP_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   Work: Briefcase,
   Home: Home,
@@ -26,10 +17,9 @@ function getMilestoneColor(ms: Milestone, index: number, allMs: Milestone[]): st
   if (ms.status === "stuck") return "#EA4335";
   if (ms.status === "in_progress") return "#F8B400";
   if (ms.status === "waiting") return "#1769FF";
-  // Find first non-completed
   const firstActive = allMs.findIndex((m) => m.status !== "completed");
   if (index === firstActive) return "#1769FF";
-  return "#DFE6EF";
+  return "#E2E8F0";
 }
 
 function isOverdue(dueDate: string | null): boolean {
@@ -42,7 +32,6 @@ function MilestoneNode({
   index,
   allMs,
   goalId,
-  isLast,
 }: {
   ms: Milestone;
   index: number;
@@ -65,22 +54,24 @@ function MilestoneNode({
 
   return (
     <div className="flex flex-col items-center relative">
-      {/* Node */}
       <button
         onClick={handleClick}
         disabled={!isClickable || pending}
         title={isClickable ? `Complete: ${ms.title}` : ms.title}
         className={`w-7 h-7 rounded-full border-2 flex items-center justify-center z-10 transition-all ${
-          isClickable ? "cursor-pointer hover:scale-110" : "cursor-default"
+          isClickable ? "cursor-pointer hover:scale-110 hover:shadow-sm" : "cursor-default"
         } ${pending ? "opacity-50" : ""}`}
-        style={{
-          borderColor: color,
-          backgroundColor: isCompleted ? color : isActive ? "white" : "white",
-        }}
+        style={{ borderColor: color, backgroundColor: isCompleted ? color : "white" }}
       >
         {isCompleted && (
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M2 6l3 3 5-5"
+              stroke="white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         )}
         {isActive && (
@@ -93,9 +84,8 @@ function MilestoneNode({
         )}
       </button>
 
-      {/* Label */}
       <span
-        className="text-xs mt-1 text-center leading-tight max-w-[72px]"
+        className="text-[11px] mt-1 text-center leading-tight max-w-[72px]"
         style={{
           color: isActive ? "#111" : isCompleted ? "#36A852" : "#9CA3AF",
           fontWeight: isActive ? 600 : 400,
@@ -116,22 +106,20 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
   const lineColor = (i: number) => {
     if (i >= milestones.length - 1) return "transparent";
     const next = milestones[i + 1];
-    if (next.status === "completed") return "#36A852";
-    return "#DFE6EF";
+    return next.status === "completed" ? "#36A852" : "#E2E8F0";
   };
 
   return (
-    <div className="py-3 border-b border-milestone-line last:border-0">
+    <div className="py-3 px-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/50 transition-colors">
       <div className="flex items-start gap-4">
-        {/* Goal info */}
-        <div className="w-48 shrink-0 flex items-center gap-2 pt-1">
-          <Target size={16} className="text-gray-400 shrink-0" />
-          <span className="text-sm font-medium text-gray-800 leading-tight">{goal.title}</span>
+        <div className="w-44 shrink-0 flex items-center gap-2 pt-1">
+          <Target size={14} className="text-gray-300 shrink-0" />
+          <span className="text-[13px] font-semibold text-gray-800 leading-tight">
+            {goal.title}
+          </span>
         </div>
 
-        {/* Milestone line */}
         <div className="flex-1 flex items-start relative pt-1">
-          {/* Connector lines */}
           <div className="absolute top-[13px] left-3.5 right-3.5 flex" style={{ zIndex: 0 }}>
             {milestones.slice(0, -1).map((ms, i) => (
               <div
@@ -141,8 +129,6 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
               />
             ))}
           </div>
-
-          {/* Nodes */}
           <div className="relative z-10 flex w-full justify-between">
             {milestones.map((ms, i) => (
               <MilestoneNode
@@ -157,18 +143,44 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
           </div>
         </div>
 
-        {/* Progress + due */}
-        <div className="w-24 shrink-0 text-right pt-1 flex items-center gap-2">
-          <div>
-            <div className="text-sm font-semibold text-gray-900">{progress}%</div>
-            {goal.due_date && (
-              <div className={`text-xs font-medium ${overdue ? "text-milestone-red" : "text-milestone-amber"}`}>
-                Due {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+        <div className="w-28 shrink-0 text-right pt-1 flex items-center gap-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 justify-end">
+              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[40px]">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${progress}%`,
+                    backgroundColor: progress === 100 ? "#36A852" : "#1769FF",
+                  }}
+                />
               </div>
+              <span className="text-sm font-bold text-gray-900 tabular-nums w-9 text-right">
+                {progress}%
+              </span>
+            </div>
+            {goal.due_date && (
+              <p
+                className={`text-[11px] font-medium mt-0.5 ${
+                  overdue ? "text-milestone-red" : "text-gray-400"
+                }`}
+              >
+                {overdue ? "Overdue · " : ""}
+                {new Date(goal.due_date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
             )}
           </div>
-          <button onClick={() => setExpanded((e) => !e)} className="text-gray-400 hover:text-gray-600">
-            <ChevronDown size={16} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="text-gray-300 hover:text-gray-500 transition-colors"
+          >
+            <ChevronDown
+              size={15}
+              className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -183,17 +195,24 @@ function GroupSection({ group, goals }: { group: Group; goals: GoalWithDetails[]
   if (goals.length === 0) return null;
 
   return (
-    <div className="mb-2">
+    <div className="mb-4">
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="flex items-center gap-2 mb-2 text-sm font-semibold text-gray-700 uppercase tracking-wide hover:text-gray-900 transition-colors"
+        className="flex items-center gap-2 mb-2 w-full text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors"
       >
-        <GroupIcon size={15} className="text-gray-400" />
+        <GroupIcon size={13} />
         {group.name}
-        {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+        <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-bold text-[10px]">
+          {goals.length}
+        </span>
+        {collapsed ? (
+          <ChevronRight size={12} className="ml-auto" />
+        ) : (
+          <ChevronDown size={12} className="ml-auto" />
+        )}
       </button>
       {!collapsed && (
-        <div>
+        <div className="rounded-lg border border-milestone-line overflow-hidden">
           {goals.map((goal) => (
             <GoalRow key={goal.id} goal={goal} />
           ))}
@@ -211,25 +230,29 @@ export default function MilestoneCharts({
   groups: Group[];
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-milestone-line p-6">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">
-            A. Milestone Charts
+          <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">
+            Goal Progress
           </h2>
-          <p className="text-xs text-gray-400 mt-0.5">All bars are normalized to the same length</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Click active nodes to mark complete
+          </p>
         </div>
-        {/* Legend */}
-        <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap justify-end">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
           {[
-            { color: "#36A852", label: "Completed" },
+            { color: "#36A852", label: "Done" },
             { color: "#1769FF", label: "Next" },
             { color: "#F8B400", label: "In Progress" },
-            { color: "#EA4335", label: "Overdue" },
-            { color: "#DFE6EF", label: "Upcoming" },
+            { color: "#EA4335", label: "Stuck" },
+            { color: "#E2E8F0", label: "Upcoming" },
           ].map(({ color, label }) => (
-            <span key={label} className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: color }} />
+            <span key={label} className="flex items-center gap-1 text-[11px] text-gray-400">
+              <span
+                className="w-2 h-2 rounded-full inline-block shrink-0"
+                style={{ backgroundColor: color }}
+              />
               {label}
             </span>
           ))}
@@ -238,15 +261,16 @@ export default function MilestoneCharts({
 
       {groups.map((group) => {
         const groupGoals = goals.filter((g) => g.group_id === group.id);
-        return (
-          <GroupSection key={group.id} group={group} goals={groupGoals} />
-        );
+        return <GroupSection key={group.id} group={group} goals={groupGoals} />;
       })}
 
       {goals.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          <Target size={32} className="mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No active goals yet. Create your first goal below.</p>
+        <div className="text-center py-14">
+          <Target size={36} className="mx-auto mb-3 text-gray-200" />
+          <p className="text-sm font-medium text-gray-400">No active goals yet.</p>
+          <p className="text-xs text-gray-300 mt-1">
+            Create your first goal below to get started.
+          </p>
         </div>
       )}
     </div>

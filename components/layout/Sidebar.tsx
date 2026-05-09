@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Crosshair,
@@ -12,72 +13,156 @@ import {
   Bot,
   Settings,
   ChevronLeft,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Kill List", href: "/kill-list", icon: Crosshair },
-  { label: "Timeline", href: "/timeline", icon: Clock },
-  { label: "Goals", href: "/goals", icon: Target },
-  { label: "Groups", href: "/groups", icon: Users },
-  { label: "Templates", href: "/templates", icon: FileText },
-  { label: "AI Assistant", href: "/ai", icon: Bot },
-  { label: "Settings", href: "/settings", icon: Settings },
+const navSections = [
+  {
+    label: "Main",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Kill List", href: "/kill-list", icon: Crosshair },
+      { label: "Timeline", href: "/timeline", icon: Clock },
+      { label: "Goals", href: "/goals", icon: Target },
+    ],
+  },
+  {
+    label: "Organize",
+    items: [
+      { label: "Groups", href: "/groups", icon: Users },
+      { label: "Templates", href: "/templates", icon: FileText },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { label: "AI Assistant", href: "/ai", icon: Bot },
+      { label: "Settings", href: "/settings", icon: Settings },
+    ],
+  },
 ];
 
 export default function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("sidebar-collapsed");
+    if (stored === "true") setCollapsed(true);
+  }, []);
+
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("sidebar-collapsed", String(next));
+  };
+
+  const username = user.email?.split("@")[0] ?? "User";
+  const initial = username[0].toUpperCase();
 
   return (
-    <aside className="w-[200px] min-h-screen bg-milestone-sidebar flex flex-col shrink-0">
+    <aside
+      className={`${
+        collapsed ? "w-[60px]" : "w-[220px]"
+      } min-h-screen bg-milestone-sidebar flex flex-col shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden`}
+    >
       {/* Brand */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-        <div className="w-8 h-8 rounded-lg bg-milestone-blue flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">M</span>
+      <div
+        className={`flex items-center gap-3 px-4 py-5 border-b border-white/[0.08] ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/40">
+          <Zap size={15} className="text-white fill-white" />
         </div>
-        <span className="text-white font-semibold text-base">Milestone</span>
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="text-white font-bold text-[15px] tracking-tight leading-none">
+              Milestone
+            </p>
+            <p className="text-white/30 text-[10px] mt-0.5">Goal CRM</p>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-3 space-y-0.5">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? "bg-milestone-blue text-white"
-                  : "text-gray-400 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <Icon size={17} />
-              {label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
+        {navSections.map((section, sectionIdx) => (
+          <div
+            key={section.label}
+            className={sectionIdx > 0 ? "mt-1 pt-1 border-t border-white/[0.05]" : ""}
+          >
+            {!collapsed && (
+              <p className="text-white/25 text-[10px] font-semibold tracking-widest uppercase px-4 pt-2 pb-1">
+                {section.label}
+              </p>
+            )}
+            <div className="px-2 space-y-0.5">
+              {section.items.map(({ label, href, icon: Icon }) => {
+                const active =
+                  pathname === href || (href !== "/" && pathname.startsWith(href));
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={collapsed ? label : undefined}
+                    className={`relative flex items-center rounded-lg text-sm font-medium transition-all duration-150 group
+                      ${collapsed ? "justify-center py-2.5 px-0" : "gap-3 px-3 py-2.5"}
+                      ${
+                        active
+                          ? "bg-white/[0.1] text-white"
+                          : "text-white/50 hover:text-white/90 hover:bg-white/[0.07]"
+                      }`}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-milestone-blue rounded-r-full" />
+                    )}
+                    <Icon
+                      size={17}
+                      className={
+                        active
+                          ? "text-white shrink-0"
+                          : "text-white/50 group-hover:text-white/80 shrink-0"
+                      }
+                    />
+                    {!collapsed && <span>{label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* User */}
-      <div className="px-4 py-4 border-t border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-milestone-blue/30 flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-semibold uppercase">
-              {user.email?.[0] ?? "U"}
-            </span>
+      {/* User + Collapse */}
+      <div className="border-t border-white/[0.08] p-3 space-y-2.5">
+        <div className={`flex items-center gap-2.5 ${collapsed ? "justify-center" : "px-1"}`}>
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500/50 to-milestone-blue/60 flex items-center justify-center shrink-0 ring-1 ring-white/10">
+            <span className="text-white text-xs font-bold">{initial}</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-medium truncate">
-              {user.email?.split("@")[0] ?? "User"}
-            </p>
-            <p className="text-gray-500 text-xs">Pro Plan</p>
-          </div>
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-[13px] font-semibold truncate">{username}</p>
+              <p className="text-white/30 text-[10px]">Pro Plan</p>
+            </div>
+          )}
         </div>
-        <button className="flex items-center gap-1 text-gray-500 hover:text-gray-300 text-xs mt-3 transition-colors">
-          <ChevronLeft size={12} />
-          Collapse
+        <button
+          onClick={toggle}
+          className={`flex items-center gap-1.5 text-white/25 hover:text-white/60 text-xs transition-colors w-full ${
+            collapsed ? "justify-center" : "px-1"
+          }`}
+        >
+          {collapsed ? (
+            <ChevronRight size={14} />
+          ) : (
+            <>
+              <ChevronLeft size={14} />
+              <span>Collapse</span>
+            </>
+          )}
         </button>
       </div>
     </aside>
