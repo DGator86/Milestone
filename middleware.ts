@@ -1,7 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
 export async function middleware(request: NextRequest) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -31,7 +36,16 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ["/dashboard", "/kill-list", "/goals", "/groups", "/settings"];
+  const protectedRoutes = [
+    "/dashboard",
+    "/kill-list",
+    "/goals",
+    "/groups",
+    "/settings",
+    "/timeline",
+    "/templates",
+    "/ai",
+  ];
   const authRoutes = ["/login", "/signup"];
 
   if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {

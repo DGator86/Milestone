@@ -104,5 +104,8 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
 
 export async function ensureDefaults() {
   const supabase = await createClient();
-  await supabase.rpc("ensure_default_groups");
+  const { error } = await supabase.rpc("ensure_default_groups");
+  if (error) {
+    console.error("ensure_default_groups failed:", error.message);
+  }
 }
