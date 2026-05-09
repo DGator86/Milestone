@@ -14,7 +14,6 @@ interface TopBarProps {
 }
 
 export default function TopBar({
-  groups,
   currentGroup,
   currentSort,
   currentStatus,
@@ -39,11 +38,11 @@ export default function TopBar({
   }
 
   return (
-    <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-milestone-line px-4 md:px-6 py-3.5 flex items-center justify-between gap-3">
-      {/* Mobile hamburger */}
+    <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-milestone-line px-4 md:px-6 py-3 flex items-center gap-3">
+      {/* Mobile hamburger — opens sidebar for secondary nav */}
       <button
         onClick={toggleMobile}
-        className="md:hidden p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+        className="md:hidden p-2 -ml-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
         aria-label="Open menu"
       >
         <Menu size={20} />
@@ -55,26 +54,10 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        {/* Grouped filter controls */}
+        {/* Sort + Status filters */}
         <div className="flex items-center bg-gray-50 border border-milestone-line rounded-lg overflow-hidden text-sm divide-x divide-milestone-line">
-          <label className="flex items-center gap-1.5 px-3 py-2 cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="text-gray-400 text-xs font-medium hidden sm:inline">Group</span>
-            <select
-              value={currentGroup}
-              onChange={(e) => navigate("group", e.target.value)}
-              className="text-gray-700 font-semibold bg-transparent appearance-none cursor-pointer focus:outline-none text-xs"
-            >
-              <option value="">All</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex items-center gap-1.5 px-3 py-2 cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="text-gray-400 text-xs font-medium hidden sm:inline">Sort</span>
+          <label className="flex items-center gap-1.5 px-3 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
+            <span className="text-gray-400 text-xs font-medium">Sort</span>
             <select
               value={currentSort}
               onChange={(e) => navigate("sort", e.target.value)}
@@ -87,8 +70,8 @@ export default function TopBar({
             </select>
           </label>
 
-          <label className="flex items-center gap-1.5 px-3 py-2 cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="text-gray-400 text-xs font-medium hidden sm:inline">Status</span>
+          <label className="flex items-center gap-1.5 px-3 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
+            <span className="text-gray-400 text-xs font-medium">Show</span>
             <select
               value={currentStatus}
               onChange={(e) => navigate("status", e.target.value)}
@@ -96,16 +79,16 @@ export default function TopBar({
             >
               <option value="active">Active</option>
               <option value="all">All</option>
-              <option value="completed">Completed</option>
+              <option value="completed">Done</option>
             </select>
           </label>
         </div>
 
         <Link
           href="#create-goal"
-          className="flex items-center gap-1.5 bg-milestone-blue text-white px-3 md:px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors shadow-sm shadow-blue-200 whitespace-nowrap"
+          className="flex items-center gap-1.5 bg-milestone-blue text-white px-3 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors shadow-sm shadow-blue-200 whitespace-nowrap"
         >
-          <Plus size={15} strokeWidth={2.5} />
+          <Plus size={16} strokeWidth={2.5} />
           <span className="hidden sm:inline">New Goal</span>
         </Link>
       </div>
