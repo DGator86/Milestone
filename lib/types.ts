@@ -49,7 +49,6 @@ export interface Goal {
   user_id: string;
   group_id: string;
   contact_id: string | null;
-  deal_value: number | null;
   title: string;
   goal_type: GoalType;
   importance: GoalImportance;

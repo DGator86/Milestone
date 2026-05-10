@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { TrendingUp, Target, ArrowRight, DollarSign } from "lucide-react";
+import { TrendingUp, Target, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails } from "@/lib/types";
@@ -9,17 +9,10 @@ import type { GoalWithDetails } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 const STAGES = [
-  { key: "active", label: "Active", color: "text-milestone-blue bg-milestone-blue-dim", bar: "#1769FF" },
-  { key: "completed", label: "Won", color: "text-milestone-green bg-milestone-green-dim", bar: "#36A852" },
-  { key: "archived", label: "Lost / Archived", color: "text-gray-400 bg-gray-100", bar: "#9CA3AF" },
+  { key: "active", label: "In Progress", color: "text-milestone-blue bg-milestone-blue-dim", bar: "#1769FF" },
+  { key: "completed", label: "Completed", color: "text-milestone-green bg-milestone-green-dim", bar: "#36A852" },
+  { key: "archived", label: "Archived", color: "text-gray-400 bg-gray-100", bar: "#9CA3AF" },
 ];
-
-function formatValue(val: number | null): string {
-  if (!val) return "";
-  if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
-  if (val >= 1000) return `$${(val / 1000).toFixed(0)}k`;
-  return `$${val.toLocaleString()}`;
-}
 
 export default async function PipelinePage() {
   const supabase = await createClient();
@@ -38,57 +31,22 @@ export default async function PipelinePage() {
     ),
   }));
 
-  const totalActiveValue = goals
-    .filter((g) => g.status === "active")
-    .reduce((sum, g) => sum + (g.deal_value ?? 0), 0);
-
-  const totalWonValue = goals
-    .filter((g) => g.status === "completed")
-    .reduce((sum, g) => sum + (g.deal_value ?? 0), 0);
-
   return (
     <AppShell user={user}>
       <div className="p-4 md:p-6 max-w-3xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <TrendingUp size={20} className="text-milestone-blue" />
-              Pipeline
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">All deals and their milestones</p>
-          </div>
-          {totalActiveValue > 0 && (
-            <div className="text-right">
-              <p className="text-xl font-bold text-milestone-blue">{formatValue(totalActiveValue)}</p>
-              <p className="text-[11px] text-gray-400">active pipeline</p>
-            </div>
-          )}
+        <div className="mb-6">
+          <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <TrendingUp size={20} className="text-milestone-blue" />
+            Pipeline
+          </h1>
+          <p className="text-xs text-gray-400 mt-0.5">Goals and their milestone steps</p>
         </div>
-
-        {/* Summary chips */}
-        {(totalActiveValue > 0 || totalWonValue > 0) && (
-          <div className="flex gap-3 mb-6 flex-wrap">
-            {totalActiveValue > 0 && (
-              <div className="flex items-center gap-1.5 bg-milestone-blue-dim text-milestone-blue text-xs font-semibold px-3 py-1.5 rounded-full">
-                <DollarSign size={12} />
-                {formatValue(totalActiveValue)} in play
-              </div>
-            )}
-            {totalWonValue > 0 && (
-              <div className="flex items-center gap-1.5 bg-milestone-green-dim text-milestone-green text-xs font-semibold px-3 py-1.5 rounded-full">
-                <DollarSign size={12} />
-                {formatValue(totalWonValue)} won
-              </div>
-            )}
-          </div>
-        )}
 
         {goals.length === 0 ? (
           <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">No deals yet.</p>
-            <p className="text-xs text-gray-300 mt-1">Create a goal on the dashboard to start tracking deals.</p>
+            <p className="text-sm font-medium text-gray-400">No goals yet.</p>
+            <p className="text-xs text-gray-300 mt-1">Create a goal on the dashboard to get started.</p>
           </div>
         ) : (
           STAGES.map(({ key, label, color, bar }) => {
@@ -103,53 +61,39 @@ export default async function PipelinePage() {
                   </span>
                   <span className="text-xs text-gray-400">({stageGoals.length})</span>
                 </div>
+
                 <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
                   {stageGoals.map((goal) => {
                     const progress = calcProgress(goal.milestones ?? []);
-                    const nextMs = goal.milestones?.find((m) => m.status !== "completed");
+                    const milestones = goal.milestones ?? [];
+                    const contact = (goal as GoalWithDetails & { contacts?: { name: string } }).contacts;
 
                     return (
                       <div
                         key={goal.id}
-                        className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/50 transition-colors"
+                        className="px-5 py-4 border-b border-milestone-line last:border-0"
                         style={{ borderLeftWidth: 3, borderLeftColor: bar }}
                       >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                            <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">
-                              {goal.groups?.name}
-                            </span>
-                            {(goal as GoalWithDetails & { contacts?: { name: string } }).contacts && (
-                              <>
-                                <span className="text-gray-200 text-xs">·</span>
-                                <span className="text-[11px] text-gray-500 font-medium">
-                                  {(goal as GoalWithDetails & { contacts?: { name: string } }).contacts?.name}
-                                </span>
-                              </>
-                            )}
-                            {goal.deal_value && (
-                              <>
-                                <span className="text-gray-200 text-xs">·</span>
-                                <span className="text-[11px] font-bold text-milestone-green">
-                                  {formatValue(goal.deal_value)}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <p className="font-semibold text-gray-900 text-sm leading-snug">{goal.title}</p>
-                          {nextMs && (
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <ArrowRight size={11} className="text-gray-300 shrink-0" />
-                              <span className="text-xs text-gray-500">{nextMs.title}</span>
+                        {/* Goal header */}
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">
+                                {goal.groups?.name}
+                              </span>
+                              {contact && (
+                                <>
+                                  <span className="text-gray-200 text-xs">·</span>
+                                  <span className="text-[11px] text-gray-500 font-medium">{contact.name}</span>
+                                </>
+                              )}
                             </div>
-                          )}
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          <div className="flex items-center gap-2 justify-end">
+                            <p className="font-semibold text-gray-900 text-sm leading-snug">{goal.title}</p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                               <div
-                                className="h-full rounded-full"
+                                className="h-full rounded-full transition-all"
                                 style={{ width: `${progress}%`, backgroundColor: bar }}
                               />
                             </div>
@@ -157,12 +101,66 @@ export default async function PipelinePage() {
                               {progress}%
                             </span>
                           </div>
-                          {goal.due_date && (
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </p>
-                          )}
                         </div>
+
+                        {/* Milestone steps */}
+                        <div className="space-y-1">
+                          {milestones.map((ms, i) => {
+                            const isCompleted = ms.status === "completed";
+                            const isActive = ms.status === "in_progress" || ms.status === "waiting";
+                            const isStuck = ms.status === "stuck";
+
+                            return (
+                              <div key={ms.id} className="flex items-center gap-2.5">
+                                <div
+                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                    isCompleted
+                                      ? "bg-milestone-green border-milestone-green"
+                                      : isStuck
+                                      ? "border-milestone-red"
+                                      : isActive
+                                      ? "border-milestone-blue"
+                                      : "border-gray-200"
+                                  }`}
+                                >
+                                  {isCompleted && (
+                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                      <path d="M1.5 4l2 2 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                  )}
+                                  {isStuck && (
+                                    <span className="text-milestone-red text-[8px] font-bold leading-none">!</span>
+                                  )}
+                                  {isActive && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-milestone-blue" />
+                                  )}
+                                </div>
+                                <span
+                                  className={`text-xs leading-snug ${
+                                    isCompleted
+                                      ? "line-through text-gray-300"
+                                      : isActive
+                                      ? "font-semibold text-gray-800"
+                                      : isStuck
+                                      ? "font-semibold text-milestone-red"
+                                      : "text-gray-400"
+                                  }`}
+                                >
+                                  {ms.title}
+                                </span>
+                                {i === 0 && !isCompleted && milestones.length > 1 && (
+                                  <ArrowRight size={10} className="text-gray-300 shrink-0" />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {goal.due_date && (
+                          <p className="text-[11px] text-gray-400 mt-2">
+                            Due {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        )}
                       </div>
                     );
                   })}
@@ -181,7 +179,7 @@ export default async function PipelinePage() {
               <div className="w-7 h-7 rounded-lg border-2 border-dashed border-current flex items-center justify-center group-hover:bg-milestone-blue group-hover:border-milestone-blue group-hover:text-white transition-all">
                 <Target size={15} />
               </div>
-              <span className="font-medium">Add a deal on the dashboard</span>
+              <span className="font-medium">Add a new goal</span>
             </Link>
           </div>
         )}
