@@ -68,7 +68,7 @@ export default async function FollowUpsPage() {
         {followUps.length === 0 ? (
           <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-semibold text-gray-400">You're all caught up!</p>
+            <p className="text-sm font-semibold text-gray-400">{"You're all caught up!"}</p>
             <p className="text-xs text-gray-300 mt-1">
               No contacts are overdue for a touch right now.
             </p>
