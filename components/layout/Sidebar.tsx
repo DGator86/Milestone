@@ -5,9 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
-  Crosshair,
-  Clock,
-  Target,
+  UserCheck,
+  TrendingUp,
   Users,
   FileText,
   Bot,
@@ -15,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Bell,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useMobileSidebar } from "@/lib/sidebar-context";
@@ -24,15 +24,15 @@ const navSections = [
     label: "Main",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Kill List", href: "/kill-list", icon: Crosshair },
-      { label: "Timeline", href: "/timeline", icon: Clock },
-      { label: "Goals", href: "/goals", icon: Target },
+      { label: "Follow-ups", href: "/follow-ups", icon: Bell },
+      { label: "Pipeline", href: "/pipeline", icon: TrendingUp },
+      { label: "Contacts", href: "/contacts", icon: Users },
     ],
   },
   {
     label: "Organize",
     items: [
-      { label: "Groups", href: "/groups", icon: Users },
+      { label: "Lists", href: "/groups", icon: UserCheck },
       { label: "Templates", href: "/templates", icon: FileText },
     ],
   },
@@ -55,7 +55,6 @@ export default function Sidebar({ user }: { user: User }) {
     if (stored === "true") setCollapsed(true);
   }, []);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     closeMobile();
   }, [pathname, closeMobile]);
@@ -71,7 +70,6 @@ export default function Sidebar({ user }: { user: User }) {
 
   return (
     <>
-      {/* Mobile backdrop */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -81,12 +79,9 @@ export default function Sidebar({ user }: { user: User }) {
 
       <aside
         className={[
-          // Mobile: fixed overlay, Desktop: static
           "fixed md:static inset-y-0 left-0 z-50",
-          // Width: always 220px on mobile (when open), responsive on desktop
           "w-[220px]",
           collapsed ? "md:w-[60px]" : "md:w-[220px]",
-          // Mobile visibility via transform
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           "min-h-screen bg-milestone-sidebar flex flex-col shrink-0",
           "transition-[width,transform] duration-200 ease-in-out overflow-hidden",
