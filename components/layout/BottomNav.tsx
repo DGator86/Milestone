@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Crosshair, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Bell, UserCheck, Settings } from "lucide-react";
 
 const items = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Goals", href: "/goals", icon: Target },
-  { label: "Kill List", href: "/kill-list", icon: Crosshair },
-  { label: "Groups", href: "/groups", icon: Users },
+  { label: "Contacts", href: "/contacts", icon: Users },
+  { label: "Follow-ups", href: "/follow-ups", icon: Bell },
+  { label: "Lists", href: "/groups", icon: UserCheck },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
