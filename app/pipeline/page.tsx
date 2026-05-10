@@ -1,18 +1,98 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { TrendingUp, Target, ArrowRight } from "lucide-react";
+import { TrendingUp, Target } from "lucide-react";
 import Link from "next/link";
-import { calcProgress } from "@/lib/progress";
-import type { GoalWithDetails } from "@/lib/types";
+import type { GoalWithDetails, Milestone } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const STAGES = [
-  { key: "active", label: "In Progress", color: "text-milestone-blue bg-milestone-blue-dim", bar: "#1769FF" },
-  { key: "completed", label: "Completed", color: "text-milestone-green bg-milestone-green-dim", bar: "#36A852" },
-  { key: "archived", label: "Archived", color: "text-gray-400 bg-gray-100", bar: "#9CA3AF" },
+  { key: "active",    label: "In Progress", color: "text-milestone-blue bg-milestone-blue-dim",   bar: "#1769FF" },
+  { key: "completed", label: "Completed",   color: "text-milestone-green bg-milestone-green-dim", bar: "#36A852" },
+  { key: "archived",  label: "Archived",    color: "text-gray-400 bg-gray-100",                   bar: "#9CA3AF" },
 ];
+
+function dotColor(ms: Milestone, index: number, all: Milestone[]): string {
+  if (ms.status === "completed")  return "#36A852";
+  if (ms.status === "stuck")      return "#EA4335";
+  if (ms.status === "in_progress" || ms.status === "waiting") return "#1769FF";
+  const firstActive = all.findIndex((m) => m.status !== "completed");
+  if (index === firstActive)      return "#1769FF";
+  return "#E2E8F0";
+}
+
+function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
+  if (milestones.length === 0) return null;
+
+  return (
+    <div className="relative w-full mt-3 pb-1">
+      {/* Connecting lines sit behind the dots */}
+      <div className="absolute top-[10px] left-0 right-0 flex" style={{ zIndex: 0 }}>
+        {milestones.slice(0, -1).map((ms, i) => {
+          const next = milestones[i + 1];
+          const filled = ms.status === "completed" && next.status === "completed";
+          return (
+            <div
+              key={ms.id}
+              className="flex-1 h-0.5"
+              style={{ backgroundColor: filled ? "#36A852" : "#E2E8F0" }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Dots + labels */}
+      <div className="relative flex justify-between" style={{ zIndex: 1 }}>
+        {milestones.map((ms, i) => {
+          const color = dotColor(ms, i, milestones);
+          const isCompleted = ms.status === "completed";
+          const isStuck = ms.status === "stuck";
+
+          return (
+            <div
+              key={ms.id}
+              className="flex flex-col items-center gap-1.5"
+              style={{ width: `${100 / milestones.length}%`, minWidth: 0 }}
+            >
+              {/* Dot */}
+              <div
+                className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
+                style={{
+                  borderColor: color,
+                  backgroundColor: isCompleted ? color : "white",
+                }}
+              >
+                {isCompleted && (
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <path d="M1.5 4.5l2.2 2.2 3.8-3.8" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {isStuck && (
+                  <span style={{ color: "#EA4335", fontSize: 9, fontWeight: 700, lineHeight: 1 }}>!</span>
+                )}
+                {(ms.status === "in_progress" || ms.status === "waiting") && (
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                )}
+              </div>
+
+              {/* Label */}
+              <span
+                className="text-[10px] text-center leading-tight w-full px-0.5 truncate"
+                style={{
+                  color: isCompleted ? "#36A852" : isStuck ? "#EA4335" : color === "#1769FF" ? "#111" : "#9CA3AF",
+                  fontWeight: color === "#1769FF" || isStuck ? 600 : 400,
+                }}
+              >
+                {ms.title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default async function PipelinePage() {
   const supabase = await createClient();
@@ -64,7 +144,6 @@ export default async function PipelinePage() {
 
                 <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
                   {stageGoals.map((goal) => {
-                    const progress = calcProgress(goal.milestones ?? []);
                     const milestones = goal.milestones ?? [];
                     const contact = (goal as GoalWithDetails & { contacts?: { name: string } }).contacts;
 
@@ -74,10 +153,10 @@ export default async function PipelinePage() {
                         className="px-5 py-4 border-b border-milestone-line last:border-0"
                         style={{ borderLeftWidth: 3, borderLeftColor: bar }}
                       >
-                        {/* Goal header */}
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                        {/* Goal title row */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
                               <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">
                                 {goal.groups?.name}
                               </span>
@@ -90,77 +169,15 @@ export default async function PipelinePage() {
                             </div>
                             <p className="font-semibold text-gray-900 text-sm leading-snug">{goal.title}</p>
                           </div>
-                          <div className="shrink-0 flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{ width: `${progress}%`, backgroundColor: bar }}
-                              />
-                            </div>
-                            <span className="text-xs font-bold tabular-nums text-gray-700 w-8 text-right">
-                              {progress}%
+                          {goal.due_date && (
+                            <span className="text-[11px] text-gray-400 shrink-0 pt-0.5">
+                              {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
-                          </div>
+                          )}
                         </div>
 
-                        {/* Milestone steps */}
-                        <div className="space-y-1">
-                          {milestones.map((ms, i) => {
-                            const isCompleted = ms.status === "completed";
-                            const isActive = ms.status === "in_progress" || ms.status === "waiting";
-                            const isStuck = ms.status === "stuck";
-
-                            return (
-                              <div key={ms.id} className="flex items-center gap-2.5">
-                                <div
-                                  className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                    isCompleted
-                                      ? "bg-milestone-green border-milestone-green"
-                                      : isStuck
-                                      ? "border-milestone-red"
-                                      : isActive
-                                      ? "border-milestone-blue"
-                                      : "border-gray-200"
-                                  }`}
-                                >
-                                  {isCompleted && (
-                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                      <path d="M1.5 4l2 2 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  )}
-                                  {isStuck && (
-                                    <span className="text-milestone-red text-[8px] font-bold leading-none">!</span>
-                                  )}
-                                  {isActive && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-milestone-blue" />
-                                  )}
-                                </div>
-                                <span
-                                  className={`text-xs leading-snug ${
-                                    isCompleted
-                                      ? "line-through text-gray-300"
-                                      : isActive
-                                      ? "font-semibold text-gray-800"
-                                      : isStuck
-                                      ? "font-semibold text-milestone-red"
-                                      : "text-gray-400"
-                                  }`}
-                                >
-                                  {ms.title}
-                                </span>
-                                {i === 0 && !isCompleted && milestones.length > 1 && (
-                                  <ArrowRight size={10} className="text-gray-300 shrink-0" />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {goal.due_date && (
-                          <p className="text-[11px] text-gray-400 mt-2">
-                            Due {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          </p>
-                        )}
+                        {/* Uniform-width milestone track */}
+                        <MilestoneTrack milestones={milestones} />
                       </div>
                     );
                   })}
