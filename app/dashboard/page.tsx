@@ -11,6 +11,7 @@ import CreateGoalForm from "@/components/forms/CreateGoalForm";
 import { ToastTrigger } from "@/components/ui/ToastTrigger";
 import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
 import GroupTabs from "@/components/dashboard/GroupTabs";
+import GoalWizard from "@/components/dashboard/GoalWizard";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, GoalImportance } from "@/lib/types";
 
@@ -99,6 +100,7 @@ export default async function DashboardPage({
         <ToastTrigger />
       </Suspense>
       <RealtimeDashboard />
+      {goals.length === 0 && <GoalWizard groups={safeGroups} />}
       <div className="flex flex-col">
         <TopBar
           groups={safeGroups}
