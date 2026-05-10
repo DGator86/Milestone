@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useOptimistic } from "react";
-import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target } from "lucide-react";
+import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target, CheckCircle2, Circle, AlertCircle, Clock, Loader } from "lucide-react";
 import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
 import { useToast } from "@/lib/toast-context";
@@ -26,6 +26,23 @@ function getMilestoneColor(ms: Milestone, index: number, allMs: Milestone[]): st
 function isOverdue(dueDate: string | null): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date();
+}
+
+const STATUS_CONFIG: Record<MilestoneStatus, { label: string; cls: string; Icon: React.ComponentType<{ size?: number }> }> = {
+  completed: { label: "Done", cls: "bg-milestone-green-dim text-milestone-green", Icon: CheckCircle2 },
+  in_progress: { label: "In Progress", cls: "bg-milestone-amber-dim text-milestone-amber", Icon: Loader },
+  waiting: { label: "Waiting", cls: "bg-milestone-blue-dim text-milestone-blue", Icon: Clock },
+  stuck: { label: "Stuck", cls: "bg-milestone-red-dim text-milestone-red", Icon: AlertCircle },
+  upcoming: { label: "Upcoming", cls: "bg-gray-100 text-gray-400", Icon: Circle },
+};
+
+function MilestoneStatusBadge({ status }: { status: MilestoneStatus }) {
+  const { label, cls } = STATUS_CONFIG[status];
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${cls}`}>
+      {label}
+    </span>
+  );
 }
 
 function MilestoneNode({
@@ -187,6 +204,7 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
           </div>
           <button
             onClick={() => setExpanded((e) => !e)}
+            aria-label={expanded ? "Collapse" : "Expand milestone details"}
             className="text-gray-300 hover:text-gray-500 transition-colors"
           >
             <ChevronDown
@@ -196,6 +214,34 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
           </button>
         </div>
       </div>
+
+      {expanded && (
+        <div className="mt-2 ml-48 border-t border-milestone-line pt-3 pb-1 space-y-1">
+          {optimisticMilestones.map((ms, i) => (
+            <div key={ms.id} className="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-gray-50/80 transition-colors">
+              <span className="text-[10px] font-bold text-gray-300 w-4 text-right tabular-nums shrink-0">
+                {i + 1}
+              </span>
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: getMilestoneColor(ms, i, optimisticMilestones) }}
+              />
+              <span
+                className={`text-xs flex-1 truncate ${
+                  ms.status === "completed"
+                    ? "line-through text-gray-400"
+                    : ms.status === "in_progress" || ms.status === "stuck"
+                    ? "font-semibold text-gray-800"
+                    : "text-gray-600"
+                }`}
+              >
+                {ms.title}
+              </span>
+              <MilestoneStatusBadge status={ms.status} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
