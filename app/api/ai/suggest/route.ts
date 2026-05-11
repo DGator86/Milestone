@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ollamaChat, ollamaConfigured, OLLAMA_MODEL } from "@/lib/ollama";
 
 const TYPE_LABELS: Record<string, string> = {
   concrete: "Project (defined goal with a clear finish line)",
@@ -14,44 +14,44 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ error: "AI not configured" }, { status: 503 });
+  if (!ollamaConfigured()) {
+    return NextResponse.json({ error: "OLLAMA_BASE_URL not configured" }, { status: 503 });
   }
 
   const { title, goal_type } = await req.json();
   if (!title?.trim()) return NextResponse.json({ error: "title required" }, { status: 400 });
 
-  const client = new Anthropic();
   const typeLabel = TYPE_LABELS[goal_type] ?? "Project";
 
-  const msg = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 256,
-    messages: [
-      {
-        role: "user",
-        content: `Goal: "${title.trim()}"
+  try {
+    const text = await ollamaChat(
+      [
+        {
+          role: "system",
+          content:
+            `You are a goal-setting assistant using model ${OLLAMA_MODEL}. ` +
+            "Return ONLY a valid JSON array of exactly 4 short action phrases (3-7 words each). No markdown, no explanation.",
+        },
+        {
+          role: "user",
+          content: `Goal: "${title.trim()}"
 Type: ${typeLabel}
 
-Suggest exactly 4 clear, sequential milestone steps to achieve this goal. Each should be a short action phrase (3-7 words). Return ONLY a valid JSON array of 4 strings with no other text.
+Return a JSON array of 4 sequential milestone steps, e.g.:
+["Research and define scope","Complete first draft","Review and revise","Finalize and deliver"]`,
+        },
+      ],
+      true // request JSON mode
+    );
 
-Example format: ["Research and define scope","Complete first draft","Review and revise","Finalize and deliver"]`,
-      },
-    ],
-  });
-
-  const text = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-
-  try {
-    const arr = JSON.parse(text);
-    if (Array.isArray(arr)) return NextResponse.json({ milestones: arr.slice(0, 6) });
-  } catch {
     const match = text.match(/\[[\s\S]*?\]/);
-    if (match) {
-      const arr = JSON.parse(match[0]);
-      return NextResponse.json({ milestones: arr.slice(0, 6) });
-    }
-  }
+    const raw = match ? match[0] : text;
+    const arr = JSON.parse(raw);
 
-  return NextResponse.json({ error: "Could not parse suggestions" }, { status: 500 });
+    if (!Array.isArray(arr)) throw new Error("not an array");
+    return NextResponse.json({ milestones: arr.slice(0, 6) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

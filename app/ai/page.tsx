@@ -1,49 +1,56 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import Anthropic from "@anthropic-ai/sdk";
+import { ollamaChat, ollamaConfigured, OLLAMA_MODEL } from "@/lib/ollama";
 import { Bot, TrendingUp, AlertTriangle, CheckCircle2, Zap, Users } from "lucide-react";
 import type { GoalWithDetails } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+interface FocusItem {
+  type: "action" | "watch" | "celebrate";
+  title: string;
+  detail: string;
+}
+
 interface CoachReport {
   headline: string;
-  focusItems: { type: "action" | "watch" | "celebrate"; title: string; detail: string }[];
+  focusItems: FocusItem[];
   contactNudge: string | null;
   weeklyTip: string;
 }
 
 const FOCUS_STYLES = {
-  action: { icon: Zap, bg: "bg-milestone-blue-dim", text: "text-milestone-blue", label: "Do this" },
-  watch: { icon: AlertTriangle, bg: "bg-milestone-amber-dim", text: "text-milestone-amber", label: "Watch out" },
-  celebrate: { icon: CheckCircle2, bg: "bg-milestone-green-dim", text: "text-milestone-green", label: "Win" },
-};
+  action:    { icon: Zap,           bg: "bg-milestone-blue-dim",  text: "text-milestone-blue",  label: "Do this" },
+  watch:     { icon: AlertTriangle, bg: "bg-milestone-amber-dim", text: "text-milestone-amber", label: "Watch out" },
+  celebrate: { icon: CheckCircle2,  bg: "bg-milestone-green-dim", text: "text-milestone-green", label: "Win" },
+} as const;
 
 async function getCoachReport(
   goals: GoalWithDetails[],
   contactCount: number,
-  overdueCount: number
+  overdueCount: number,
 ): Promise<CoachReport | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!ollamaConfigured()) return null;
 
   const goalSummary = goals.slice(0, 10).map((g) => {
-    const ms = (g.milestones ?? []);
-    const done = ms.filter((m) => m.status === "completed").length;
+    const ms = g.milestones ?? [];
+    const done  = ms.filter((m) => m.status === "completed").length;
     const stuck = ms.filter((m) => m.status === "stuck").length;
     return `- "${g.title}" (${g.status}): ${done}/${ms.length} milestones done${stuck ? `, ${stuck} stuck` : ""}`;
   }).join("\n");
 
-  const client = new Anthropic();
-
-  const msg = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    system: "You are a sharp, concise goal coach. Be direct and practical. Return only valid JSON.",
-    messages: [
-      {
-        role: "user",
-        content: `User data:
+  try {
+    const text = await ollamaChat(
+      [
+        {
+          role: "system",
+          content:
+            "You are a concise goal coach. Return ONLY valid JSON matching the schema provided. No markdown, no explanation.",
+        },
+        {
+          role: "user",
+          content: `User data:
 Goals:
 ${goalSummary || "No goals yet."}
 Contacts: ${contactCount} total, ${overdueCount} overdue for follow-up.
@@ -52,21 +59,21 @@ Return a JSON object with exactly this shape:
 {
   "headline": "one-sentence status summary (max 12 words)",
   "focusItems": [
-    { "type": "action|watch|celebrate", "title": "short title (4-6 words)", "detail": "one sentence (max 20 words)" }
+    { "type": "action", "title": "short title (4-6 words)", "detail": "one sentence max 20 words" }
   ],
-  "contactNudge": "one sentence about contact follow-ups, or null if no contacts",
-  "weeklyTip": "one actionable productivity tip (max 20 words)"
+  "contactNudge": "one sentence about follow-ups or null",
+  "weeklyTip": "one actionable tip max 20 words"
 }
 
-Include 2-4 focus items based on the data. If no goals, give onboarding-style suggestions.`,
-      },
-    ],
-  });
+type must be one of: action, watch, celebrate. Include 2-4 focus items.`,
+        },
+      ],
+      true,
+    );
 
-  const text = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-  try {
     const match = text.match(/\{[\s\S]*\}/);
-    return match ? JSON.parse(match[0]) : null;
+    if (!match) return null;
+    return JSON.parse(match[0]) as CoachReport;
   } catch {
     return null;
   }
@@ -94,7 +101,7 @@ export default async function AIPage() {
   const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
     ...g,
     milestones: [...(g.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+      (a: { position: number }, b: { position: number }) => a.position - b.position,
     ),
   }));
 
@@ -108,8 +115,7 @@ export default async function AIPage() {
   }).length;
 
   const report = await getCoachReport(goals, contacts.length, overdueCount);
-
-  const noApiKey = !process.env.ANTHROPIC_API_KEY;
+  const notConfigured = !ollamaConfigured();
 
   return (
     <AppShell user={user}>
@@ -121,23 +127,28 @@ export default async function AIPage() {
           <div>
             <h1 className="text-lg font-bold text-gray-900 tracking-tight">AI Coach</h1>
             <p className="text-xs text-gray-400 mt-0.5">
-              {report ? "Personalized analysis of your goals and contacts" : "Your personal goal coach"}
+              {report
+                ? `Powered by ${OLLAMA_MODEL} · refreshes on every visit`
+                : "Personalized goal analysis"}
             </p>
           </div>
         </div>
 
-        {noApiKey && (
-          <div className="bg-milestone-amber-dim border border-milestone-amber/20 rounded-xl px-5 py-4 mb-4">
-            <p className="text-sm font-semibold text-milestone-amber">ANTHROPIC_API_KEY not set</p>
-            <p className="text-xs text-milestone-amber/80 mt-0.5">
-              Add it to your Vercel environment variables to enable AI features.
+        {notConfigured && (
+          <div className="bg-milestone-amber-dim border border-milestone-amber/20 rounded-xl px-5 py-4 mb-4 space-y-1">
+            <p className="text-sm font-semibold text-milestone-amber">Ollama not connected</p>
+            <p className="text-xs text-milestone-amber/80">
+              Set <code className="bg-white/60 px-1 rounded">OLLAMA_BASE_URL</code> in your Vercel environment variables to the URL of your Ollama server.
+            </p>
+            <p className="text-xs text-milestone-amber/80">
+              Then run: <code className="bg-white/60 px-1 rounded">ollama pull llama3.2:3b</code> on that server.
             </p>
           </div>
         )}
 
         {report ? (
           <div className="space-y-4">
-            {/* Headline */}
+            {/* Status card */}
             <div className="bg-white rounded-xl border border-milestone-line shadow-card px-5 py-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp size={14} className="text-milestone-blue" />
@@ -156,7 +167,7 @@ export default async function AIPage() {
                 {overdueCount > 0 && (
                   <div className="text-center">
                     <p className="text-xl font-bold text-milestone-red tabular-nums">{overdueCount}</p>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Overdue follow-ups</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">Overdue</p>
                   </div>
                 )}
               </div>
@@ -166,9 +177,7 @@ export default async function AIPage() {
             {report.focusItems?.length > 0 && (
               <div className="bg-white rounded-xl border border-milestone-line shadow-card overflow-hidden">
                 <div className="px-5 py-3 border-b border-milestone-line bg-gray-50/60">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                    Focus
-                  </p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Focus</p>
                 </div>
                 <div className="divide-y divide-milestone-line">
                   {report.focusItems.map((item, i) => {
@@ -180,12 +189,10 @@ export default async function AIPage() {
                           <Icon size={15} className={style.text} />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${style.text}`}>
-                              {style.label}
-                            </span>
-                          </div>
-                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${style.text}`}>
+                            {style.label}
+                          </span>
+                          <p className="text-sm font-semibold text-gray-900 mt-0.5">{item.title}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{item.detail}</p>
                         </div>
                       </div>
@@ -219,18 +226,13 @@ export default async function AIPage() {
               </div>
             )}
           </div>
-        ) : !noApiKey ? (
+        ) : !notConfigured ? (
           <div className="bg-white rounded-xl border border-milestone-line shadow-card p-10 text-center">
             <Bot size={36} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">Could not generate coaching report.</p>
-            <p className="text-xs text-gray-300 mt-1">Try refreshing the page.</p>
+            <p className="text-sm font-medium text-gray-400">Could not generate report — is Ollama running?</p>
+            <p className="text-xs text-gray-300 mt-1">Check that your server is reachable and the model is pulled.</p>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-milestone-line shadow-card p-10 text-center">
-            <Bot size={36} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">Add your API key to get started.</p>
-          </div>
-        )}
+        ) : null}
       </div>
     </AppShell>
   );
