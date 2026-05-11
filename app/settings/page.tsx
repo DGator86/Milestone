@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { Settings, User, Shield, LogOut } from "lucide-react";
+import { Settings, User, Shield, LogOut, FlaskConical } from "lucide-react";
+import SeedDemoButton from "@/components/settings/SeedDemoButton";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,25 @@ export default async function SettingsPage() {
                   Pro Plan
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* Demo data */}
+          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                <FlaskConical size={12} />
+                Demo & Testing
+              </p>
+            </div>
+            <div className="p-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Load demo data</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                  Seeds 3 contacts, 2 groups, and 3 goals with milestones in various states so you can explore the app immediately.
+                </p>
+              </div>
+              <SeedDemoButton />
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Target, ChevronDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Target, ChevronDown, Sparkles, Loader } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
 
@@ -18,33 +18,81 @@ const GOAL_TYPES = [
   { value: "maintenance", label: "Ongoing", description: "Continuous work, no end date" },
 ] as const;
 
-interface Prefill {
-  title?: string;
-  goal_type?: string;
-  milestones?: string[];
-}
+const EMPTY_MILESTONES = Array(6).fill("");
 
 export default function CreateGoalForm({ groups }: { groups: Group[] }) {
   const [open, setOpen] = useState(false);
   const [milestoneCount, setMilestoneCount] = useState(3);
+  const [milestoneValues, setMilestoneValues] = useState<string[]>(EMPTY_MILESTONES);
   const [importance, setImportance] = useState<"normal" | "important" | "critical">("normal");
   const [goalType, setGoalType] = useState("concrete");
-  const [prefill, setPrefill] = useState<Prefill | null>(null);
+  const [titleValue, setTitleValue] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("goal_prefill");
     if (!raw) return;
     try {
       sessionStorage.removeItem("goal_prefill");
-      const data: Prefill = JSON.parse(raw);
-      setPrefill(data);
+      const data = JSON.parse(raw);
       setOpen(true);
-      if (data.milestones?.length) setMilestoneCount(Math.min(6, data.milestones.length));
+      if (data.title) setTitleValue(data.title);
       if (data.goal_type) setGoalType(data.goal_type);
+      if (Array.isArray(data.milestones) && data.milestones.length) {
+        setMilestoneCount(Math.min(6, data.milestones.length));
+        setMilestoneValues([...data.milestones, ...EMPTY_MILESTONES].slice(0, 6));
+      }
     } catch {}
   }, []);
 
   const typeDescription = GOAL_TYPES.find((t) => t.value === goalType)?.description ?? "";
+
+  const setMilestone = (i: number, val: string) => {
+    setMilestoneValues((prev) => {
+      const next = [...prev];
+      next[i] = val;
+      return next;
+    });
+  };
+
+  const suggestMilestones = async () => {
+    if (!titleValue.trim() || aiLoading) return;
+    setAiError("");
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/ai/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: titleValue, goal_type: goalType }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAiError(json.error ?? "AI unavailable");
+        return;
+      }
+      if (Array.isArray(json.milestones) && json.milestones.length) {
+        const count = Math.min(6, json.milestones.length);
+        setMilestoneCount(count);
+        setMilestoneValues([...json.milestones, ...EMPTY_MILESTONES].slice(0, 6));
+      }
+    } catch {
+      setAiError("Could not reach AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setOpen(false);
+    setTitleValue("");
+    setGoalType("concrete");
+    setImportance("normal");
+    setMilestoneCount(3);
+    setMilestoneValues(EMPTY_MILESTONES);
+    setAiError("");
+  };
 
   if (!open) {
     return (
@@ -83,10 +131,12 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             Goal Title <span className="text-milestone-red">*</span>
           </label>
           <input
+            ref={titleRef}
             name="title"
             required
             autoFocus
-            defaultValue={prefill?.title ?? ""}
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
             className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
             placeholder="e.g. Close the Acme deal, Run a 5K, Finish the deck renovation"
           />
@@ -182,36 +232,62 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
               Milestones <span className="text-milestone-red">*</span>
             </label>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
+              {/* AI suggest button */}
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.max(1, c - 1))}
-                className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
+                onClick={suggestMilestones}
+                disabled={!titleValue.trim() || aiLoading}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-milestone-blue-dim text-milestone-blue hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                −
+                {aiLoading ? (
+                  <Loader size={11} className="animate-spin" />
+                ) : (
+                  <Sparkles size={11} />
+                )}
+                {aiLoading ? "Thinking…" : "Suggest with AI"}
               </button>
-              <span className="text-sm font-semibold text-gray-600 w-4 text-center tabular-nums">
-                {milestoneCount}
-              </span>
-              <button
-                type="button"
-                onClick={() => setMilestoneCount((c) => Math.min(6, c + 1))}
-                className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
-              >
-                +
-              </button>
+
+              {/* Count controls */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMilestoneCount((c) => Math.max(1, c - 1))}
+                  className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
+                >
+                  −
+                </button>
+                <span className="text-sm font-semibold text-gray-600 w-4 text-center tabular-nums">
+                  {milestoneCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setMilestoneCount((c) => Math.min(6, c + 1))}
+                  className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
+
+          {aiError && (
+            <p className="text-xs text-milestone-red mb-2">{aiError}</p>
+          )}
 
           {/* Visual step indicators */}
           <div className="flex items-center gap-1.5 mb-2.5">
             {Array.from({ length: milestoneCount }, (_, i) => (
               <div key={i} className="flex items-center gap-1.5 flex-1">
-                <div className="w-5 h-5 rounded-full border-2 border-milestone-blue bg-white flex items-center justify-center shrink-0">
-                  <span className="text-[9px] font-bold text-milestone-blue">{i + 1}</span>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  milestoneValues[i]?.trim()
+                    ? "border-milestone-blue bg-milestone-blue"
+                    : "border-milestone-blue bg-white"
+                }`}>
+                  <span className={`text-[9px] font-bold ${milestoneValues[i]?.trim() ? "text-white" : "text-milestone-blue"}`}>{i + 1}</span>
                 </div>
                 {i < milestoneCount - 1 && (
-                  <div className="flex-1 h-px bg-milestone-line" />
+                  <div className={`flex-1 h-px transition-colors ${milestoneValues[i]?.trim() ? "bg-milestone-blue/30" : "bg-milestone-line"}`} />
                 )}
               </div>
             ))}
@@ -223,7 +299,8 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
                 key={i}
                 name={`milestone_${i + 1}`}
                 required={i === 0}
-                defaultValue={prefill?.milestones?.[i] ?? ""}
+                value={milestoneValues[i] ?? ""}
+                onChange={(e) => setMilestone(i, e.target.value)}
                 className="px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
                 placeholder={`Step ${i + 1}${i === 0 ? " *" : ""}`}
               />
@@ -240,7 +317,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
           </button>
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={resetForm}
             className="bg-gray-100 text-gray-600 px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
           >
             Cancel
