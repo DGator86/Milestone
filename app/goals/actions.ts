@@ -23,6 +23,13 @@ export async function updateMilestoneStatus(
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", milestoneId);
 
+    await supabase.from("activity_log").insert({
+      goal_id: goalId,
+      milestone_id: milestoneId,
+      action: "milestone_completed",
+      metadata: {},
+    });
+
     const { data: remaining } = await supabase
       .from("milestones")
       .select("id")
@@ -44,6 +51,13 @@ export async function updateMilestoneStatus(
       .from("milestones")
       .update({ status, completed_at: null })
       .eq("id", milestoneId);
+
+    await supabase.from("activity_log").insert({
+      goal_id: goalId,
+      milestone_id: milestoneId,
+      action: "milestone_status_changed",
+      metadata: { status },
+    });
   }
 
   revalidatePath(`/goals/${goalId}`);
