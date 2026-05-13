@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
@@ -7,36 +8,49 @@ import MilestoneCharts from "@/components/dashboard/MilestoneCharts";
 import TaskHealth from "@/components/dashboard/TaskHealth";
 import Momentum from "@/components/dashboard/Momentum";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
+import { ToastTrigger } from "@/components/ui/ToastTrigger";
+import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
+import GroupTabs from "@/components/dashboard/GroupTabs";
+import GoalWizard from "@/components/dashboard/GoalWizard";
 import { calcProgress } from "@/lib/progress";
-import { TEMPLATES } from "@/lib/templates";
-import type { GoalWithDetails, Group, GoalType, GoalImportance } from "@/lib/types";
+import type { GoalWithDetails, Group, GoalImportance } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const IMPORTANCE_ORDER: Record<string, number> = { critical: 0, important: 1, normal: 2 };
+const IMPORTANCE_ORDER: Record<GoalImportance, number> = {
+  critical: 0,
+  important: 1,
+  normal: 2,
+};
+
+function sortGoals(goals: GoalWithDetails[], by: string): GoalWithDetails[] {
+  const copy = [...goals];
+  switch (by) {
+    case "due_date":
+      return copy.sort((a, b) => {
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+    case "progress":
+      return copy.sort(
+        (a, b) => calcProgress(b.milestones) - calcProgress(a.milestones)
+      );
+    case "name":
+      return copy.sort((a, b) => a.title.localeCompare(b.title));
+    default: // priority
+      return copy.sort(
+        (a, b) =>
+          IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]
+      );
+  }
+}
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    group?: string;
-    sort?: string;
-    status?: string;
-    tpl?: string;
-    ms?: string;
-    gt?: string;
-    imp?: string;
-  }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const params = await searchParams;
-  const groupFilter = params.group ?? "";
-  const sortParam = params.sort ?? "priority";
-  const statusParam = params.status ?? "active";
-  const templateId = params.tpl ?? "";
-  const msParam = params.ms ?? "";
-  const gtParam = params.gt ?? "";
-  const impParam = params.imp ?? "";
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -45,29 +59,25 @@ export default async function DashboardPage({
 
   await ensureDefaults();
 
+  const params = await searchParams;
+  const filterGroup = params.group ?? "";
+  const sortBy = params.sort ?? "priority";
+  const filterStatus = params.status ?? "active";
+
   const { data: groups } = await supabase
     .from("groups")
     .select("*")
     .order("sort_order", { ascending: true });
 
-  let goalsQuery = supabase
+  let query = supabase
     .from("goals")
     .select("*, groups(*), milestones(*)")
     .order("created_at", { ascending: true });
 
-  if (statusParam === "completed") {
-    goalsQuery = goalsQuery.eq("status", "completed");
-  } else if (statusParam === "all") {
-    // no status filter
-  } else {
-    goalsQuery = goalsQuery.eq("status", "active");
-  }
+  if (filterStatus === "active") query = query.eq("status", "active");
+  else if (filterStatus === "completed") query = query.eq("status", "completed");
 
-  if (groupFilter) {
-    goalsQuery = goalsQuery.eq("group_id", groupFilter);
-  }
-
-  const { data: goalsRaw } = await goalsQuery;
+  const { data: goalsRaw } = await query;
 
   let goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
     ...g,
@@ -76,60 +86,42 @@ export default async function DashboardPage({
     ),
   }));
 
-  if (sortParam === "due_date") {
-    goals.sort((a, b) => {
-      if (!a.due_date && !b.due_date) return 0;
-      if (!a.due_date) return 1;
-      if (!b.due_date) return -1;
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    });
-  } else if (sortParam === "progress") {
-    goals.sort((a, b) => calcProgress(b.milestones) - calcProgress(a.milestones));
-  } else if (sortParam === "name") {
-    goals.sort((a, b) => a.title.localeCompare(b.title));
-  } else {
-    goals.sort(
-      (a, b) =>
-        (IMPORTANCE_ORDER[a.importance] ?? 2) - (IMPORTANCE_ORDER[b.importance] ?? 2)
-    );
+  if (filterGroup) {
+    goals = goals.filter((g) => g.group_id === filterGroup);
   }
+
+  goals = sortGoals(goals, sortBy);
 
   const safeGroups: Group[] = groups ?? [];
 
-  let template = templateId ? (TEMPLATES.find((t) => t.id === templateId) ?? null) : null;
-  if (!template && msParam) {
-    const milestones = msParam.split("|").filter(Boolean);
-    if (milestones.length > 0) {
-      template = {
-        id: "ai-custom",
-        title: "AI Suggestion",
-        description: "AI-generated milestone plan",
-        icon: "🤖",
-        goal_type: (gtParam || "concrete") as GoalType,
-        importance: (impParam || "normal") as GoalImportance,
-        milestones,
-        color: "from-purple-50 to-blue-50 border-purple-100",
-      };
-    }
-  }
-
   return (
     <AppShell user={user}>
-      <div className="flex flex-col gap-0">
+      <Suspense>
+        <ToastTrigger />
+      </Suspense>
+      <RealtimeDashboard />
+      {goals.length === 0 && <GoalWizard groups={safeGroups} />}
+      <div className="flex flex-col">
         <TopBar
           groups={safeGroups}
-          currentGroup={groupFilter}
-          currentSort={sortParam}
-          currentStatus={statusParam}
+          currentGroup={filterGroup}
+          currentSort={sortBy}
+          currentStatus={filterStatus}
         />
-        <div className="p-6 space-y-6">
+        <GroupTabs
+          groups={safeGroups}
+          currentGroup={filterGroup}
+          currentSort={sortBy}
+          currentStatus={filterStatus}
+        />
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
           <MilestoneCharts goals={goals} groups={safeGroups} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TaskHealth goals={goals} />
             <Momentum goals={goals} />
           </div>
           <div id="create-goal">
-            <CreateGoalForm groups={safeGroups} template={template} />
+            <CreateGoalForm groups={safeGroups} />
           </div>
         </div>
       </div>

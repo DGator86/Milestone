@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useOptimistic } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target } from "lucide-react";
+import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target, CheckCircle2, Circle, AlertCircle, Clock, Loader } from "lucide-react";
 import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
-import type { GoalWithDetails, Group, Milestone } from "@/lib/types";
+import { useToast } from "@/lib/toast-context";
+import type { GoalWithDetails, Group, Milestone, MilestoneStatus } from "@/lib/types";
 
 const GROUP_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   Work: Briefcase,
@@ -28,40 +29,49 @@ function isOverdue(dueDate: string | null): boolean {
   return new Date(dueDate) < new Date();
 }
 
+const STATUS_CONFIG: Record<MilestoneStatus, { label: string; cls: string; Icon: React.ComponentType<{ size?: number }> }> = {
+  completed: { label: "Done", cls: "bg-milestone-green-dim text-milestone-green", Icon: CheckCircle2 },
+  in_progress: { label: "In Progress", cls: "bg-milestone-amber-dim text-milestone-amber", Icon: Loader },
+  waiting: { label: "Waiting", cls: "bg-milestone-blue-dim text-milestone-blue", Icon: Clock },
+  stuck: { label: "Stuck", cls: "bg-milestone-red-dim text-milestone-red", Icon: AlertCircle },
+  upcoming: { label: "Upcoming", cls: "bg-gray-100 text-gray-400", Icon: Circle },
+};
+
+function MilestoneStatusBadge({ status }: { status: MilestoneStatus }) {
+  const { label, cls } = STATUS_CONFIG[status];
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
 function MilestoneNode({
   ms,
   index,
   allMs,
-  goalId,
+  onComplete,
 }: {
   ms: Milestone;
   index: number;
   allMs: Milestone[];
-  goalId: string;
   isLast: boolean;
+  onComplete: (ms: Milestone) => void;
 }) {
-  const [pending, startTransition] = useTransition();
   const color = getMilestoneColor(ms, index, allMs);
   const isCompleted = ms.status === "completed";
   const isActive = ms.status === "in_progress" || ms.status === "waiting";
   const isClickable = isActive || ms.status === "stuck";
 
-  function handleClick() {
-    if (!isClickable) return;
-    startTransition(async () => {
-      await completeMilestone(ms.id, goalId);
-    });
-  }
-
   return (
     <div className="flex flex-col items-center relative">
       <button
-        onClick={handleClick}
-        disabled={!isClickable || pending}
+        onClick={() => isClickable && onComplete(ms)}
+        disabled={!isClickable}
         title={isClickable ? `Complete: ${ms.title}` : ms.title}
         className={`w-7 h-7 rounded-full border-2 flex items-center justify-center z-10 transition-all ${
           isClickable ? "cursor-pointer hover:scale-110 hover:shadow-sm" : "cursor-default"
-        } ${pending ? "opacity-50" : ""}`}
+        }`}
         style={{ borderColor: color, backgroundColor: isCompleted ? color : "white" }}
       >
         {isCompleted && (
@@ -100,13 +110,32 @@ function MilestoneNode({
 
 function GoalRow({ goal }: { goal: GoalWithDetails }) {
   const [expanded, setExpanded] = useState(false);
-  const progress = calcProgress(goal.milestones ?? []);
-  const overdue = isOverdue(goal.due_date);
+  const [, startTransition] = useTransition();
+  const { show } = useToast();
   const milestones = goal.milestones ?? [];
 
+  const [optimisticMilestones, applyOptimistic] = useOptimistic(
+    milestones,
+    (state: Milestone[], completedId: string) =>
+      state.map((m) =>
+        m.id === completedId ? { ...m, status: "completed" as MilestoneStatus } : m
+      )
+  );
+
+  function handleComplete(ms: Milestone) {
+    startTransition(async () => {
+      applyOptimistic(ms.id);
+      await completeMilestone(ms.id, goal.id);
+      show(`"${ms.title}" completed!`, "success");
+    });
+  }
+
+  const progress = calcProgress(optimisticMilestones);
+  const overdue = isOverdue(goal.due_date);
+
   const lineColor = (i: number) => {
-    if (i >= milestones.length - 1) return "transparent";
-    const next = milestones[i + 1];
+    if (i >= optimisticMilestones.length - 1) return "transparent";
+    const next = optimisticMilestones[i + 1];
     return next.status === "completed" ? "#36A852" : "#E2E8F0";
   };
 
@@ -125,7 +154,7 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
 
         <div className="flex-1 flex items-start relative pt-1">
           <div className="absolute top-[13px] left-3.5 right-3.5 flex" style={{ zIndex: 0 }}>
-            {milestones.slice(0, -1).map((ms, i) => (
+            {optimisticMilestones.slice(0, -1).map((ms, i) => (
               <div
                 key={ms.id}
                 className="flex-1 h-0.5"
@@ -134,14 +163,14 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
             ))}
           </div>
           <div className="relative z-10 flex w-full justify-between">
-            {milestones.map((ms, i) => (
+            {optimisticMilestones.map((ms, i) => (
               <MilestoneNode
                 key={ms.id}
                 ms={ms}
                 index={i}
-                allMs={milestones}
-                goalId={goal.id}
-                isLast={i === milestones.length - 1}
+                allMs={optimisticMilestones}
+                isLast={i === optimisticMilestones.length - 1}
+                onComplete={handleComplete}
               />
             ))}
           </div>
@@ -179,6 +208,7 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
           </div>
           <button
             onClick={() => setExpanded((e) => !e)}
+            aria-label={expanded ? "Collapse" : "Expand milestone details"}
             className="text-gray-300 hover:text-gray-500 transition-colors"
           >
             <ChevronDown
@@ -188,6 +218,34 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
           </button>
         </div>
       </div>
+
+      {expanded && (
+        <div className="mt-2 ml-48 border-t border-milestone-line pt-3 pb-1 space-y-1">
+          {optimisticMilestones.map((ms, i) => (
+            <div key={ms.id} className="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-gray-50/80 transition-colors">
+              <span className="text-[10px] font-bold text-gray-300 w-4 text-right tabular-nums shrink-0">
+                {i + 1}
+              </span>
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: getMilestoneColor(ms, i, optimisticMilestones) }}
+              />
+              <span
+                className={`text-xs flex-1 truncate ${
+                  ms.status === "completed"
+                    ? "line-through text-gray-400"
+                    : ms.status === "in_progress" || ms.status === "stuck"
+                    ? "font-semibold text-gray-800"
+                    : "text-gray-600"
+                }`}
+              >
+                {ms.title}
+              </span>
+              <MilestoneStatusBadge status={ms.status} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

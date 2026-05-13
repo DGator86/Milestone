@@ -6,7 +6,7 @@ import AiClient from "./AiClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function AiPage() {
+export default async function AIPage() {
   const supabase = await createClient();
   const {
     data: { user },

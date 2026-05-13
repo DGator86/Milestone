@@ -43,7 +43,7 @@ export default function EditGoalPanel({
         <form
           action={async (fd) => {
             startTransition(async () => {
-              await updateGoal(goal.id, fd);
+              await updateGoal(goal.id, null, fd);
               setOpen(false);
             });
           }}

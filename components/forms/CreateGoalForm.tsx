@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Target, ChevronDown } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
-import type { GoalTemplate } from "@/lib/templates";
 
 const IMPORTANCE_OPTIONS = [
   { value: "normal", label: "Normal", color: "bg-gray-400", textColor: "text-gray-600" },
@@ -12,32 +11,49 @@ const IMPORTANCE_OPTIONS = [
   { value: "critical", label: "Critical", color: "bg-milestone-red", textColor: "text-red-700" },
 ] as const;
 
-export default function CreateGoalForm({
-  groups,
-  template,
-}: {
-  groups: Group[];
-  template?: GoalTemplate | null;
-}) {
-  const [open, setOpen] = useState(!!template);
-  const [milestoneCount, setMilestoneCount] = useState(template?.milestones.length ?? 3);
-  const [milestoneValues, setMilestoneValues] = useState<string[]>(
-    template?.milestones ?? Array(3).fill("")
-  );
-  const [importance, setImportance] = useState<"normal" | "important" | "critical">(
-    template?.importance ?? "normal"
-  );
+const GOAL_TYPES = [
+  { value: "concrete", label: "Project", description: "Defined goal with a clear finish line" },
+  { value: "touches", label: "Habit", description: "Regular activity to keep up over time" },
+  { value: "deadline", label: "Deadline", description: "Must be done by a specific date" },
+  { value: "maintenance", label: "Ongoing", description: "Continuous work, no end date" },
+] as const;
+
+interface Prefill {
+  title?: string;
+  goal_type?: string;
+  importance?: string;
+  milestones?: string[];
+}
+
+export default function CreateGoalForm({ groups }: { groups: Group[] }) {
+  const [open, setOpen] = useState(false);
+  const [milestoneCount, setMilestoneCount] = useState(3);
+  const [importance, setImportance] = useState<"normal" | "important" | "critical">("normal");
+  const [goalType, setGoalType] = useState("concrete");
+  const [prefill, setPrefill] = useState<Prefill | null>(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("goal_prefill");
+    if (!raw) return;
+    try {
+      sessionStorage.removeItem("goal_prefill");
+      const data: Prefill = JSON.parse(raw);
+      setPrefill(data);
+      setOpen(true);
+      if (data.milestones?.length) setMilestoneCount(Math.min(6, data.milestones.length));
+      if (data.goal_type) setGoalType(data.goal_type);
+      if (data.importance === "important" || data.importance === "critical") {
+        setImportance(data.importance);
+      }
+    } catch {}
+  }, []);
 
   function adjustCount(newCount: number) {
     const clamped = Math.max(1, Math.min(6, newCount));
     setMilestoneCount(clamped);
-    setMilestoneValues((prev) => {
-      if (clamped > prev.length) {
-        return [...prev, ...Array(clamped - prev.length).fill("")];
-      }
-      return prev.slice(0, clamped);
-    });
   }
+
+  const typeDescription = GOAL_TYPES.find((t) => t.value === goalType)?.description ?? "";
 
   if (!open) {
     return (
@@ -60,19 +76,11 @@ export default function CreateGoalForm({
     >
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">
         <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center">
-          {template ? (
-            <span className="text-lg leading-none">{template.icon}</span>
-          ) : (
-            <Target size={16} className="text-milestone-blue" />
-          )}
+          <Target size={16} className="text-milestone-blue" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900">
-            {template ? template.title : "New Goal"}
-          </h3>
-          <p className="text-xs text-gray-400">
-            {template ? template.description : "Define your goal and break it into milestones"}
-          </p>
+          <h3 className="text-sm font-bold text-gray-900">New Goal</h3>
+          <p className="text-xs text-gray-400">Define your goal and break it into milestones</p>
         </div>
       </div>
 
@@ -86,6 +94,7 @@ export default function CreateGoalForm({
             name="title"
             required
             autoFocus
+            defaultValue={prefill?.title ?? ""}
             className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
             placeholder="e.g. Close the Acme deal, Run a 5K, Finish the deck renovation"
           />
@@ -122,16 +131,19 @@ export default function CreateGoalForm({
             <div className="relative">
               <select
                 name="goal_type"
-                defaultValue={template?.goal_type ?? "concrete"}
+                value={goalType}
+                onChange={(e) => setGoalType(e.target.value)}
                 className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent bg-white appearance-none cursor-pointer transition-all"
               >
-                <option value="concrete">Concrete</option>
-                <option value="touches">Touches</option>
-                <option value="deadline">Deadline</option>
-                <option value="maintenance">Maintenance</option>
+                {GOAL_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
+            <p className="text-[11px] text-gray-400 mt-1 leading-tight">{typeDescription}</p>
           </div>
 
           {/* Due date */}
@@ -216,12 +228,7 @@ export default function CreateGoalForm({
                 key={i}
                 name={`milestone_${i + 1}`}
                 required={i === 0}
-                value={milestoneValues[i] ?? ""}
-                onChange={(e) => {
-                  const next = [...milestoneValues];
-                  next[i] = e.target.value;
-                  setMilestoneValues(next);
-                }}
+                defaultValue={prefill?.milestones?.[i] ?? ""}
                 className="px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
                 placeholder={`Step ${i + 1}${i === 0 ? " *" : ""}`}
               />

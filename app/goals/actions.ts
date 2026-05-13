@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { UpdateGoalSchema } from "@/lib/schemas";
 import type { GoalStatus, MilestoneStatus } from "@/lib/types";
 
 export async function updateMilestoneStatus(
@@ -21,6 +22,13 @@ export async function updateMilestoneStatus(
       .from("milestones")
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", milestoneId);
+
+    await supabase.from("activity_log").insert({
+      goal_id: goalId,
+      milestone_id: milestoneId,
+      action: "milestone_completed",
+      metadata: {},
+    });
 
     const { data: remaining } = await supabase
       .from("milestones")
@@ -43,6 +51,13 @@ export async function updateMilestoneStatus(
       .from("milestones")
       .update({ status, completed_at: null })
       .eq("id", milestoneId);
+
+    await supabase.from("activity_log").insert({
+      goal_id: goalId,
+      milestone_id: milestoneId,
+      action: "milestone_status_changed",
+      metadata: { status },
+    });
   }
 
   revalidatePath(`/goals/${goalId}`);
@@ -61,24 +76,68 @@ export async function addMilestone(goalId: string, formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
 
-  const { data: existing } = await supabase
-    .from("milestones")
-    .select("position")
-    .eq("goal_id", goalId)
-    .order("position", { ascending: false })
-    .limit(1);
+  const maxRetries = 5;
+  let insertedMilestoneId: string | null = null;
 
-  const nextPosition = (existing?.[0]?.position ?? -1) + 1;
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    const { data: existing, error: existingError } = await supabase
+      .from("milestones")
+      .select("position")
+      .eq("goal_id", goalId)
+      .order("position", { ascending: false })
+      .limit(1);
 
-  await supabase.from("milestones").insert({
-    goal_id: goalId,
-    title,
-    position: nextPosition,
-    status: "upcoming",
-  });
+    if (existingError) throw existingError;
 
-  revalidatePath(`/goals/${goalId}`);
-  revalidatePath("/dashboard");
+    const nextPosition = (existing?.[0]?.position ?? -1) + 1;
+
+    if (!insertedMilestoneId) {
+      const { data: insertedMilestone, error: insertError } = await supabase
+        .from("milestones")
+        .insert({
+          goal_id: goalId,
+          title,
+          position: nextPosition,
+          status: "upcoming",
+        })
+        .select("id, position")
+        .single();
+
+      if (insertError) throw insertError;
+
+      insertedMilestoneId = insertedMilestone.id;
+    } else {
+      const { error: updateError } = await supabase
+        .from("milestones")
+        .update({ position: nextPosition })
+        .eq("id", insertedMilestoneId);
+
+      if (updateError) throw updateError;
+    }
+
+    const { data: conflicts, error: conflictsError } = await supabase
+      .from("milestones")
+      .select("id")
+      .eq("goal_id", goalId)
+      .eq("position", nextPosition)
+      .order("id", { ascending: true });
+
+    if (conflictsError) throw conflictsError;
+
+    if (!conflicts || conflicts.length === 1) {
+      revalidatePath(`/goals/${goalId}`);
+      revalidatePath("/dashboard");
+      return;
+    }
+
+    if (conflicts[0].id === insertedMilestoneId) {
+      revalidatePath(`/goals/${goalId}`);
+      revalidatePath("/dashboard");
+      return;
+    }
+  }
+
+  throw new Error("Failed to assign a unique milestone position after multiple retries.");
 }
 
 export async function deleteMilestone(milestoneId: string, goalId: string) {
@@ -94,33 +153,45 @@ export async function deleteMilestone(milestoneId: string, goalId: string) {
   revalidatePath("/dashboard");
 }
 
-export async function updateGoal(goalId: string, formData: FormData) {
+export async function updateGoal(
+  goalId: string,
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) return { error: "Not authenticated" };
 
-  const title = (formData.get("title") as string)?.trim();
-  const importance = formData.get("importance") as string;
-  const groupId = formData.get("group_id") as string;
-  const dueDate = formData.get("due_date") as string;
-  const goalType = formData.get("goal_type") as string;
+  const raw = {
+    title: (formData.get("title") as string)?.trim() ?? "",
+    group_id: (formData.get("group_id") as string) ?? "",
+    goal_type: (formData.get("goal_type") as string) || "concrete",
+    importance: (formData.get("importance") as string) || "normal",
+    due_date: (formData.get("due_date") as string) || null,
+  };
 
-  await supabase
+  const parsed = UpdateGoalSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Validation error" };
+  }
+
+  const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
+
+  const { error } = await supabase
     .from("goals")
-    .update({
-      ...(title && { title }),
-      ...(importance && { importance }),
-      ...(groupId && { group_id: groupId }),
-      due_date: dueDate || null,
-      ...(goalType && { goal_type: goalType }),
-    })
-    .eq("id", goalId);
+    .update({ title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate })
+    .eq("id", goalId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Failed to update goal" };
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");
   revalidatePath("/dashboard");
+  revalidatePath("/kill-list");
+  return { success: true };
 }
 
 export async function setGoalStatus(goalId: string, status: GoalStatus) {
@@ -138,30 +209,66 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
   revalidatePath("/kill-list");
 }
 
-export async function createGroup(formData: FormData) {
+export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) return { error: "Not authenticated" };
 
-  const name = (formData.get("name") as string)?.trim();
-  if (!name) return;
+  const { error } = await supabase
+    .from("goals")
+    .update({ status: "archived" })
+    .eq("id", goalId)
+    .eq("user_id", user.id);
 
-  const { data: existing } = await supabase
-    .from("groups")
-    .select("sort_order")
-    .order("sort_order", { ascending: false })
-    .limit(1);
+  if (error) return { error: "Failed to archive goal" };
 
-  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
-
-  await supabase.from("groups").insert({
-    user_id: user.id,
-    name,
-    sort_order: nextOrder,
-  });
-
-  revalidatePath("/groups");
+  revalidatePath("/goals");
+  revalidatePath(`/goals/${goalId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/kill-list");
+  return {};
+}
+
+export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("goals")
+    .delete()
+    .eq("id", goalId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Failed to delete goal" };
+
+  revalidatePath("/goals");
+  revalidatePath("/dashboard");
+  revalidatePath("/kill-list");
+  return {};
+}
+
+export async function reactivateGoal(goalId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { error } = await supabase
+    .from("goals")
+    .update({ status: "active" })
+    .eq("id", goalId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Failed to reactivate goal" };
+
+  revalidatePath("/goals");
+  revalidatePath(`/goals/${goalId}`);
+  revalidatePath("/dashboard");
+  return {};
 }

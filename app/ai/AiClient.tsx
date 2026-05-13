@@ -46,11 +46,15 @@ export default function AiClient() {
 
   function handleUseTemplate() {
     if (!result) return;
-    const params = new URLSearchParams();
-    params.set("ms", result.milestones.join("|"));
-    params.set("gt", result.goal_type);
-    params.set("imp", result.importance);
-    router.push(`/dashboard?${params.toString()}#create-goal`);
+    sessionStorage.setItem(
+      "goal_prefill",
+      JSON.stringify({
+        goal_type: result.goal_type,
+        importance: result.importance,
+        milestones: result.milestones,
+      })
+    );
+    router.push("/dashboard#create-goal");
   }
 
   return (

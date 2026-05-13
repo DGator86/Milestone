@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
-import { createGroup } from "@/app/goals/actions";
+import { createGroup } from "@/app/groups/actions";
 
 export default function AddGroupForm() {
   const [open, setOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function AddGroupForm() {
     <form
       action={async (fd) => {
         startTransition(async () => {
-          await createGroup(fd);
+          await createGroup(null, fd);
           setOpen(false);
         });
       }}

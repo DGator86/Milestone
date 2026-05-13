@@ -16,7 +16,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-red",
       bg: "bg-milestone-red-dim",
       bar: "#EA4335",
-      href: "/kill-list",
+      href: "/kill-list?filter=stuck",
     },
     {
       icon: <AlertTriangle size={18} className="text-milestone-amber shrink-0" />,
@@ -25,7 +25,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-amber",
       bg: "bg-milestone-amber-dim",
       bar: "#F8B400",
-      href: "/kill-list",
+      href: "/kill-list?filter=attention",
     },
     {
       icon: <Clock size={18} className="text-milestone-blue shrink-0" />,
@@ -34,7 +34,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-blue",
       bg: "bg-milestone-blue-dim",
       bar: "#1769FF",
-      href: "/goals",
+      href: "/kill-list?filter=waiting",
     },
     {
       icon: <CheckCircle size={18} className="text-milestone-green shrink-0" />,
@@ -43,7 +43,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-green",
       bg: "bg-milestone-green-dim",
       bar: "#36A852",
-      href: "/goals",
+      href: "/kill-list",
     },
   ];
 

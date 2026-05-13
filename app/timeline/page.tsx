@@ -63,8 +63,10 @@ const STATUS_ICON: Record<
 function MilestoneItem({ ms }: { ms: MilestoneWithGoal }) {
   const cfg = STATUS_ICON[ms.status] ?? STATUS_ICON.upcoming;
   const { Icon } = cfg;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   const isOverdue =
-    ms.due_date && ms.status !== "completed" && new Date(ms.due_date) < new Date();
+    ms.due_date && ms.status !== "completed" && new Date(ms.due_date) < todayStart;
 
   return (
     <Link
