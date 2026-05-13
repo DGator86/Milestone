@@ -62,24 +62,68 @@ export async function addMilestone(goalId: string, formData: FormData) {
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
 
-  const { data: existing } = await supabase
-    .from("milestones")
-    .select("position")
-    .eq("goal_id", goalId)
-    .order("position", { ascending: false })
-    .limit(1);
+  const maxRetries = 5;
+  let insertedMilestoneId: string | null = null;
 
-  const nextPosition = (existing?.[0]?.position ?? -1) + 1;
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    const { data: existing, error: existingError } = await supabase
+      .from("milestones")
+      .select("position")
+      .eq("goal_id", goalId)
+      .order("position", { ascending: false })
+      .limit(1);
 
-  await supabase.from("milestones").insert({
-    goal_id: goalId,
-    title,
-    position: nextPosition,
-    status: "upcoming",
-  });
+    if (existingError) throw existingError;
 
-  revalidatePath(`/goals/${goalId}`);
-  revalidatePath("/dashboard");
+    const nextPosition = (existing?.[0]?.position ?? -1) + 1;
+
+    if (!insertedMilestoneId) {
+      const { data: insertedMilestone, error: insertError } = await supabase
+        .from("milestones")
+        .insert({
+          goal_id: goalId,
+          title,
+          position: nextPosition,
+          status: "upcoming",
+        })
+        .select("id, position")
+        .single();
+
+      if (insertError) throw insertError;
+
+      insertedMilestoneId = insertedMilestone.id;
+    } else {
+      const { error: updateError } = await supabase
+        .from("milestones")
+        .update({ position: nextPosition })
+        .eq("id", insertedMilestoneId);
+
+      if (updateError) throw updateError;
+    }
+
+    const { data: conflicts, error: conflictsError } = await supabase
+      .from("milestones")
+      .select("id")
+      .eq("goal_id", goalId)
+      .eq("position", nextPosition)
+      .order("id", { ascending: true });
+
+    if (conflictsError) throw conflictsError;
+
+    if (!conflicts || conflicts.length === 1) {
+      revalidatePath(`/goals/${goalId}`);
+      revalidatePath("/dashboard");
+      return;
+    }
+
+    if (conflicts[0].id === insertedMilestoneId) {
+      revalidatePath(`/goals/${goalId}`);
+      revalidatePath("/dashboard");
+      return;
+    }
+  }
+
+  throw new Error("Failed to assign a unique milestone position after multiple retries.");
 }
 
 export async function deleteMilestone(milestoneId: string, goalId: string) {
