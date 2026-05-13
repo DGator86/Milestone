@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Target, ChevronDown } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
+import type { GoalTemplate } from "@/lib/templates";
 
 const IMPORTANCE_OPTIONS = [
   { value: "normal", label: "Normal", color: "bg-gray-400", textColor: "text-gray-600" },
@@ -11,10 +12,32 @@ const IMPORTANCE_OPTIONS = [
   { value: "critical", label: "Critical", color: "bg-milestone-red", textColor: "text-red-700" },
 ] as const;
 
-export default function CreateGoalForm({ groups }: { groups: Group[] }) {
-  const [open, setOpen] = useState(false);
-  const [milestoneCount, setMilestoneCount] = useState(3);
-  const [importance, setImportance] = useState<"normal" | "important" | "critical">("normal");
+export default function CreateGoalForm({
+  groups,
+  template,
+}: {
+  groups: Group[];
+  template?: GoalTemplate | null;
+}) {
+  const [open, setOpen] = useState(!!template);
+  const [milestoneCount, setMilestoneCount] = useState(template?.milestones.length ?? 3);
+  const [milestoneValues, setMilestoneValues] = useState<string[]>(
+    template?.milestones ?? Array(3).fill("")
+  );
+  const [importance, setImportance] = useState<"normal" | "important" | "critical">(
+    template?.importance ?? "normal"
+  );
+
+  function adjustCount(newCount: number) {
+    const clamped = Math.max(1, Math.min(6, newCount));
+    setMilestoneCount(clamped);
+    setMilestoneValues((prev) => {
+      if (clamped > prev.length) {
+        return [...prev, ...Array(clamped - prev.length).fill("")];
+      }
+      return prev.slice(0, clamped);
+    });
+  }
 
   if (!open) {
     return (
@@ -35,14 +58,21 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
       className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden animate-fade-up"
       id="create-goal"
     >
-      {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">
         <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center">
-          <Target size={16} className="text-milestone-blue" />
+          {template ? (
+            <span className="text-lg leading-none">{template.icon}</span>
+          ) : (
+            <Target size={16} className="text-milestone-blue" />
+          )}
         </div>
         <div>
-          <h3 className="text-sm font-bold text-gray-900">New Goal</h3>
-          <p className="text-xs text-gray-400">Define your goal and break it into milestones</p>
+          <h3 className="text-sm font-bold text-gray-900">
+            {template ? template.title : "New Goal"}
+          </h3>
+          <p className="text-xs text-gray-400">
+            {template ? template.description : "Define your goal and break it into milestones"}
+          </p>
         </div>
       </div>
 
@@ -92,6 +122,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <div className="relative">
               <select
                 name="goal_type"
+                defaultValue={template?.goal_type ?? "concrete"}
                 className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent bg-white appearance-none cursor-pointer transition-all"
               >
                 <option value="concrete">Concrete</option>
@@ -150,7 +181,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.max(1, c - 1))}
+                onClick={() => adjustCount(milestoneCount - 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 −
@@ -160,7 +191,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
               </span>
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.min(6, c + 1))}
+                onClick={() => adjustCount(milestoneCount + 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 +
@@ -168,16 +199,13 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             </div>
           </div>
 
-          {/* Visual step indicators */}
           <div className="flex items-center gap-1.5 mb-2.5">
             {Array.from({ length: milestoneCount }, (_, i) => (
               <div key={i} className="flex items-center gap-1.5 flex-1">
                 <div className="w-5 h-5 rounded-full border-2 border-milestone-blue bg-white flex items-center justify-center shrink-0">
                   <span className="text-[9px] font-bold text-milestone-blue">{i + 1}</span>
                 </div>
-                {i < milestoneCount - 1 && (
-                  <div className="flex-1 h-px bg-milestone-line" />
-                )}
+                {i < milestoneCount - 1 && <div className="flex-1 h-px bg-milestone-line" />}
               </div>
             ))}
           </div>
@@ -188,6 +216,12 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
                 key={i}
                 name={`milestone_${i + 1}`}
                 required={i === 0}
+                value={milestoneValues[i] ?? ""}
+                onChange={(e) => {
+                  const next = [...milestoneValues];
+                  next[i] = e.target.value;
+                  setMilestoneValues(next);
+                }}
                 className="px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
                 placeholder={`Step ${i + 1}${i === 0 ? " *" : ""}`}
               />

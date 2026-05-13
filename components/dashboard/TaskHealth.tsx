@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AlertCircle, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { getTaskHealth } from "@/lib/progress";
 import type { GoalWithDetails } from "@/lib/types";
@@ -15,6 +16,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-red",
       bg: "bg-milestone-red-dim",
       bar: "#EA4335",
+      href: "/kill-list",
     },
     {
       icon: <AlertTriangle size={18} className="text-milestone-amber shrink-0" />,
@@ -23,6 +25,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-amber",
       bg: "bg-milestone-amber-dim",
       bar: "#F8B400",
+      href: "/kill-list",
     },
     {
       icon: <Clock size={18} className="text-milestone-blue shrink-0" />,
@@ -31,6 +34,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-blue",
       bg: "bg-milestone-blue-dim",
       bar: "#1769FF",
+      href: "/goals",
     },
     {
       icon: <CheckCircle size={18} className="text-milestone-green shrink-0" />,
@@ -39,6 +43,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       color: "text-milestone-green",
       bg: "bg-milestone-green-dim",
       bar: "#36A852",
+      href: "/goals",
     },
   ];
 
@@ -67,7 +72,6 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
         </div>
       </div>
 
-      {/* Stacked health bar */}
       {total > 0 && (
         <div className="flex h-2 rounded-full overflow-hidden mb-4 gap-px">
           {rows.map(({ bar, count, label }) =>
@@ -84,10 +88,13 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       )}
 
       <div className="space-y-1.5">
-        {rows.map(({ icon, count, label, color, bg }) => (
-          <div
+        {rows.map(({ icon, count, label, color, bg, href }) => (
+          <Link
             key={label}
-            className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
+            href={count > 0 ? href : "#"}
+            className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-colors group ${
+              count > 0 ? "hover:bg-gray-50" : "cursor-default opacity-60"
+            }`}
           >
             {icon}
             <span className={`text-xl font-bold tabular-nums w-7 shrink-0 ${color}`}>
@@ -101,9 +108,11 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
             )}
             <ChevronRight
               size={14}
-              className="text-gray-200 group-hover:text-gray-400 transition-colors shrink-0"
+              className={`shrink-0 transition-colors ${
+                count > 0 ? "text-gray-200 group-hover:text-gray-400" : "text-gray-100"
+              }`}
             />
-          </div>
+          </Link>
         ))}
       </div>
     </div>
