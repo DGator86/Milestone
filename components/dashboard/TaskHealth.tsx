@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { AlertCircle, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { getTaskHealth } from "@/lib/progress";
@@ -93,8 +91,10 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
         {rows.map(({ icon, count, label, color, bg, href }) => (
           <Link
             key={label}
-            href={href}
-            className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors group"
+            href={count > 0 ? href : "#"}
+            className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-colors group ${
+              count > 0 ? "hover:bg-gray-50" : "cursor-default opacity-60"
+            }`}
           >
             {icon}
             <span className={`text-xl font-bold tabular-nums w-7 shrink-0 ${color}`}>
@@ -108,7 +108,9 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
             )}
             <ChevronRight
               size={14}
-              className="text-gray-200 group-hover:text-gray-400 transition-colors shrink-0"
+              className={`shrink-0 transition-colors ${
+                count > 0 ? "text-gray-200 group-hover:text-gray-400" : "text-gray-100"
+              }`}
             />
           </Link>
         ))}

@@ -120,8 +120,9 @@ export default async function KillListPage({
               const urgent = stuck || overdue;
 
               return (
-                <div
+                <Link
                   key={goal.id}
+                  href={`/goals/${goal.id}`}
                   className={`flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors ${
                     urgent ? "border-l-[3px]" : ""
                   } ${
@@ -192,7 +193,7 @@ export default async function KillListPage({
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

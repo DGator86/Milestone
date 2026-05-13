@@ -14,6 +14,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({
+  groups,
   currentGroup,
   currentSort,
   currentStatus,
@@ -39,7 +40,7 @@ export default function TopBar({
 
   return (
     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-milestone-line px-4 md:px-6 py-3 flex items-center gap-3">
-      {/* Mobile hamburger — opens sidebar for secondary nav */}
+      {/* Mobile hamburger */}
       <button
         onClick={toggleMobile}
         className="md:hidden p-2 -ml-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
@@ -54,8 +55,25 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
-        {/* Sort + Status filters */}
         <div className="flex items-center bg-gray-50 border border-milestone-line rounded-lg overflow-hidden text-sm divide-x divide-milestone-line">
+          {/* Group filter */}
+          <label className="flex items-center gap-1.5 px-3 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
+            <span className="text-gray-400 text-xs font-medium">Group</span>
+            <select
+              value={currentGroup}
+              onChange={(e) => navigate("group", e.target.value)}
+              className="text-gray-700 font-semibold bg-transparent appearance-none cursor-pointer focus:outline-none text-xs"
+            >
+              <option value="">All</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Sort */}
           <label className="flex items-center gap-1.5 px-3 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
             <span className="text-gray-400 text-xs font-medium">Sort</span>
             <select
@@ -70,6 +88,7 @@ export default function TopBar({
             </select>
           </label>
 
+          {/* Status */}
           <label className="flex items-center gap-1.5 px-3 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors">
             <span className="text-gray-400 text-xs font-medium">Show</span>
             <select

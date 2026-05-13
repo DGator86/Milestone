@@ -21,6 +21,7 @@ const GOAL_TYPES = [
 interface Prefill {
   title?: string;
   goal_type?: string;
+  importance?: string;
   milestones?: string[];
 }
 
@@ -41,8 +42,16 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
       setOpen(true);
       if (data.milestones?.length) setMilestoneCount(Math.min(6, data.milestones.length));
       if (data.goal_type) setGoalType(data.goal_type);
+      if (data.importance === "important" || data.importance === "critical") {
+        setImportance(data.importance);
+      }
     } catch {}
   }, []);
+
+  function adjustCount(newCount: number) {
+    const clamped = Math.max(1, Math.min(6, newCount));
+    setMilestoneCount(clamped);
+  }
 
   const typeDescription = GOAL_TYPES.find((t) => t.value === goalType)?.description ?? "";
 
@@ -65,7 +74,6 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
       className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden animate-fade-up"
       id="create-goal"
     >
-      {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">
         <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center">
           <Target size={16} className="text-milestone-blue" />
@@ -185,7 +193,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.max(1, c - 1))}
+                onClick={() => adjustCount(milestoneCount - 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 −
@@ -195,7 +203,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
               </span>
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.min(6, c + 1))}
+                onClick={() => adjustCount(milestoneCount + 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 +
@@ -203,16 +211,13 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             </div>
           </div>
 
-          {/* Visual step indicators */}
           <div className="flex items-center gap-1.5 mb-2.5">
             {Array.from({ length: milestoneCount }, (_, i) => (
               <div key={i} className="flex items-center gap-1.5 flex-1">
                 <div className="w-5 h-5 rounded-full border-2 border-milestone-blue bg-white flex items-center justify-center shrink-0">
                   <span className="text-[9px] font-bold text-milestone-blue">{i + 1}</span>
                 </div>
-                {i < milestoneCount - 1 && (
-                  <div className="flex-1 h-px bg-milestone-line" />
-                )}
+                {i < milestoneCount - 1 && <div className="flex-1 h-px bg-milestone-line" />}
               </div>
             ))}
           </div>
