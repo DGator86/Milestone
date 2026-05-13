@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronRight, Briefcase, Home, Heart, Target } from "lucide-react";
 import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
@@ -112,12 +113,15 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
   return (
     <div className="py-3 px-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/50 transition-colors">
       <div className="flex items-start gap-4">
-        <div className="w-44 shrink-0 flex items-center gap-2 pt-1">
-          <Target size={14} className="text-gray-300 shrink-0" />
-          <span className="text-[13px] font-semibold text-gray-800 leading-tight">
+        <Link
+          href={`/goals/${goal.id}`}
+          className="w-44 shrink-0 flex items-center gap-2 pt-1 hover:text-milestone-blue transition-colors group"
+        >
+          <Target size={14} className="text-gray-300 group-hover:text-milestone-blue shrink-0 transition-colors" />
+          <span className="text-[13px] font-semibold text-gray-800 group-hover:text-milestone-blue leading-tight transition-colors">
             {goal.title}
           </span>
-        </div>
+        </Link>
 
         <div className="flex-1 flex items-start relative pt-1">
           <div className="absolute top-[13px] left-3.5 right-3.5 flex" style={{ zIndex: 0 }}>

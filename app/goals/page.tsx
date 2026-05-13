@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
+import Link from "next/link";
 import { Target, CheckCircle, Circle, Briefcase, Home, Heart } from "lucide-react";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails } from "@/lib/types";
@@ -83,8 +84,9 @@ export default async function GoalsPage() {
                       const progress = calcProgress(goal.milestones ?? []);
                       const GroupIcon = GROUP_ICONS[goal.groups?.name ?? ""] ?? Target;
                       return (
-                        <div
+                        <Link
                           key={goal.id}
+                          href={`/goals/${goal.id}`}
                           className="flex items-center gap-4 px-5 py-3.5 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors"
                         >
                           <div className="shrink-0">
@@ -133,7 +135,7 @@ export default async function GoalsPage() {
                               </span>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

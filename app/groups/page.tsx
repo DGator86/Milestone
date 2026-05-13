@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { Users, Briefcase, Home, Heart, Target, Plus } from "lucide-react";
+import AddGroupForm from "@/components/groups/AddGroupForm";
+import { Users, Briefcase, Home, Heart, Target } from "lucide-react";
 import type { Group } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,16 @@ export default async function GroupsPage() {
     .select("*")
     .order("sort_order", { ascending: true });
 
+  const { data: goals } = await supabase
+    .from("goals")
+    .select("id, group_id, status")
+    .eq("status", "active");
+
   const safeGroups: Group[] = groups ?? [];
+  const goalCountByGroup: Record<string, number> = {};
+  for (const g of goals ?? []) {
+    goalCountByGroup[g.group_id] = (goalCountByGroup[g.group_id] ?? 0) + 1;
+  }
 
   return (
     <AppShell user={user}>
@@ -47,23 +57,24 @@ export default async function GroupsPage() {
               <Users size={20} className="text-milestone-blue" />
               Groups
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Organize your goals by life area
-            </p>
+            <p className="text-xs text-gray-400 mt-0.5">Organize your goals by life area</p>
           </div>
         </div>
 
         {safeGroups.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center mb-4">
             <Users size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No groups yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             {safeGroups.map((group) => {
               const Icon = GROUP_ICONS[group.name] ?? Target;
-              const iconColor = GROUP_ICON_COLOR[group.name] ?? "text-gray-500 bg-gray-100";
-              const cardBg = GROUP_BG[group.name] ?? "from-gray-50 to-gray-50 border-gray-100";
+              const iconColor =
+                GROUP_ICON_COLOR[group.name] ?? "text-gray-500 bg-gray-100";
+              const cardBg =
+                GROUP_BG[group.name] ?? "from-gray-50 to-gray-50 border-gray-100";
+              const count = goalCountByGroup[group.id] ?? 0;
 
               return (
                 <div
@@ -77,21 +88,19 @@ export default async function GroupsPage() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">{group.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Active group</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {count === 0
+                        ? "No active goals"
+                        : `${count} active goal${count === 1 ? "" : "s"}`}
+                    </p>
                   </div>
                 </div>
               );
             })}
-
-            {/* Add group placeholder */}
-            <div className="rounded-xl border-2 border-dashed border-milestone-line p-5 flex items-center gap-4 text-gray-300 hover:border-milestone-blue hover:text-milestone-blue transition-colors cursor-pointer group">
-              <div className="w-12 h-12 rounded-xl border-2 border-dashed border-current flex items-center justify-center shrink-0 group-hover:bg-milestone-blue-dim">
-                <Plus size={20} />
-              </div>
-              <p className="font-semibold text-sm">Add group</p>
-            </div>
           </div>
         )}
+
+        <AddGroupForm />
       </div>
     </AppShell>
   );
