@@ -26,9 +26,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Use getSession (cookie-only, no network call) to avoid Edge timeout.
+  // Individual server components call getUser() for security-critical checks.
+  const { data: { session } } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
@@ -44,11 +44,11 @@ export async function middleware(request: NextRequest) {
   ];
   const authRoutes = ["/login", "/signup"];
 
-  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
+  if (!session && protectedRoutes.some((r) => pathname.startsWith(r))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && authRoutes.some((r) => pathname.startsWith(r))) {
+  if (session && authRoutes.some((r) => pathname.startsWith(r))) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
