@@ -1,58 +1,45 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+const PROJECT_REF = "bqpaemaechuupanyxgbf";
 
-  const supabase = createServerClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+const protectedRoutes = [
+  "/dashboard",
+  "/kill-list",
+  "/goals",
+  "/groups",
+  "/settings",
+  "/timeline",
+  "/templates",
+  "/ai",
+];
+const authRoutes = ["/login", "/signup"];
 
-  // Use getSession (cookie-only, no network call) to avoid Edge timeout.
-  // Individual server components call getUser() for security-critical checks.
-  const { data: { session } } = await supabase.auth.getSession();
-
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = [
-    "/dashboard",
-    "/kill-list",
-    "/goals",
-    "/groups",
-    "/settings",
-    "/timeline",
-    "/templates",
-    "/ai",
-  ];
-  const authRoutes = ["/login", "/signup"];
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAuth = authRoutes.some((r) => pathname.startsWith(r));
 
-  if (!session && protectedRoutes.some((r) => pathname.startsWith(r))) {
+  if (!isProtected && !isAuth) {
+    return NextResponse.next();
+  }
+
+  // Check session by cookie presence only — no network call, no Supabase client.
+  // Supabase stores session in sb-<ref>-auth-token (may be chunked into .0, .1, …).
+  // Server components still call getUser() for security-critical checks.
+  const hasSession = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith(`sb-${PROJECT_REF}-auth-token`));
+
+  if (!hasSession && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (session && authRoutes.some((r) => pathname.startsWith(r))) {
+  if (hasSession && isAuth) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
