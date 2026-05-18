@@ -55,6 +55,13 @@ export default function SetupPage() {
             tables and <code className="bg-gray-100 px-1 rounded">ensure_default_groups</code> exist.
           </p>
 
+          <p className="text-xs text-gray-400">
+            In Authentication → URL Configuration, add your app origin and{" "}
+            <code className="bg-gray-100 px-1 rounded">/auth/callback</code> to Redirect URLs (for example{" "}
+            <code className="bg-gray-100 px-1 rounded text-[11px]">https://your-domain.com/auth/callback</code>
+            ).
+          </p>
+
           <div className="pt-2 flex flex-col gap-2">
             <Link
               href="https://supabase.com/dashboard"
