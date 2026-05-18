@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,9 +9,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getMetadataBase(),
   title: "Milestone – Track the path. Kill the next step.",
   description: "A no-bullshit goal CRM that tracks goals as milestone paths.",
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/favicon.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Milestone" },
 };
 
