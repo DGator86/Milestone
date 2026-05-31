@@ -16,7 +16,7 @@ const PRESET_COLORS = [
   { label: "Pink", value: "#EC4899" },
 ];
 
-const DEFAULT_STAGES_TEXT = "Lead\nQualified\nProposal\nNegotiation\nClosed Won";
+const DEFAULT_STAGES_TEXT = "Lead\nQualified\nProposal\nNegotiation\nWon\nLost";
 
 const INPUT =
   "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";

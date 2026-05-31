@@ -34,7 +34,7 @@ interface Props {
 }
 
 function fmt(v: number | null) {
-  if (!v) return null;
+  if (v == null) return null;
   if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
   if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
   return `$${v.toLocaleString()}`;
@@ -71,7 +71,7 @@ function OppCard({
       )}
 
       <div className="flex items-center justify-between mt-2.5">
-        {opp.value ? (
+        {opp.value != null ? (
           <span className="text-sm font-bold text-milestone-blue">{fmt(opp.value)}</span>
         ) : (
           <span className="text-xs text-gray-300 flex items-center gap-0.5">
@@ -121,22 +121,34 @@ function OppCard({
 
 export default function OpportunitiesView({ opportunities, customers, contacts, flows }: Props) {
   const [showForm, setShowForm] = useState(false);
+  const [selectedFlowId, setSelectedFlowId] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const stages = DEFAULT_STAGES;
+  const activeStages = useMemo(() => {
+    if (selectedFlowId) {
+      const flow = flows.find((f) => f.id === selectedFlowId);
+      if (flow?.stages?.length) return flow.stages;
+    }
+    return DEFAULT_STAGES;
+  }, [selectedFlowId, flows]);
+
+  const visibleOpps = useMemo(
+    () => (selectedFlowId ? opportunities.filter((o) => o.flow_id === selectedFlowId) : opportunities),
+    [selectedFlowId, opportunities]
+  );
 
   const byStage = useMemo(() => {
     const map: Record<string, CrmOpportunity[]> = {};
-    for (const s of stages) map[s] = [];
-    for (const opp of opportunities) {
-      const key = stages.includes(opp.stage) ? opp.stage : "Lead";
+    for (const s of activeStages) map[s] = [];
+    for (const opp of visibleOpps) {
+      const key = activeStages.includes(opp.stage) ? opp.stage : activeStages[0];
       map[key].push(opp);
     }
     return map;
-  }, [opportunities, stages]);
+  }, [visibleOpps, activeStages]);
 
-  const totalValue = opportunities.reduce((sum, o) => sum + (o.value ?? 0), 0);
-  const openCount = opportunities.filter((o) => o.status === "open").length;
+  const totalValue = visibleOpps.reduce((sum, o) => sum + (o.value ?? 0), 0);
+  const openCount = visibleOpps.filter((o) => o.status === "open").length;
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -158,7 +170,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
   return (
     <div className="flex flex-col h-full" style={{ opacity: isPending ? 0.7 : 1 }}>
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <TrendingUp size={20} className="text-milestone-blue" />
@@ -168,13 +180,29 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
             {openCount} open · {fmt(totalValue) ?? "$0"} total pipeline
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? "Cancel" : "Add Opportunity"}
-        </button>
+        <div className="flex items-center gap-3">
+          {flows.length > 0 && (
+            <select
+              value={selectedFlowId}
+              onChange={(e) => setSelectedFlowId(e.target.value)}
+              className="text-sm border border-milestone-line rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue"
+            >
+              <option value="">All flows</option>
+              {flows.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {showForm ? <X size={15} /> : <Plus size={15} />}
+            {showForm ? "Cancel" : "Add Opportunity"}
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
@@ -194,7 +222,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
               <div>
                 <label className={LABEL}>Stage</label>
                 <select name="stage" className={INPUT} defaultValue="Lead">
-                  {stages.map((s) => (
+                  {activeStages.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -225,7 +253,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
               </div>
               <div>
                 <label className={LABEL}>Flow (pipeline)</label>
-                <select name="flow_id" className={INPUT} defaultValue="">
+                <select name="flow_id" className={INPUT} defaultValue={selectedFlowId}>
                   <option value="">Default</option>
                   {flows.map((f) => (
                     <option key={f.id} value={f.id}>
@@ -266,7 +294,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
       {/* Kanban board */}
       <div className="flex-1 overflow-x-auto px-6 pb-6">
         <div className="flex gap-4 h-full min-w-max">
-          {stages.map((stage) => {
+          {activeStages.map((stage) => {
             const cards = byStage[stage] ?? [];
             const stageValue = cards.reduce((s, o) => s + (o.value ?? 0), 0);
             const colBg = STAGE_COLORS[stage] ?? "bg-gray-50/80 border-gray-200/60";
@@ -296,7 +324,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
                     <OppCard
                       key={opp.id}
                       opp={opp}
-                      stages={stages}
+                      stages={activeStages}
                       onMove={handleMove}
                       onDelete={handleDelete}
                     />

@@ -119,7 +119,7 @@ create table if not exists crm_flows (
   name        text not null,
   description text,
   color       text not null default '#1769FF',
-  stages      jsonb not null default '["Lead", "Qualified", "Proposal", "Negotiation", "Closed Won"]'::jsonb,
+  stages      jsonb not null default '["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"]'::jsonb,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -178,6 +178,57 @@ create or replace trigger crm_flows_updated_at
 create or replace trigger crm_opportunities_updated_at
   before update on crm_opportunities
   for each row execute function set_updated_at();
+
+-- Cross-tenant reference guards
+create or replace function check_crm_contact_tenant()
+returns trigger language plpgsql as $$
+begin
+  if new.customer_id is not null then
+    if not exists (
+      select 1 from crm_customers where id = new.customer_id and user_id = new.user_id
+    ) then
+      raise exception 'customer_id must belong to the same user';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace trigger crm_contacts_tenant_check
+  before insert or update on crm_contacts
+  for each row execute function check_crm_contact_tenant();
+
+create or replace function check_crm_opportunity_tenant()
+returns trigger language plpgsql as $$
+begin
+  if new.customer_id is not null then
+    if not exists (
+      select 1 from crm_customers where id = new.customer_id and user_id = new.user_id
+    ) then
+      raise exception 'customer_id must belong to the same user';
+    end if;
+  end if;
+  if new.contact_id is not null then
+    if not exists (
+      select 1 from crm_contacts where id = new.contact_id and user_id = new.user_id
+    ) then
+      raise exception 'contact_id must belong to the same user';
+    end if;
+  end if;
+  if new.flow_id is not null then
+    if not exists (
+      select 1 from crm_flows where id = new.flow_id and user_id = new.user_id
+    ) then
+      raise exception 'flow_id must belong to the same user';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace trigger crm_opportunities_tenant_check
+  before insert or update on crm_opportunities
+  for each row execute function check_crm_opportunity_tenant();
 
 -- ─── DEFAULT GROUPS / HELPERS ──────────────────────────────────────────────────
 

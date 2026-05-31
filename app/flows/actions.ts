@@ -23,7 +23,7 @@ export async function createFlow(formData: FormData) {
     name,
     description: (formData.get("description") as string) || null,
     color: (formData.get("color") as string) || "#1769FF",
-    stages: stages.length > 0 ? stages : ["Lead", "Qualified", "Proposal", "Negotiation", "Closed Won"],
+    stages: stages.length > 0 ? stages : ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"],
   });
 
   revalidatePath("/flows");

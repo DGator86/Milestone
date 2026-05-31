@@ -27,9 +27,9 @@ export default function ContactsView({ contacts, customers }: Props) {
         const q = search.toLowerCase();
         return (
           full.includes(q) ||
-          c.email?.toLowerCase().includes(q) ||
-          c.title?.toLowerCase().includes(q) ||
-          c.crm_customers?.name.toLowerCase().includes(q)
+          c.email?.toLowerCase()?.includes(q) ||
+          c.title?.toLowerCase()?.includes(q) ||
+          c.crm_customers?.name.toLowerCase()?.includes(q)
         );
       }),
     [contacts, search]

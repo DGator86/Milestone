@@ -26,8 +26,8 @@ export default function CustomersView({ customers }: { customers: CrmCustomer[] 
       customers.filter(
         (c) =>
           c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.industry?.toLowerCase().includes(search.toLowerCase()) ||
-          c.email?.toLowerCase().includes(search.toLowerCase())
+          c.industry?.toLowerCase()?.includes(search.toLowerCase()) ||
+          c.email?.toLowerCase()?.includes(search.toLowerCase())
       ),
     [customers, search]
   );
