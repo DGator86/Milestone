@@ -15,6 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Building2,
+  UserRound,
+  TrendingUp,
+  Workflow,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
@@ -26,6 +30,15 @@ const navSections = [
       { label: "Kill List", href: "/kill-list", icon: Crosshair },
       { label: "Timeline", href: "/timeline", icon: Clock },
       { label: "Goals", href: "/goals", icon: Target },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { label: "Customers", href: "/customers", icon: Building2 },
+      { label: "Contacts", href: "/contacts", icon: UserRound },
+      { label: "Opportunities", href: "/opportunities", icon: TrendingUp },
+      { label: "Flows", href: "/flows", icon: Workflow },
     ],
   },
   {
