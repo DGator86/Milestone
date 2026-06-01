@@ -99,11 +99,11 @@ export default async function ContactDetailPage({
       <div className="p-4 md:p-6 max-w-2xl">
         {/* Back */}
         <Link
-          href="/contacts"
+          href="/follow-ups"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors mb-4"
         >
           <ArrowLeft size={13} />
-          Contacts
+          Follow-ups
         </Link>
 
         {/* Contact header */}

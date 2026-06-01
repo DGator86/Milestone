@@ -11,7 +11,7 @@ const features = [
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   return (
     <div
@@ -85,7 +85,7 @@ export default function LoginPage({
               />
             </div>
 
-            <ErrorMessage searchParams={searchParams} />
+            <AuthFlash searchParams={searchParams} />
 
             <button
               type="submit"
@@ -107,16 +107,25 @@ export default function LoginPage({
   );
 }
 
-async function ErrorMessage({
+async function AuthFlash({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
-  if (!params.error) return null;
-  return (
-    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3.5 py-2.5">
-      {params.error}
-    </div>
-  );
+  if (params.error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3.5 py-2.5">
+        {params.error}
+      </div>
+    );
+  }
+  if (params.message) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-3.5 py-2.5">
+        {params.message}
+      </div>
+    );
+  }
+  return null;
 }

@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   UserCheck,
   TrendingUp,
-  Users,
   FileText,
   Bot,
   Settings,
@@ -15,6 +14,9 @@ import {
   ChevronRight,
   Zap,
   Bell,
+  Building2,
+  UserRound,
+  Workflow,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useMobileSidebar } from "@/lib/sidebar-context";
@@ -26,7 +28,15 @@ const navSections = [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Follow-ups", href: "/follow-ups", icon: Bell },
       { label: "Pipeline", href: "/pipeline", icon: TrendingUp },
-      { label: "Contacts", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { label: "Customers", href: "/customers", icon: Building2 },
+      { label: "Contacts", href: "/contacts", icon: UserRound },
+      { label: "Opportunities", href: "/opportunities", icon: TrendingUp },
+      { label: "Flows", href: "/flows", icon: Workflow },
     ],
   },
   {
@@ -100,7 +110,7 @@ export default function Sidebar({ user }: { user: User }) {
             <p className="text-white font-bold text-[15px] tracking-tight leading-none">
               Milestone
             </p>
-            <p className="text-white/30 text-[10px] mt-0.5">Goal CRM</p>
+            <p className="text-white/30 text-[10px] mt-0.5">CRM</p>
           </div>
         </div>
 
@@ -130,7 +140,9 @@ export default function Sidebar({ user }: { user: User }) {
                       className={[
                         "relative flex items-center rounded-lg text-sm font-medium",
                         "transition-all duration-150 group",
-                        collapsed ? "md:justify-center md:py-2.5 md:px-0 gap-3 px-3 py-2.5" : "gap-3 px-3 py-2.5",
+                        collapsed
+                          ? "md:justify-center md:py-2.5 md:px-0 gap-3 px-3 py-2.5"
+                          : "gap-3 px-3 py-2.5",
                         active
                           ? "bg-white/[0.1] text-white"
                           : "text-white/50 hover:text-white/90 hover:bg-white/[0.07]",
