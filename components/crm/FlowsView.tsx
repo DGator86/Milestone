@@ -182,7 +182,7 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
                 name="stages"
                 rows={5}
                 defaultValue={DEFAULT_STAGES_TEXT}
-                placeholder="Lead&#10;Qualified&#10;Proposal&#10;Negotiation&#10;Closed Won"
+                placeholder="Lead&#10;Qualified&#10;Proposal&#10;Negotiation&#10;Won&#10;Lost"
                 className={INPUT}
               />
               <p className="text-[11px] text-gray-400 mt-1">Each line becomes a stage in the pipeline.</p>
