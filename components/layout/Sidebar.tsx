@@ -64,9 +64,9 @@ export default function Sidebar({ user }: { user: User }) {
 
   return (
     <aside
-      className={`${
+      className={`hidden lg:flex ${
         collapsed ? "w-[60px]" : "w-[220px]"
-      } min-h-screen bg-milestone-sidebar flex flex-col shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden`}
+      } min-h-screen bg-milestone-sidebar flex-col shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden`}
     >
       {/* Brand */}
       <div
