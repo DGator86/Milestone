@@ -6,22 +6,30 @@ import { getSiteUrl } from "@/lib/site-url";
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
-
   const siteUrl = getSiteUrl();
 
-  const { data, error } = await supabase.auth.signUp({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-    options: {
-      emailRedirectTo: `${siteUrl}/auth/callback`,
-    },
-  });
+  let session: unknown = null;
+  let authError: string | null = null;
 
-  if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+      options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
+    });
+    if (error) authError = error.message;
+    else session = data.session;
+  } catch {
+    authError = "Unable to reach the server. Please try again.";
   }
 
-  if (data.session) {
+  if (authError) {
+    redirect(`/signup?error=${encodeURIComponent(authError)}`);
+  }
+
+  if (session) {
     redirect("/dashboard");
   }
 
