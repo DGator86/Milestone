@@ -1,12 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
@@ -28,8 +22,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="bg-milestone-bg text-gray-900 antialiased">{children}</body>
+    <html lang="en">
+      <body className="bg-milestone-bg text-gray-900 antialiased font-sans">{children}</body>
     </html>
   );
 }
