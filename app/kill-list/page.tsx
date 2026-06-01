@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { getKillList } from "@/lib/progress";
-import { Crosshair, AlertCircle, Clock, ArrowRight } from "lucide-react";
+import { getKillList, getTaskHealth } from "@/lib/progress";
+import { Crosshair, AlertCircle, Clock, ArrowRight, X } from "lucide-react";
+import Link from "next/link";
 import type { GoalWithDetails } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,29 @@ function isOverdue(date: string | null) {
   return new Date(date) < new Date();
 }
 
-export default async function KillListPage() {
+const FILTER_META: Record<string, { label: string; color: string; description: string }> = {
+  stuck: {
+    label: "Stuck",
+    color: "text-milestone-red bg-milestone-red-dim",
+    description: "Goals with a stuck milestone or overdue due date",
+  },
+  attention: {
+    label: "Needs Attention",
+    color: "text-milestone-amber bg-milestone-amber-dim",
+    description: "Goals whose next milestone is overdue",
+  },
+  waiting: {
+    label: "Waiting",
+    color: "text-milestone-blue bg-milestone-blue-dim",
+    description: "Goals with a milestone blocked on something external",
+  },
+};
+
+export default async function KillListPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,29 +55,60 @@ export default async function KillListPage() {
     ),
   }));
 
-  const killList = getKillList(goals);
+  const params = await searchParams;
+  const filter = params.filter ?? "";
+
+  const { stuck, needsAttention, waiting } = getTaskHealth(goals);
+
+  let filteredGoals = goals;
+  if (filter === "stuck") filteredGoals = stuck;
+  else if (filter === "attention") filteredGoals = needsAttention;
+  else if (filter === "waiting") filteredGoals = waiting;
+
+  const killList = getKillList(filteredGoals);
+  const meta = filter ? FILTER_META[filter] : null;
 
   return (
     <AppShell user={user}>
-      <div className="p-6 max-w-3xl">
+      <div className="p-4 md:p-6 max-w-3xl">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <Crosshair size={20} className="text-milestone-red" />
-            Kill List
-          </h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            One next action per active goal · tackle these to keep momentum
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
+              <Crosshair size={20} className="text-milestone-red" />
+              Kill List
+            </h1>
+            {meta && (
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${meta.color}`}>
+                {meta.label}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            {meta ? meta.description : "One next action per active goal · tackle these to keep momentum"}
           </p>
+          {meta && (
+            <Link
+              href="/kill-list"
+              className="inline-flex items-center gap-1 text-xs text-milestone-blue hover:underline mt-1.5"
+            >
+              <X size={10} />
+              Clear filter · show all
+            </Link>
+          )}
         </div>
 
         {killList.length === 0 ? (
           <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
             <Crosshair size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">
-              No pending milestones on active goals.
+              {meta ? `No ${meta.label.toLowerCase()} goals right now.` : "No pending milestones on active goals."}
             </p>
-            <p className="text-xs text-gray-300 mt-1">You&apos;re all caught up!</p>
+            <p className="text-xs text-gray-300 mt-1">
+              {meta ? (
+                <Link href="/kill-list" className="text-milestone-blue hover:underline">View all goals</Link>
+              ) : "You're all caught up!"}
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
@@ -66,8 +120,9 @@ export default async function KillListPage() {
               const urgent = stuck || overdue;
 
               return (
-                <div
+                <Link
                   key={goal.id}
+                  href={`/goals/${goal.id}`}
                   className={`flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors ${
                     urgent ? "border-l-[3px]" : ""
                   } ${
@@ -138,7 +193,7 @@ export default async function KillListPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

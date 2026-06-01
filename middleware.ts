@@ -1,62 +1,45 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
-export async function middleware(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
+const PROJECT_REF = "bqpaemaechuupanyxgbf";
+
+const protectedRoutes = [
+  "/dashboard",
+  "/kill-list",
+  "/goals",
+  "/groups",
+  "/settings",
+  "/timeline",
+  "/templates",
+  "/ai",
+];
+const authRoutes = ["/login", "/signup"];
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isAuth = authRoutes.some((r) => pathname.startsWith(r));
+
+  if (!isProtected && !isAuth) {
     return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({ request });
+  // Check session by cookie presence only — no network call, no Supabase client.
+  // Supabase stores session in sb-<ref>-auth-token (may be chunked into .0, .1, …).
+  // Server components still call getUser() for security-critical checks.
+  const hasSession = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith(`sb-${PROJECT_REF}-auth-token`));
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-
-  const protectedRoutes = [
-    "/dashboard",
-    "/kill-list",
-    "/goals",
-    "/groups",
-    "/settings",
-    "/timeline",
-    "/templates",
-    "/ai",
-  ];
-  const authRoutes = ["/login", "/signup"];
-
-  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
+  if (!hasSession && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && authRoutes.some((r) => pathname.startsWith(r))) {
+  if (hasSession && isAuth) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
