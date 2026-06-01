@@ -6,38 +6,36 @@ function serverActionAllowedOrigins(): string[] {
       .map((s) => s.trim())
       .filter(Boolean) ?? [];
 
-  const hosts = new Set<string>(["localhost:3000", ...extra]);
+  const hosts = new Set<string>([
+    "localhost:3000",
+    "milestone-red.vercel.app",
+    "milestone-darrins-projects-5d4fb02f.vercel.app",
+    ...extra,
+  ]);
 
   for (const raw of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
     if (!raw?.trim()) continue;
     hosts.add(raw.replace(/^https?:\/\//, ""));
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (site) {
-    try {
-      hosts.add(new URL(site).host);
-    } catch {
-      // ignore invalid NEXT_PUBLIC_SITE_URL
+  for (const envVar of [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_APP_URL]) {
+    const site = envVar?.trim();
+    if (site) {
+      try {
+        hosts.add(new URL(site).host);
+      } catch {
+        // ignore invalid URL
+      }
     }
   }
 
   return [...hosts];
 }
-const allowedOrigins = [
-  "localhost:3000",
-  "milestone-red.vercel.app",
-  "milestone-darrins-projects-5d4fb02f.vercel.app",
-  ...(process.env.NEXT_PUBLIC_APP_URL
-    ? [new URL(process.env.NEXT_PUBLIC_APP_URL).host]
-    : []),
-];
 
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: serverActionAllowedOrigins(),
-      allowedOrigins,
     },
   },
   async headers() {
