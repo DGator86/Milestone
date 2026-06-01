@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign } from "lucide-react";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
 import {
@@ -43,16 +43,30 @@ function fmt(v: number | null) {
 function OppCard({
   opp,
   stages,
+  isMismatched,
   onMove,
   onDelete,
 }: {
   opp: CrmOpportunity;
   stages: string[];
+  isMismatched: boolean;
   onMove: (id: string, stage: string) => void;
   onDelete: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const otherStages = stages.filter((s) => s !== opp.stage);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   return (
     <div className="bg-white rounded-xl shadow-card border border-milestone-line p-3.5 group">
@@ -68,6 +82,11 @@ function OppCard({
 
       {opp.crm_customers && (
         <p className="text-xs text-gray-400 mt-1">{opp.crm_customers.name}</p>
+      )}
+      {isMismatched && (
+        <p className="text-[10px] text-milestone-amber bg-milestone-amber-dim px-1.5 py-0.5 rounded mt-1 inline-block">
+          Stage: {opp.stage}
+        </p>
       )}
 
       <div className="flex items-center justify-between mt-2.5">
@@ -90,7 +109,7 @@ function OppCard({
 
       {/* Move stage */}
       {otherStages.length > 0 && (
-        <div className="relative mt-2.5 pt-2.5 border-t border-milestone-line">
+        <div ref={dropdownRef} className="relative mt-2.5 pt-2.5 border-t border-milestone-line">
           <button
             onClick={() => setOpen((v) => !v)}
             className="text-[11px] text-gray-400 hover:text-milestone-blue transition-colors flex items-center gap-0.5"
@@ -98,7 +117,7 @@ function OppCard({
             Move stage <ChevronRight size={11} />
           </button>
           {open && (
-            <div className="absolute bottom-full mb-1 left-0 bg-white rounded-lg shadow-card-lg border border-milestone-line p-1 z-20 min-w-[130px]">
+            <div className="absolute top-full mt-1 left-0 bg-white rounded-lg shadow-card-lg border border-milestone-line p-1 z-20 min-w-[130px]">
               {otherStages.map((s) => (
                 <button
                   key={s}
@@ -137,14 +156,19 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
     [selectedFlowId, opportunities]
   );
 
-  const byStage = useMemo(() => {
+  const { byStage, mismatchedIds } = useMemo(() => {
     const map: Record<string, CrmOpportunity[]> = {};
     for (const s of activeStages) map[s] = [];
+    const mismatched = new Set<string>();
     for (const opp of visibleOpps) {
-      const key = activeStages.includes(opp.stage) ? opp.stage : activeStages[0];
-      map[key].push(opp);
+      if (activeStages.includes(opp.stage)) {
+        map[opp.stage].push(opp);
+      } else if (activeStages.length > 0) {
+        mismatched.add(opp.id);
+        map[activeStages[0]].push(opp);
+      }
     }
-    return map;
+    return { byStage: map, mismatchedIds: mismatched };
   }, [visibleOpps, activeStages]);
 
   const totalValue = visibleOpps.reduce((sum, o) => sum + (o.value ?? 0), 0);
@@ -325,6 +349,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
                       key={opp.id}
                       opp={opp}
                       stages={activeStages}
+                      isMismatched={mismatchedIds.has(opp.id)}
                       onMove={handleMove}
                       onDelete={handleDelete}
                     />

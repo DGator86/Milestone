@@ -11,6 +11,12 @@ const protectedRoutes = [
   "/timeline",
   "/templates",
   "/ai",
+  "/customers",
+  "/contacts",
+  "/opportunities",
+  "/flows",
+  "/follow-ups",
+  "/pipeline",
 ];
 const authRoutes = ["/login", "/signup"];
 

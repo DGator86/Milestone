@@ -51,6 +51,9 @@ export async function deleteOpportunity(id: string) {
 }
 
 export async function moveOpportunity(id: string, stage: string) {
+  const trimmed = stage.trim();
+  if (!trimmed) return;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,7 +62,7 @@ export async function moveOpportunity(id: string, stage: string) {
 
   await supabase
     .from("crm_opportunities")
-    .update({ stage, status: stageToStatus(stage) })
+    .update({ stage: trimmed, status: stageToStatus(trimmed) })
     .eq("id", id)
     .eq("user_id", user.id);
   revalidatePath("/opportunities");

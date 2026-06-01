@@ -63,8 +63,8 @@ export async function createLegacyContact(formData: FormData) {
     .select()
     .single();
 
-  if (error || !contact) redirect("/contacts?error=Failed+to+create+contact");
+  if (error || !contact) redirect("/follow-ups?error=Failed+to+create+contact");
 
-  revalidatePath("/contacts");
+  revalidatePath("/follow-ups");
   revalidatePath("/dashboard");
 }
