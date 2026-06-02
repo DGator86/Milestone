@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 
@@ -29,5 +30,8 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(authError)}`);
   }
 
+  // Bust the client-side router cache so the post-login navigation fetches
+  // fresh RSC data and the middleware sees the new session cookie.
+  revalidatePath("/", "layout");
   redirect("/dashboard");
 }
