@@ -230,6 +230,63 @@ create or replace trigger crm_opportunities_tenant_check
   before insert or update on crm_opportunities
   for each row execute function check_crm_opportunity_tenant();
 
+-- ─── CRM TASKS (Kill List) ─────────────────────────────────────────────────────
+
+create table if not exists crm_tasks (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references auth.users(id) on delete cascade,
+  customer_id    uuid references crm_customers(id) on delete set null,
+  contact_id     uuid references crm_contacts(id) on delete set null,
+  opportunity_id uuid references crm_opportunities(id) on delete set null,
+  title          text not null,
+  type           text not null default 'task' check (type in ('call','email','meeting','task','document')),
+  priority       text not null default 'medium' check (priority in ('critical','high','medium','low')),
+  due_date       date,
+  done           boolean not null default false,
+  completed_at   timestamptz,
+  notes          text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+alter table crm_tasks enable row level security;
+create policy "users_own_crm_tasks" on crm_tasks
+  for all using (auth.uid() = user_id);
+
+create or replace trigger crm_tasks_updated_at
+  before update on crm_tasks
+  for each row execute function set_updated_at();
+
+create or replace function check_crm_task_tenant()
+returns trigger language plpgsql as $$
+begin
+  if new.customer_id is not null then
+    if not exists (select 1 from crm_customers where id = new.customer_id and user_id = new.user_id) then
+      raise exception 'customer_id must belong to the same user';
+    end if;
+  end if;
+  if new.contact_id is not null then
+    if not exists (select 1 from crm_contacts where id = new.contact_id and user_id = new.user_id) then
+      raise exception 'contact_id must belong to the same user';
+    end if;
+  end if;
+  if new.opportunity_id is not null then
+    if not exists (select 1 from crm_opportunities where id = new.opportunity_id and user_id = new.user_id) then
+      raise exception 'opportunity_id must belong to the same user';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace trigger crm_tasks_tenant_check
+  before insert or update on crm_tasks
+  for each row execute function check_crm_task_tenant();
+
+create index if not exists crm_tasks_user_due_idx on crm_tasks(user_id, due_date);
+
+-- Star / pin goals on the home page
+alter table goals add column if not exists pinned boolean not null default false;
+
 -- ─── DEFAULT GROUPS / HELPERS ──────────────────────────────────────────────────
 
 create or replace function ensure_default_groups()
