@@ -24,6 +24,20 @@ export function getKillList(goals: GoalWithDetails[]): Array<{
   return items;
 }
 
+export type GoalHealth = "on_track" | "at_risk" | "waiting";
+
+export function getGoalHealth(goal: GoalWithDetails): GoalHealth {
+  const ms = goal.milestones ?? [];
+  const hasStuck = ms.some((m) => m.status === "stuck");
+  const goalOverdue = goal.due_date && new Date(goal.due_date) < new Date();
+  if (hasStuck || goalOverdue) return "at_risk";
+
+  const next = getNextMilestone(ms);
+  if (next?.due_date && new Date(next.due_date) < new Date()) return "at_risk";
+  if (ms.some((m) => m.status === "waiting")) return "waiting";
+  return "on_track";
+}
+
 export function getTaskHealth(goals: GoalWithDetails[]) {
   const stuck: GoalWithDetails[] = [];
   const needsAttention: GoalWithDetails[] = [];

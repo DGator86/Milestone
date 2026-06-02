@@ -3,54 +3,17 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
-import TopBar from "@/components/dashboard/TopBar";
-import MilestoneCharts from "@/components/dashboard/MilestoneCharts";
-import TaskHealth from "@/components/dashboard/TaskHealth";
-import Momentum from "@/components/dashboard/Momentum";
+import CriticalPaths from "@/components/home/CriticalPaths";
+import KillList from "@/components/home/KillList";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
-import { ToastTrigger } from "@/components/ui/ToastTrigger";
-import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
-import GroupTabs from "@/components/dashboard/GroupTabs";
 import GoalWizard from "@/components/dashboard/GoalWizard";
-import { calcProgress } from "@/lib/progress";
-import type { GoalWithDetails, Group, GoalImportance } from "@/lib/types";
+import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
+import { ToastTrigger } from "@/components/ui/ToastTrigger";
+import type { GoalWithDetails, Group, CrmTask, CrmCustomer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const IMPORTANCE_ORDER: Record<GoalImportance, number> = {
-  critical: 0,
-  important: 1,
-  normal: 2,
-};
-
-function sortGoals(goals: GoalWithDetails[], by: string): GoalWithDetails[] {
-  const copy = [...goals];
-  switch (by) {
-    case "due_date":
-      return copy.sort((a, b) => {
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-      });
-    case "progress":
-      return copy.sort(
-        (a, b) => calcProgress(b.milestones) - calcProgress(a.milestones)
-      );
-    case "name":
-      return copy.sort((a, b) => a.title.localeCompare(b.title));
-    default: // priority
-      return copy.sort(
-        (a, b) =>
-          IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance]
-      );
-  }
-}
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
+export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -59,40 +22,32 @@ export default async function DashboardPage({
 
   await ensureDefaults();
 
-  const params = await searchParams;
-  const filterGroup = params.group ?? "";
-  const sortBy = params.sort ?? "priority";
-  const filterStatus = params.status ?? "active";
+  const [{ data: groupsRaw }, { data: goalsRaw }, { data: tasksRaw }, { data: customersRaw }] =
+    await Promise.all([
+      supabase.from("groups").select("*").order("sort_order", { ascending: true }),
+      supabase
+        .from("goals")
+        .select("*, groups(*), milestones(*)")
+        .eq("status", "active")
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("crm_tasks")
+        .select("*, crm_customers(id, name)")
+        .eq("done", false),
+      supabase.from("crm_customers").select("id, name").order("name"),
+    ]);
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  let query = supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .order("created_at", { ascending: true });
-
-  if (filterStatus === "active") query = query.eq("status", "active");
-  else if (filterStatus === "completed") query = query.eq("status", "completed");
-
-  const { data: goalsRaw } = await query;
-
-  let goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
+  const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
     ...g,
     milestones: [...(g.milestones ?? [])].sort(
       (a: { position: number }, b: { position: number }) => a.position - b.position
     ),
   }));
 
-  if (filterGroup) {
-    goals = goals.filter((g) => g.group_id === filterGroup);
-  }
-
-  goals = sortGoals(goals, sortBy);
-
-  const safeGroups: Group[] = groups ?? [];
+  const safeGroups: Group[] = groupsRaw ?? [];
+  const tasks: CrmTask[] = tasksRaw ?? [];
+  const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw ?? [];
 
   return (
     <AppShell user={user}>
@@ -101,27 +56,20 @@ export default async function DashboardPage({
       </Suspense>
       <RealtimeDashboard />
       {goals.length === 0 && <GoalWizard groups={safeGroups} />}
-      <div className="flex flex-col">
-        <TopBar
-          groups={safeGroups}
-          currentGroup={filterGroup}
-          currentSort={sortBy}
-          currentStatus={filterStatus}
-        />
-        <GroupTabs
-          groups={safeGroups}
-          currentGroup={filterGroup}
-          currentSort={sortBy}
-          currentStatus={filterStatus}
-        />
-        <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-          <MilestoneCharts goals={goals} groups={safeGroups} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TaskHealth goals={goals} />
-            <Momentum goals={goals} />
+
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Critical Paths + create */}
+          <div className="lg:col-span-2 space-y-6">
+            <CriticalPaths goals={goals} />
+            <div id="create-goal">
+              <CreateGoalForm groups={safeGroups} />
+            </div>
           </div>
-          <div id="create-goal">
-            <CreateGoalForm groups={safeGroups} />
+
+          {/* Kill List */}
+          <div className="lg:col-span-1">
+            <KillList tasks={tasks} customers={customers} />
           </div>
         </div>
       </div>

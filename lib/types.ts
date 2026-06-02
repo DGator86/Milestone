@@ -54,6 +54,7 @@ export interface Goal {
   importance: GoalImportance;
   status: GoalStatus;
   due_date: string | null;
+  pinned: boolean;
   created_at: string;
   updated_at: string;
   groups?: Group;
@@ -154,4 +155,26 @@ export interface CrmOpportunity {
 export interface ContactWithDetails extends Contact {
   groups?: Group;
   touches?: Touch[];
+}
+
+export type TaskType = "call" | "email" | "meeting" | "task" | "document";
+export type TaskPriority = "critical" | "high" | "medium" | "low";
+
+export interface CrmTask {
+  id: string;
+  user_id: string;
+  customer_id: string | null;
+  contact_id: string | null;
+  opportunity_id: string | null;
+  title: string;
+  type: TaskType;
+  priority: TaskPriority;
+  due_date: string | null;
+  done: boolean;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+  crm_contacts?: Pick<CrmContact, "id" | "first_name" | "last_name"> | null;
 }
