@@ -116,8 +116,8 @@ export default async function KillListPage({
               const overdueGoal = isOverdue(goal.due_date);
               const overdueMilestone = isOverdue(milestone.due_date);
               const overdue = overdueGoal || overdueMilestone;
-              const stuck = milestone.status === "stuck";
-              const urgent = stuck || overdue;
+              const isStuck = milestone.status === "stuck";
+              const urgent = isStuck || overdue;
 
               return (
                 <Link

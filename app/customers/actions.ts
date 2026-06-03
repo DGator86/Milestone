@@ -2,6 +2,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+const VALID_CUSTOMER_STATUSES = ["prospect", "active", "inactive"] as const;
+
 export async function createCustomer(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -12,6 +14,11 @@ export async function createCustomer(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
 
+  const rawStatus = (formData.get("status") as string) || "prospect";
+  const status = (VALID_CUSTOMER_STATUSES as readonly string[]).includes(rawStatus)
+    ? rawStatus
+    : "prospect";
+
   await supabase.from("crm_customers").insert({
     user_id: user.id,
     name,
@@ -19,7 +26,7 @@ export async function createCustomer(formData: FormData) {
     email: (formData.get("email") as string) || null,
     phone: (formData.get("phone") as string) || null,
     website: (formData.get("website") as string) || null,
-    status: (formData.get("status") as string) || "prospect",
+    status,
     notes: (formData.get("notes") as string) || null,
   });
 

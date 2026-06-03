@@ -7,6 +7,11 @@ import type { GoalWithDetails, Milestone } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 interface MilestoneWithGoal extends Milestone {
   goal: GoalWithDetails;
 }
@@ -38,7 +43,7 @@ function groupByTime(milestones: MilestoneWithGoal[]) {
       noDueDate.push(ms);
       continue;
     }
-    const d = new Date(ms.due_date);
+    const d = parseLocalDate(ms.due_date);
     if (d < now) overdue.push(ms);
     else if (d <= endOfToday) today.push(ms);
     else if (d <= endOfWeek) thisWeek.push(ms);
@@ -66,7 +71,7 @@ function MilestoneItem({ ms }: { ms: MilestoneWithGoal }) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const isOverdue =
-    ms.due_date && ms.status !== "completed" && new Date(ms.due_date) < todayStart;
+    ms.due_date && ms.status !== "completed" && parseLocalDate(ms.due_date) < todayStart;
 
   return (
     <Link
@@ -95,7 +100,7 @@ function MilestoneItem({ ms }: { ms: MilestoneWithGoal }) {
           }`}
         >
           <Calendar size={11} />
-          {new Date(ms.due_date).toLocaleDateString("en-US", {
+          {parseLocalDate(ms.due_date).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
           })}

@@ -20,7 +20,15 @@ export async function logTouch(formData: FormData) {
   };
 
   const parsed = LogTouchSchema.safeParse(raw);
-  if (!parsed.success) return;
+  if (!parsed.success) return { error: "Invalid input" };
+
+  const { data: contactOwner } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("id", parsed.data.contact_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!contactOwner) return { error: "Contact not found" };
 
   await supabase.from("touches").insert({
     user_id: user.id,

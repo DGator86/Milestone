@@ -99,10 +99,10 @@ function OppCard({
         )}
         {opp.close_date && (
           <span className="text-[11px] text-gray-400">
-            {new Date(opp.close_date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
+            {(() => {
+              const [y, m, d] = opp.close_date.split("-").map(Number);
+              return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            })()}
           </span>
         )}
       </div>

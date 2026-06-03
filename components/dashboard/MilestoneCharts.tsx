@@ -125,8 +125,12 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
   function handleComplete(ms: Milestone) {
     startTransition(async () => {
       applyOptimistic(ms.id);
-      await completeMilestone(ms.id, goal.id);
-      show(`"${ms.title}" completed!`, "success");
+      try {
+        await completeMilestone(ms.id, goal.id);
+        show(`"${ms.title}" completed!`, "success");
+      } catch {
+        show(`Failed to complete "${ms.title}"`, "error");
+      }
     });
   }
 

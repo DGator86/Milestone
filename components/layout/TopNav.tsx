@@ -53,7 +53,7 @@ export default function TopNav({ user }: { user: User }) {
   }, [menuOpen]);
 
   function isActive(href: string) {
-    return pathname === href || (href !== "/" && pathname.startsWith(href));
+    return pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
   }
 
   return (
@@ -112,6 +112,8 @@ export default function TopNav({ user }: { user: User }) {
           <div className="relative ml-1" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
               className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 ring-1 ring-black/5">

@@ -79,6 +79,7 @@ export default async function ContactDetailPage({
       .from("touches")
       .select("*")
       .eq("contact_id", id)
+      .eq("user_id", user.id)
       .order("touched_at", { ascending: false })
       .limit(50),
   ]);
