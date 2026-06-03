@@ -4,6 +4,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 export const runtime = "nodejs";
 
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   const results: Record<string, unknown> = { url: SUPABASE_URL };
 
   try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition, useState } from "react";
+import { useActionState, useTransition, useState, useEffect } from "react";
 import { Plus, Trash2, X, Briefcase, Home, Heart, Target } from "lucide-react";
 import { createGroup, deleteGroup } from "./actions";
 import { useToast } from "@/lib/toast-context";
@@ -40,10 +40,13 @@ function AddGroupForm({ onSuccess }: { onSuccess: () => void }) {
   const [state, action, isPending] = useActionState(createGroup, null);
   const { show } = useToast();
 
-  if (state?.success) {
-    show("Group created!", "success");
-    onSuccess();
-  }
+  useEffect(() => {
+    if (state?.success) {
+      show("Group created!", "success");
+      onSuccess();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.success]);
 
   return (
     <form action={action} className="space-y-4 animate-fade-up">

@@ -201,7 +201,7 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  await supabase.from("goals").update({ status }).eq("id", goalId);
+  await supabase.from("goals").update({ status }).eq("id", goalId).eq("user_id", user.id);
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");

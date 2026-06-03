@@ -107,6 +107,7 @@ async function callClaude(description: string): Promise<SuggestResult> {
 
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: AbortSignal.timeout(15000),
     headers: {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
@@ -140,6 +141,9 @@ Reply with ONLY valid JSON in this exact shape (no markdown, no explanation):
   const text = data.content?.[0]?.text ?? "";
 
   const parsed = JSON.parse(text);
+  if (!Array.isArray(parsed?.milestones) || !parsed?.goal_type) {
+    throw new Error("Invalid response shape");
+  }
   return parsed as SuggestResult;
 }
 

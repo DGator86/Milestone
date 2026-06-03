@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useActionState, useTransition, useEffect } from "react";
 import {
   CheckCircle,
   Circle,
@@ -56,10 +56,13 @@ function EditForm({
   const [state, action, isPending] = useActionState(boundAction, null);
 
   // Close on success
-  if (state?.success) {
-    show("Goal updated!", "success");
-    onClose();
-  }
+  useEffect(() => {
+    if (state?.success) {
+      show("Goal updated!", "success");
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.success]);
 
   return (
     <div className="px-5 pb-5 pt-3 bg-gray-50/60 border-t border-milestone-line animate-fade-up">
