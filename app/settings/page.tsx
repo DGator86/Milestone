@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
 import { Settings, User, Shield, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/auth-actions";
 import type { AppUser } from "@/lib/types";
+import { Settings, User, Shield, LogOut, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
