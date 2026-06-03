@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AppShell from "@/components/layout/AppShell";
-import { Settings, User, Shield, LogOut } from "lucide-react";
+import { Settings, User, Shield, LogOut, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 

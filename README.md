@@ -37,7 +37,13 @@ Do these **in order**:
 3. Default groups (Work, Home, Health) are created automatically
 4. Click **+ Goal** or scroll down to create your first goal
 
-## Deploy (public website)
+## App Store & Google Play launch
+
+See **[docs/LAUNCH.md](docs/LAUNCH.md)** for the 14-day checklist (web + Capacitor hybrid apps).
+
+Native shells live in **`mobile/`** — they load your production Vercel URL.
+
+## Deploy to Vercel
 
 Only **after** local setup works (`npm run verify` + `npm run dev`):
 

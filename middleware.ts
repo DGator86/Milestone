@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROJECT_REF = "bqpaemaechuupanyxgbf";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const PROJECT_REF = supabaseUrl.split("//")[1]?.split(".")[0] ?? "bqpaemaechuupanyxgbf";
 
 const protectedRoutes = [
   "/dashboard",
@@ -11,6 +12,13 @@ const protectedRoutes = [
   "/timeline",
   "/templates",
   "/ai",
+  "/customers",
+  "/contacts",
+  "/opportunities",
+  "/flows",
+  "/follow-ups",
+  "/pipeline",
+  "/reports",
 ];
 const authRoutes = ["/login", "/signup"];
 
@@ -43,5 +51,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|favicon.png|manifest.json|icons/).*)"],
 };

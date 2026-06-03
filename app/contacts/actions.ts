@@ -1,109 +1,39 @@
 "use server";
-
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { CreateContactSchema, LogTouchSchema } from "@/lib/schemas";
+import { revalidatePath } from "next/cache";
 
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
 
-  const freqRaw = formData.get("touch_frequency_days");
-  const raw = {
-    name: (formData.get("name") as string)?.trim() ?? "",
-    email: (formData.get("email") as string)?.trim() || null,
-    phone: (formData.get("phone") as string)?.trim() || null,
-    company: (formData.get("company") as string)?.trim() || null,
-    role: (formData.get("role") as string)?.trim() || null,
-    list_id: (formData.get("list_id") as string) || null,
-    touch_frequency_days: freqRaw ? Number(freqRaw) : null,
-    notes: (formData.get("notes") as string)?.trim() || null,
-  };
+  const firstName = (formData.get("first_name") as string)?.trim();
+  const lastName = (formData.get("last_name") as string)?.trim();
+  if (!firstName || !lastName) return;
 
-  const parsed = CreateContactSchema.safeParse(raw);
-  if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Validation error";
-    redirect(`/contacts?error=${encodeURIComponent(msg)}`);
-  }
-
-  const { data: contact, error } = await supabase
-    .from("contacts")
-    .insert({ user_id: user.id, ...parsed.data })
-    .select()
-    .single();
-
-  if (error || !contact) redirect("/contacts?error=Failed+to+create+contact");
-
-  revalidatePath("/contacts");
-  revalidatePath("/dashboard");
-  redirect(`/contacts/${contact.id}`);
-}
-
-export async function updateContact(contactId: string, formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const freqRaw = formData.get("touch_frequency_days");
-  const updates = {
-    name: (formData.get("name") as string)?.trim(),
-    email: (formData.get("email") as string)?.trim() || null,
-    phone: (formData.get("phone") as string)?.trim() || null,
-    company: (formData.get("company") as string)?.trim() || null,
-    role: (formData.get("role") as string)?.trim() || null,
-    list_id: (formData.get("list_id") as string) || null,
-    touch_frequency_days: freqRaw ? Number(freqRaw) : null,
-    notes: (formData.get("notes") as string)?.trim() || null,
-  };
-
-  await supabase.from("contacts").update(updates).eq("id", contactId).eq("user_id", user.id);
-
-  revalidatePath(`/contacts/${contactId}`);
-  revalidatePath("/contacts");
-}
-
-export async function logTouch(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const raw = {
-    contact_id: formData.get("contact_id") as string,
-    type: formData.get("type") as string,
-    notes: (formData.get("notes") as string)?.trim() || null,
-    touched_at: (formData.get("touched_at") as string) || null,
-  };
-
-  const parsed = LogTouchSchema.safeParse(raw);
-  if (!parsed.success) return;
-
-  await supabase.from("touches").insert({
+  await supabase.from("crm_contacts").insert({
     user_id: user.id,
-    contact_id: parsed.data.contact_id,
-    type: parsed.data.type,
-    notes: parsed.data.notes,
-    touched_at: parsed.data.touched_at ?? new Date().toISOString(),
+    first_name: firstName,
+    last_name: lastName,
+    email: (formData.get("email") as string) || null,
+    phone: (formData.get("phone") as string) || null,
+    title: (formData.get("title") as string) || null,
+    customer_id: (formData.get("customer_id") as string) || null,
+    notes: (formData.get("notes") as string) || null,
   });
 
-  revalidatePath(`/contacts/${parsed.data.contact_id}`);
   revalidatePath("/contacts");
-  revalidatePath("/follow-ups");
-  revalidatePath("/dashboard");
 }
 
-export async function archiveContact(contactId: string) {
+export async function deleteContact(id: string) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
 
-  await supabase
-    .from("contacts")
-    .update({ status: "archived" })
-    .eq("id", contactId)
-    .eq("user_id", user.id);
-
+  await supabase.from("crm_contacts").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/contacts");
-  redirect("/contacts");
 }

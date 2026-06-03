@@ -2,17 +2,25 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/lib/site-url";
 
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
+  const siteUrl = getSiteUrl();
 
+  let session: unknown = null;
   let authError: string | null = null;
+
   try {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: formData.get("email") as string,
       password: formData.get("password") as string,
+      options: {
+        emailRedirectTo: `${siteUrl}/auth/callback`,
+      },
     });
     if (error) authError = error.message;
+    else session = data.session;
   } catch {
     authError = "Unable to reach the server. Please try again.";
   }
@@ -21,5 +29,13 @@ export async function signUp(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(authError)}`);
   }
 
-  redirect("/dashboard");
+  if (session) {
+    redirect("/dashboard");
+  }
+
+  redirect(
+    `/login?message=${encodeURIComponent(
+      "Check your email for a confirmation link to finish signing up."
+    )}`
+  );
 }

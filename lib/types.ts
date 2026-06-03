@@ -54,6 +54,7 @@ export interface Goal {
   importance: GoalImportance;
   status: GoalStatus;
   due_date: string | null;
+  pinned: boolean;
   created_at: string;
   updated_at: string;
   groups?: Group;
@@ -87,7 +88,93 @@ export interface GoalWithDetails extends Goal {
   milestones: Milestone[];
 }
 
+// ─── CRM ───────────────────────────────────────────────────────────────────────
+
+export type CustomerStatus = "prospect" | "active" | "inactive";
+export type OpportunityStatus = "open" | "won" | "lost";
+
+export interface CrmCustomer {
+  id: string;
+  user_id: string;
+  name: string;
+  industry: string | null;
+  website: string | null;
+  phone: string | null;
+  email: string | null;
+  status: CustomerStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmContact {
+  id: string;
+  user_id: string;
+  customer_id: string | null;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+}
+
+export interface CrmFlow {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  stages: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CrmOpportunity {
+  id: string;
+  user_id: string;
+  customer_id: string | null;
+  contact_id: string | null;
+  flow_id: string | null;
+  title: string;
+  value: number | null;
+  stage: string;
+  status: OpportunityStatus;
+  close_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+  crm_contacts?: Pick<CrmContact, "id" | "first_name" | "last_name"> | null;
+  crm_flows?: Pick<CrmFlow, "id" | "name" | "stages"> | null;
+}
+
 export interface ContactWithDetails extends Contact {
   groups?: Group;
   touches?: Touch[];
+}
+
+export type TaskType = "call" | "email" | "meeting" | "task" | "document";
+export type TaskPriority = "critical" | "high" | "medium" | "low";
+
+export interface CrmTask {
+  id: string;
+  user_id: string;
+  customer_id: string | null;
+  contact_id: string | null;
+  opportunity_id: string | null;
+  title: string;
+  type: TaskType;
+  priority: TaskPriority;
+  due_date: string | null;
+  done: boolean;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+  crm_contacts?: Pick<CrmContact, "id" | "first_name" | "last_name"> | null;
 }

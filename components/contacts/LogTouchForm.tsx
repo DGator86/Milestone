@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Phone, Mail, Users, FileText, Plus } from "lucide-react";
-import { logTouch } from "@/app/contacts/actions";
+import { logTouch } from "@/app/contacts/touch-actions";
 import type { TouchType } from "@/lib/types";
 
 const TOUCH_TYPES: { type: TouchType; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
