@@ -118,7 +118,5 @@ export async function ensureDefaults() {
 
   await db.insert(groups).values([
     { user_id: userId, name: "Work", color: "#1769FF", sort_order: 0 },
-    { user_id: userId, name: "Home", color: "#36A852", sort_order: 1 },
-    { user_id: userId, name: "Health", color: "#F8B400", sort_order: 2 },
   ]);
 }

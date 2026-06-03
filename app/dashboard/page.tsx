@@ -2,14 +2,11 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { goals, groups, milestones, crm_tasks, crm_customers } from "@/db/schema";
+import { goals, groups, crm_tasks, crm_customers } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
-import CriticalPaths from "@/components/home/CriticalPaths";
-import KillList from "@/components/home/KillList";
-import CreateGoalForm from "@/components/forms/CreateGoalForm";
-import GoalWizard from "@/components/dashboard/GoalWizard";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
 import { ToastTrigger } from "@/components/ui/ToastTrigger";
 import type { GoalWithDetails, Group, CrmTask, CrmCustomer, AppUser } from "@/lib/types";
@@ -61,21 +58,12 @@ export default async function DashboardPage() {
         <ToastTrigger />
       </Suspense>
       <RealtimeDashboard />
-      {goalsList.length === 0 && <GoalWizard groups={safeGroups as Group[]} />}
-
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <CriticalPaths goals={goalsList} />
-            <div id="create-goal">
-              <CreateGoalForm groups={safeGroups as Group[]} />
-            </div>
-          </div>
-          <div className="lg:col-span-1">
-            <KillList tasks={tasks} customers={customers} />
-          </div>
-        </div>
-      </div>
+      <DashboardShell
+        goals={goalsList}
+        groups={safeGroups as Group[]}
+        tasks={tasks}
+        customers={customers}
+      />
     </AppShell>
   );
 }
