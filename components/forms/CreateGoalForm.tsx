@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Target, ChevronDown } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
@@ -11,10 +11,49 @@ const IMPORTANCE_OPTIONS = [
   { value: "critical", label: "Critical", color: "bg-milestone-red", textColor: "text-red-700" },
 ] as const;
 
+const GOAL_TYPES = [
+  { value: "concrete", label: "Project", description: "Defined goal with a clear finish line" },
+  { value: "touches", label: "Habit", description: "Regular activity to keep up over time" },
+  { value: "deadline", label: "Deadline", description: "Must be done by a specific date" },
+  { value: "maintenance", label: "Ongoing", description: "Continuous work, no end date" },
+] as const;
+
+interface Prefill {
+  title?: string;
+  goal_type?: string;
+  importance?: string;
+  milestones?: string[];
+}
+
 export default function CreateGoalForm({ groups }: { groups: Group[] }) {
   const [open, setOpen] = useState(false);
   const [milestoneCount, setMilestoneCount] = useState(3);
   const [importance, setImportance] = useState<"normal" | "important" | "critical">("normal");
+  const [goalType, setGoalType] = useState("concrete");
+  const [prefill, setPrefill] = useState<Prefill | null>(null);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("goal_prefill");
+    if (!raw) return;
+    try {
+      sessionStorage.removeItem("goal_prefill");
+      const data: Prefill = JSON.parse(raw);
+      setPrefill(data);
+      setOpen(true);
+      if (data.milestones?.length) setMilestoneCount(Math.min(6, data.milestones.length));
+      if (data.goal_type) setGoalType(data.goal_type);
+      if (data.importance === "important" || data.importance === "critical") {
+        setImportance(data.importance);
+      }
+    } catch {}
+  }, []);
+
+  function adjustCount(newCount: number) {
+    const clamped = Math.max(1, Math.min(6, newCount));
+    setMilestoneCount(clamped);
+  }
+
+  const typeDescription = GOAL_TYPES.find((t) => t.value === goalType)?.description ?? "";
 
   if (!open) {
     return (
@@ -35,7 +74,6 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
       className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden animate-fade-up"
       id="create-goal"
     >
-      {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">
         <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center">
           <Target size={16} className="text-milestone-blue" />
@@ -56,6 +94,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             name="title"
             required
             autoFocus
+            defaultValue={prefill?.title ?? ""}
             className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
             placeholder="e.g. Close the Acme deal, Run a 5K, Finish the deck renovation"
           />
@@ -92,15 +131,19 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <div className="relative">
               <select
                 name="goal_type"
+                value={goalType}
+                onChange={(e) => setGoalType(e.target.value)}
                 className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent bg-white appearance-none cursor-pointer transition-all"
               >
-                <option value="concrete">Concrete</option>
-                <option value="touches">Touches</option>
-                <option value="deadline">Deadline</option>
-                <option value="maintenance">Maintenance</option>
+                {GOAL_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
+            <p className="text-[11px] text-gray-400 mt-1 leading-tight">{typeDescription}</p>
           </div>
 
           {/* Due date */}
@@ -150,7 +193,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.max(1, c - 1))}
+                onClick={() => adjustCount(milestoneCount - 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 −
@@ -160,7 +203,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
               </span>
               <button
                 type="button"
-                onClick={() => setMilestoneCount((c) => Math.min(6, c + 1))}
+                onClick={() => adjustCount(milestoneCount + 1)}
                 className="w-6 h-6 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-base transition-colors"
               >
                 +
@@ -168,16 +211,13 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             </div>
           </div>
 
-          {/* Visual step indicators */}
           <div className="flex items-center gap-1.5 mb-2.5">
             {Array.from({ length: milestoneCount }, (_, i) => (
               <div key={i} className="flex items-center gap-1.5 flex-1">
                 <div className="w-5 h-5 rounded-full border-2 border-milestone-blue bg-white flex items-center justify-center shrink-0">
                   <span className="text-[9px] font-bold text-milestone-blue">{i + 1}</span>
                 </div>
-                {i < milestoneCount - 1 && (
-                  <div className="flex-1 h-px bg-milestone-line" />
-                )}
+                {i < milestoneCount - 1 && <div className="flex-1 h-px bg-milestone-line" />}
               </div>
             ))}
           </div>
@@ -188,6 +228,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
                 key={i}
                 name={`milestone_${i + 1}`}
                 required={i === 0}
+                defaultValue={prefill?.milestones?.[i] ?? ""}
                 className="px-3.5 py-2.5 border border-milestone-line rounded-lg text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent transition-all"
                 placeholder={`Step ${i + 1}${i === 0 ? " *" : ""}`}
               />

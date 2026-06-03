@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import AppComingSoon from "@/components/AppComingSoon";
-import { FileText } from "lucide-react";
+import AppShell from "@/components/layout/AppShell";
+import TemplateGrid from "@/components/templates/TemplateGrid";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +13,8 @@ export default async function TemplatesPage() {
   if (!user) redirect("/login");
 
   return (
-    <AppComingSoon
-      user={user}
-      title="Templates"
-      subtitle="Reusable goal and milestone patterns"
-      icon={FileText}
-    />
+    <AppShell user={user}>
+      <TemplateGrid />
+    </AppShell>
   );
 }

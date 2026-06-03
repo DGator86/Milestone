@@ -1,5 +1,5 @@
-import Sidebar from "./Sidebar";
-import MobileNav from "./MobileNav";
+import TopNav from "./TopNav";
+import { ToastProvider } from "@/lib/toast-context";
 import type { User } from "@supabase/supabase-js";
 
 export default function AppShell({
@@ -10,10 +10,11 @@ export default function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-milestone-bg">
-      <Sidebar user={user} />
-      <main className="flex-1 min-w-0 overflow-auto pb-16 lg:pb-0">{children}</main>
-      <MobileNav />
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen bg-milestone-bg flex flex-col">
+        <TopNav user={user} />
+        <main className="flex-1 min-w-0 min-h-0">{children}</main>
+      </div>
+    </ToastProvider>
   );
 }

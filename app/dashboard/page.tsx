@@ -1,33 +1,42 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
-import TopBar from "@/components/dashboard/TopBar";
-import MilestoneCharts from "@/components/dashboard/MilestoneCharts";
-import TaskHealth from "@/components/dashboard/TaskHealth";
-import Momentum from "@/components/dashboard/Momentum";
+import CriticalPaths from "@/components/home/CriticalPaths";
+import KillList from "@/components/home/KillList";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
-import type { GoalWithDetails, Group } from "@/lib/types";
+import GoalWizard from "@/components/dashboard/GoalWizard";
+import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
+import { ToastTrigger } from "@/components/ui/ToastTrigger";
+import type { GoalWithDetails, Group, CrmTask, CrmCustomer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   await ensureDefaults();
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  const { data: goalsRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
+  const [{ data: groupsRaw }, { data: goalsRaw }, { data: tasksRaw }, { data: customersRaw }] =
+    await Promise.all([
+      supabase.from("groups").select("*").order("sort_order", { ascending: true }),
+      supabase
+        .from("goals")
+        .select("*, groups(*), milestones(*)")
+        .eq("status", "active")
+        .order("pinned", { ascending: false })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("crm_tasks")
+        .select("*, crm_customers(id, name)")
+        .eq("done", false),
+      supabase.from("crm_customers").select("id, name").order("name"),
+    ]);
 
   const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
     ...g,
@@ -36,20 +45,31 @@ export default async function DashboardPage() {
     ),
   }));
 
-  const safeGroups: Group[] = groups ?? [];
+  const safeGroups: Group[] = groupsRaw ?? [];
+  const tasks: CrmTask[] = tasksRaw ?? [];
+  const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw ?? [];
 
   return (
     <AppShell user={user}>
-      <div className="flex flex-col gap-0">
-        <TopBar groups={safeGroups} />
-        <div className="p-6 space-y-6">
-          <MilestoneCharts goals={goals} groups={safeGroups} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TaskHealth goals={goals} />
-            <Momentum goals={goals} />
+      <Suspense>
+        <ToastTrigger />
+      </Suspense>
+      <RealtimeDashboard />
+      {goals.length === 0 && <GoalWizard groups={safeGroups} />}
+
+      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Critical Paths + create */}
+          <div className="lg:col-span-2 space-y-6">
+            <CriticalPaths goals={goals} />
+            <div id="create-goal">
+              <CreateGoalForm groups={safeGroups} />
+            </div>
           </div>
-          <div id="create-goal">
-            <CreateGoalForm groups={safeGroups} />
+
+          {/* Kill List */}
+          <div className="lg:col-span-1">
+            <KillList tasks={tasks} customers={customers} />
           </div>
         </div>
       </div>

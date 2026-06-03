@@ -4,45 +4,33 @@
 
 A no-bullshit goal CRM that tracks goals as milestone paths.
 
-## Setup
+## Setup (local web app)
 
-### 1. Install dependencies
+Do these **in order**:
 
-```bash
-npm install
-```
+1. **Supabase (browser)** — [supabase.com/dashboard](https://supabase.com/dashboard) → New project → wait until ready.
+2. **Schema** — Supabase → **SQL Editor** → paste full contents of **`supabase/schema.sql`** from this repo → **Run**.
+3. **Env (your machine)** — copy `.env.example` to **`.env.local`** and set:
+   - `NEXT_PUBLIC_SUPABASE_URL` = Project URL (Settings → API)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon **public** key (never `service_role`)
+4. **Install and verify**
 
-### 2. Configure environment
+   ```bash
+   npm install
+   npm run verify
+   ```
 
-```bash
-cp .env.example .env.local
-```
+   `verify` checks `.env.local` and calls Supabase’s auth health endpoint.
 
-Edit `.env.local` with your Supabase credentials:
+5. **Run**
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+   ```bash
+   npm run dev
+   ```
 
-### 3. Create Supabase project
+   Open [http://localhost:3000](http://localhost:3000) — sign up at `/signup`, then use the dashboard.
 
-1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Find your **Project URL** and **anon public key** in Settings → API
-
-### 4. Run the schema
-
-In your Supabase project dashboard, go to **SQL Editor** and paste the contents of `supabase/schema.sql`, then run it.
-
-### 5. Run locally
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-### 6. Test signup and login
+### Test signup and login
 
 1. Visit `/signup` and create an account
 2. You'll be redirected to `/dashboard`
@@ -57,20 +45,21 @@ Native shells live in **`mobile/`** — they load your production Vercel URL.
 
 ## Deploy to Vercel
 
-1. Push this repo to GitHub
-2. Import the repo in [vercel.com](https://vercel.com)
-3. Add environment variables in Vercel project settings:
+Only **after** local setup works (`npm run verify` + `npm run dev`):
+
+1. Push this repo to GitHub.
+2. [vercel.com](https://vercel.com) → **Add New** → **Project** → **Import** this repo.
+3. **Environment Variables** (before or after first deploy, then redeploy):
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+   Same values as `.env.local`.
+4. **Deploy** → copy the production URL (e.g. `https://….vercel.app`).
+5. Supabase → **Authentication** → **URL configuration**:
+   - **Site URL** = `https://….vercel.app`
+   - **Redirect URLs** add: `https://….vercel.app/**`
+6. Open the Vercel URL in a browser and sign up again (production is a separate deployment from localhost).
 
-### Supabase Auth redirect URLs
-
-In Supabase → Authentication → URL Configuration, add your Vercel domain to **Redirect URLs**:
-
-```
-https://your-app.vercel.app/**
-```
+**I can’t log into your Vercel or Supabase account from here** — those steps are always yours, but they are only this short list once the app runs locally.
 
 ## Tech Stack
 
