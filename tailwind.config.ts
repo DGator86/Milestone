@@ -29,7 +29,9 @@ const config: Config = {
       },
       boxShadow: {
         card: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-        "card-lg": "0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)",
+        "card-lg": "0 4px 24px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05)",
+        "card-xl": "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        "blue-glow": "0 4px 20px rgba(23,105,255,0.35)",
       },
       keyframes: {
         "fade-up": {

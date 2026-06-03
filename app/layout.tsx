@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
