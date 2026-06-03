@@ -44,8 +44,6 @@ export async function deleteCustomer(id: string) {
   revalidatePath("/customers");
 }
 
-const VALID_CUSTOMER_STATUSES = ["prospect", "active", "inactive"] as const;
-
 export async function updateCustomerStatus(id: string, status: string) {
   if (!(VALID_CUSTOMER_STATUSES as readonly string[]).includes(status)) return;
 
