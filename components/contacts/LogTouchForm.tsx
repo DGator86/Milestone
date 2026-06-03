@@ -35,8 +35,8 @@ export default function LogTouchForm({ contactId }: { contactId: string }) {
         action={async (fd) => {
           fd.set("contact_id", contactId);
           fd.set("type", selected);
-          await logTouch(fd);
-          setOpen(false);
+          const result = await logTouch(fd);
+          if (!result?.error) setOpen(false);
         }}
         className="space-y-3"
       >

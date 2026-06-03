@@ -1,3 +1,8 @@
+export interface AppUser {
+  id: string;
+  email?: string | null;
+}
+
 export type MilestoneStatus = "upcoming" | "in_progress" | "waiting" | "completed" | "stuck";
 export type GoalStatus = "active" | "archived" | "completed";
 export type GoalType = "concrete" | "touches" | "deadline" | "maintenance";

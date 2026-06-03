@@ -1,12 +1,12 @@
 import TopNav from "./TopNav";
 import { ToastProvider } from "@/lib/toast-context";
-import type { User } from "@supabase/supabase-js";
+import type { AppUser } from "@/lib/types";
 
 export default function AppShell({
   user,
   children,
 }: {
-  user: User;
+  user: AppUser;
   children: React.ReactNode;
 }) {
   return (

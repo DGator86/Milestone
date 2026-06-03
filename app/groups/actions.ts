@@ -1,18 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { groups, goals } from "@/db/schema";
+import { eq, and, ilike } from "drizzle-orm";
 import { CreateGroupSchema } from "@/lib/schemas";
 
 export async function createGroup(
   _prev: unknown,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
   const raw = {
     name: (formData.get("name") as string)?.trim() ?? "",
@@ -26,28 +27,24 @@ export async function createGroup(
 
   const { name, color } = parsed.data;
 
-  const { data: existing } = await supabase
-    .from("groups")
-    .select("id")
-    .eq("user_id", user.id)
-    .ilike("name", name)
-    .maybeSingle();
+  const existing = await db.query.groups.findFirst({
+    where: and(eq(groups.user_id, userId), ilike(groups.name, name)),
+  });
 
   if (existing) return { error: "A group with that name already exists" };
 
-  const { data: last } = await supabase
-    .from("groups")
-    .select("sort_order")
-    .eq("user_id", user.id)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const allGroups = await db.query.groups.findMany({
+    where: eq(groups.user_id, userId),
+    orderBy: (g, { desc }) => [desc(g.sort_order)],
+  });
 
-  await supabase.from("groups").insert({
-    user_id: user.id,
+  const maxSortOrder = allGroups[0]?.sort_order ?? 0;
+
+  await db.insert(groups).values({
+    user_id: userId,
     name,
     color,
-    sort_order: (last?.sort_order ?? 0) + 1,
+    sort_order: maxSortOrder + 1,
   });
 
   revalidatePath("/groups");
@@ -56,24 +53,20 @@ export async function createGroup(
 }
 
 export async function deleteGroup(groupId: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
-  const { data: goals } = await supabase
-    .from("goals")
-    .select("id")
-    .eq("group_id", groupId)
-    .eq("status", "active")
-    .limit(1);
+  const activeGoals = await db.query.goals.findMany({
+    where: and(eq(goals.group_id, groupId), eq(goals.status, "active")),
+  });
 
-  if (goals && goals.length > 0) {
+  if (activeGoals.length > 0) {
     return { error: "Cannot delete a group that has active goals" };
   }
 
-  await supabase.from("groups").delete().eq("id", groupId).eq("user_id", user.id);
+  await db.delete(groups)
+    .where(and(eq(groups.id, groupId), eq(groups.user_id, userId)));
 
   revalidatePath("/groups");
   revalidatePath("/dashboard");

@@ -1,5 +1,5 @@
 import AppShell from "@/components/layout/AppShell";
-import type { User } from "@supabase/supabase-js";
+import type { AppUser } from "@/lib/types";
 import type { LucideIcon } from "lucide-react";
 
 export default function AppComingSoon({
@@ -8,7 +8,7 @@ export default function AppComingSoon({
   subtitle,
   icon: Icon,
 }: {
-  user: User;
+  user: AppUser;
   title: string;
   subtitle: string;
   icon: LucideIcon;

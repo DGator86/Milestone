@@ -1,24 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
+import { Settings, User, Shield, LogOut } from "lucide-react";
+import { signOutAction } from "@/app/auth-actions";
+import type { AppUser } from "@/lib/types";
 import { Settings, User, Shield, LogOut, FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  async function signOut() {
-    "use server";
-    const sb = await createClient();
-    await sb.auth.signOut();
-    redirect("/login");
-  }
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const username = user.email?.split("@")[0] ?? "User";
   const initial = username[0].toUpperCase();
@@ -35,7 +29,6 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          {/* Account section */}
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
@@ -59,7 +52,6 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          {/* Preferences placeholder */}
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
@@ -86,7 +78,6 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          {/* Danger zone */}
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-red-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-milestone-red/70 flex items-center gap-1.5">
@@ -99,7 +90,7 @@ export default async function SettingsPage() {
                 <p className="text-sm font-medium text-gray-700">Sign out</p>
                 <p className="text-xs text-gray-400">End your current session</p>
               </div>
-              <form action={signOut}>
+              <form action={signOutAction}>
                 <button
                   type="submit"
                   className="bg-milestone-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-600 active:bg-red-700 transition-colors"

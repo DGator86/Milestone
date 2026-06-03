@@ -42,6 +42,7 @@ export default function CustomersView({ customers }: { customers: CrmCustomer[] 
   }
 
   function handleDelete(id: string) {
+    if (!window.confirm("Delete this customer? This cannot be undone.")) return;
     startTransition(() => deleteCustomer(id));
   }
 

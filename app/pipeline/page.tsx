@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import { TrendingUp, Target } from "lucide-react";
 import Link from "next/link";
-import type { GoalWithDetails, Milestone } from "@/lib/types";
+import type { GoalWithDetails, Milestone, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +30,6 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
 
   return (
     <div className="relative w-full mt-3 pb-1">
-      {/* Connecting lines sit behind the dots */}
       <div className="absolute top-[10px] left-0 right-0 flex" style={{ zIndex: 0 }}>
         {milestones.slice(0, -1).map((ms, i) => {
           const next = milestones[i + 1];
@@ -42,7 +44,6 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
         })}
       </div>
 
-      {/* Dots + labels */}
       <div className="relative flex justify-between" style={{ zIndex: 1 }}>
         {milestones.map((ms, i) => {
           const color = dotColor(ms, i, milestones);
@@ -55,7 +56,6 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
               className="flex flex-col items-center gap-1.5"
               style={{ width: `${100 / milestones.length}%`, minWidth: 0 }}
             >
-              {/* Dot */}
               <div
                 className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                 style={{
@@ -76,7 +76,6 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
                 )}
               </div>
 
-              {/* Label */}
               <span
                 className="text-[10px] text-center leading-tight w-full px-0.5 truncate"
                 style={{
@@ -95,21 +94,24 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
 }
 
 export default async function PipelinePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: goalsRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*), contacts(*)")
-    .order("created_at", { ascending: false });
+  const goalsRaw = await db.query.goals.findMany({
+    where: eq(goals.user_id, userId),
+    with: { groups: true, milestones: true, contacts: true },
+    orderBy: [desc(goals.created_at)],
+  });
 
-  const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
+  const goalsList = goalsRaw.map((g) => ({
     ...g,
+    groups: g.groups!,
     milestones: [...(g.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+      (a, b) => a.position - b.position
     ),
-  }));
+  })) as unknown as GoalWithDetails[];
 
   return (
     <AppShell user={user}>
@@ -122,7 +124,7 @@ export default async function PipelinePage() {
           <p className="text-xs text-gray-400 mt-0.5">Goals and their milestone steps</p>
         </div>
 
-        {goals.length === 0 ? (
+        {goalsList.length === 0 ? (
           <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No goals yet.</p>
@@ -130,7 +132,7 @@ export default async function PipelinePage() {
           </div>
         ) : (
           STAGES.map(({ key, label, color, bar }) => {
-            const stageGoals = goals.filter((g) => g.status === key);
+            const stageGoals = goalsList.filter((g) => g.status === key);
             if (stageGoals.length === 0) return null;
 
             return (
@@ -153,7 +155,6 @@ export default async function PipelinePage() {
                         className="px-5 py-4 border-b border-milestone-line last:border-0"
                         style={{ borderLeftWidth: 3, borderLeftColor: bar }}
                       >
-                        {/* Goal title row */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -176,7 +177,6 @@ export default async function PipelinePage() {
                           )}
                         </div>
 
-                        {/* Uniform-width milestone track */}
                         <MilestoneTrack milestones={milestones} />
                       </div>
                     );
@@ -187,7 +187,7 @@ export default async function PipelinePage() {
           })
         )}
 
-        {goals.length > 0 && (
+        {goalsList.length > 0 && (
           <div className="mt-2">
             <Link
               href="/dashboard#create-goal"

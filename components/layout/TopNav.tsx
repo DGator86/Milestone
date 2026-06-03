@@ -14,8 +14,8 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
-import { signOut } from "@/app/auth-actions";
+import type { AppUser } from "@/lib/types";
+import { signOutAction } from "@/app/auth-actions";
 
 const NAV_ITEMS = [
   { label: "Home", href: "/dashboard" },
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { label: "Reports", href: "/reports" },
 ];
 
-export default function TopNav({ user }: { user: User }) {
+export default function TopNav({ user }: { user: AppUser }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function TopNav({ user }: { user: User }) {
   }, [menuOpen]);
 
   function isActive(href: string) {
-    return pathname === href || (href !== "/" && pathname.startsWith(href));
+    return pathname === href || (href !== "/" && pathname.startsWith(href + "/"));
   }
 
   return (
@@ -112,6 +112,8 @@ export default function TopNav({ user }: { user: User }) {
           <div className="relative ml-1" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
               className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 ring-1 ring-black/5">
@@ -150,7 +152,7 @@ export default function TopNav({ user }: { user: User }) {
                   <Settings size={15} className="text-gray-400" />
                   Settings
                 </Link>
-                <form action={signOut} className="border-t border-milestone-line mt-1 pt-1">
+                <form action={signOutAction} className="border-t border-milestone-line mt-1 pt-1">
                   <button
                     type="submit"
                     className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-milestone-red rounded-lg hover:bg-milestone-red-dim transition-colors"
