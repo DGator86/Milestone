@@ -74,6 +74,8 @@ export interface Milestone {
   position: number;
   status: MilestoneStatus;
   due_date: string | null;
+  touch_target: number | null;
+  touch_period: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;

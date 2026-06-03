@@ -47,6 +47,8 @@ export const milestones = pgTable("milestones", {
   position: integer("position").notNull().default(0),
   status: text("status").notNull().default("upcoming"),
   due_date: date("due_date"),
+  touch_target: integer("touch_target"),
+  touch_period: text("touch_period"), // "day" | "week" | "month"
   completed_at: timestamp("completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
