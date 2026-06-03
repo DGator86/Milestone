@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals } from "@/db/schema";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
 import { Clock, CheckCircle, AlertCircle, Calendar, ArrowRight } from "lucide-react";
-import type { GoalWithDetails, Milestone } from "@/lib/types";
+import type { GoalWithDetails, Milestone, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -142,26 +145,29 @@ function Section({
 }
 
 export default async function TimelinePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: goalsRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .in("status", ["active", "completed"])
-    .order("created_at", { ascending: true });
-
-  const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
-    ...g,
-    milestones: [...(g.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+  const goalsRaw = await db.query.goals.findMany({
+    where: and(
+      eq(goals.user_id, userId),
+      inArray(goals.status, ["active", "completed"])
     ),
-  }));
+    with: { groups: true, milestones: true },
+    orderBy: [asc(goals.created_at)],
+  });
 
-  const allMilestones: MilestoneWithGoal[] = goals.flatMap((goal) =>
+  const goalsList = goalsRaw.map((g) => ({
+    ...g,
+    groups: g.groups!,
+    milestones: [...(g.milestones ?? [])].sort(
+      (a, b) => a.position - b.position
+    ),
+  })) as unknown as GoalWithDetails[];
+
+  const allMilestones: MilestoneWithGoal[] = goalsList.flatMap((goal) =>
     (goal.milestones ?? []).map((ms) => ({ ...ms, goal }))
   );
 

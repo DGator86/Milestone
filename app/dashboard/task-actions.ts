@@ -1,5 +1,8 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_tasks, goals } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { TaskType, TaskPriority } from "@/lib/types";
 
@@ -7,11 +10,9 @@ const TASK_TYPES: TaskType[] = ["call", "email", "meeting", "task", "document"];
 const TASK_PRIORITIES: TaskPriority[] = ["critical", "high", "medium", "low"];
 
 export async function createTask(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
@@ -19,8 +20,8 @@ export async function createTask(formData: FormData) {
   const type = formData.get("type") as TaskType;
   const priority = formData.get("priority") as TaskPriority;
 
-  await supabase.from("crm_tasks").insert({
-    user_id: user.id,
+  await db.insert(crm_tasks).values({
+    user_id: userId,
     title,
     type: TASK_TYPES.includes(type) ? type : "task",
     priority: TASK_PRIORITIES.includes(priority) ? priority : "medium",
@@ -35,44 +36,36 @@ export async function createTask(formData: FormData) {
 }
 
 export async function toggleTaskDone(id: string, done: boolean) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase
-    .from("crm_tasks")
-    .update({ done, completed_at: done ? new Date().toISOString() : null })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await db.update(crm_tasks)
+    .set({ done, completed_at: done ? new Date().toISOString() : null })
+    .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
 
   revalidatePath("/dashboard");
 }
 
 export async function deleteTask(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase.from("crm_tasks").delete().eq("id", id).eq("user_id", user.id);
+  await db.delete(crm_tasks)
+    .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
+
   revalidatePath("/dashboard");
 }
 
 export async function toggleGoalPinned(id: string, pinned: boolean) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase
-    .from("goals")
-    .update({ pinned })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await db.update(goals)
+    .set({ pinned })
+    .where(and(eq(goals.id, id), eq(goals.user_id, userId)));
 
   revalidatePath("/dashboard");
 }

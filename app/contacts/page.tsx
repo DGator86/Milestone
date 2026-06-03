@@ -1,28 +1,34 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_contacts, crm_customers } from "@/db/schema";
+import { eq, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import ContactsView from "@/components/crm/ContactsView";
-import type { CrmContact, CrmCustomer } from "@/lib/types";
+import type { CrmContact, CrmCustomer, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContactsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const [{ data: contactsRaw }, { data: customersRaw }] = await Promise.all([
-    supabase
-      .from("crm_contacts")
-      .select("*, crm_customers(id, name)")
-      .order("created_at", { ascending: false }),
-    supabase.from("crm_customers").select("id, name").order("name"),
+  const [contactsRaw, customersRaw] = await Promise.all([
+    db.query.crm_contacts.findMany({
+      where: eq(crm_contacts.user_id, userId),
+      with: { crm_customers: true },
+      orderBy: [desc(crm_contacts.created_at)],
+    }),
+    db.select({ id: crm_customers.id, name: crm_customers.name })
+      .from(crm_customers)
+      .where(eq(crm_customers.user_id, userId))
+      .orderBy(asc(crm_customers.name)),
   ]);
 
-  const contacts: CrmContact[] = contactsRaw ?? [];
-  const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw ?? [];
+  const contacts: CrmContact[] = contactsRaw as unknown as CrmContact[];
+  const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
 
   return (
     <AppShell user={user}>

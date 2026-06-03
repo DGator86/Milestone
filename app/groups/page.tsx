@@ -1,25 +1,27 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { groups } from "@/db/schema";
+import { eq, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import { Users } from "lucide-react";
 import { GroupsClient } from "./GroupsClient";
-import type { Group } from "@/lib/types";
+import type { Group, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function GroupsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .order("sort_order", { ascending: true });
+  const groupsRaw = await db.query.groups.findMany({
+    where: eq(groups.user_id, userId),
+    orderBy: [asc(groups.sort_order)],
+  });
 
-  const safeGroups: Group[] = groups ?? [];
+  const safeGroups: Group[] = groupsRaw as Group[];
 
   return (
     <AppShell user={user}>

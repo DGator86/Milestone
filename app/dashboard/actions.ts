@@ -2,13 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals, milestones, activity_log, groups } from "@/db/schema";
+import { eq, and, ne, asc, max } from "drizzle-orm";
 import { CreateGoalSchema } from "@/lib/schemas";
 
 export async function createGoal(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const milestoneTitles: string[] = [];
   for (let i = 1; i <= 6; i++) {
@@ -36,21 +39,17 @@ export async function createGoal(formData: FormData) {
 
   const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
 
-  const { data: goal, error: goalError } = await supabase
-    .from("goals")
-    .insert({
-      user_id: user.id,
-      group_id: groupId,
-      title,
-      goal_type: goalType,
-      importance,
-      status: "active",
-      due_date: dueDate || null,
-    })
-    .select()
-    .single();
+  const [goal] = await db.insert(goals).values({
+    user_id: userId,
+    group_id: groupId,
+    title,
+    goal_type: goalType,
+    importance,
+    status: "active",
+    due_date: dueDate || null,
+  }).returning();
 
-  if (goalError || !goal) redirect("/dashboard?error=Failed+to+create+goal");
+  if (!goal) redirect("/dashboard?error=Failed+to+create+goal");
 
   const milestoneRows = milestoneTitles.map((t, i) => ({
     goal_id: goal.id,
@@ -59,9 +58,9 @@ export async function createGoal(formData: FormData) {
     status: i === 0 ? "in_progress" : "upcoming",
   }));
 
-  await supabase.from("milestones").insert(milestoneRows);
+  await db.insert(milestones).values(milestoneRows);
 
-  await supabase.from("activity_log").insert({
+  await db.insert(activity_log).values({
     goal_id: goal.id,
     action: "goal_created",
     metadata: { title: goal.title },
@@ -73,36 +72,30 @@ export async function createGoal(formData: FormData) {
 }
 
 export async function completeMilestone(milestoneId: string, goalId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
-  await supabase
-    .from("milestones")
-    .update({ status: "completed", completed_at: new Date().toISOString() })
-    .eq("id", milestoneId);
+  await db.update(milestones)
+    .set({ status: "completed", completed_at: new Date().toISOString() })
+    .where(eq(milestones.id, milestoneId));
 
-  const { data: remaining } = await supabase
-    .from("milestones")
-    .select("id, position")
-    .eq("goal_id", goalId)
-    .neq("status", "completed")
-    .order("position", { ascending: true })
-    .limit(1);
+  const remaining = await db.query.milestones.findMany({
+    where: and(eq(milestones.goal_id, goalId), ne(milestones.status, "completed")),
+    orderBy: [asc(milestones.position)],
+  });
 
-  if (remaining && remaining.length > 0) {
-    await supabase
-      .from("milestones")
-      .update({ status: "in_progress" })
-      .eq("id", remaining[0].id);
+  if (remaining.length > 0) {
+    await db.update(milestones)
+      .set({ status: "in_progress" })
+      .where(eq(milestones.id, remaining[0].id));
   } else {
-    await supabase
-      .from("goals")
-      .update({ status: "completed" })
-      .eq("id", goalId);
+    await db.update(goals)
+      .set({ status: "completed" })
+      .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
   }
 
-  await supabase.from("activity_log").insert({
+  await db.insert(activity_log).values({
     goal_id: goalId,
     milestone_id: milestoneId,
     action: "milestone_completed",
@@ -114,9 +107,18 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
 }
 
 export async function ensureDefaults() {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("ensure_default_groups");
-  if (error) {
-    console.error("ensure_default_groups failed:", error.message);
-  }
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
+
+  const existing = await db.query.groups.findFirst({
+    where: eq(groups.user_id, userId),
+  });
+  if (existing) return;
+
+  await db.insert(groups).values([
+    { user_id: userId, name: "Work", color: "#1769FF", sort_order: 0 },
+    { user_id: userId, name: "Home", color: "#36A852", sort_order: 1 },
+    { user_id: userId, name: "Health", color: "#F8B400", sort_order: 2 },
+  ]);
 }

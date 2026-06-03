@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals, milestones, activity_log } from "@/db/schema";
+import { eq, and, ne, asc, desc } from "drizzle-orm";
 import { UpdateGoalSchema } from "@/lib/schemas";
 import type { GoalStatus, MilestoneStatus } from "@/lib/types";
 
@@ -11,67 +14,52 @@ export async function updateMilestoneStatus(
   status: MilestoneStatus,
   goalId: string
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   if (status === "completed") {
-    await supabase
-      .from("milestones")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("id", milestoneId);
+    await db.update(milestones)
+      .set({ status: "completed", completed_at: new Date().toISOString() })
+      .where(eq(milestones.id, milestoneId));
 
-    await supabase.from("activity_log").insert({
+    await db.insert(activity_log).values({
       goal_id: goalId,
       milestone_id: milestoneId,
       action: "milestone_completed",
       metadata: {},
     });
 
-    const { data: remaining } = await supabase
-      .from("milestones")
-      .select("id")
-      .eq("goal_id", goalId)
-      .neq("status", "completed")
-      .order("position", { ascending: true })
-      .limit(1);
+    const remaining = await db.query.milestones.findMany({
+      where: and(eq(milestones.goal_id, goalId), ne(milestones.status, "completed")),
+      orderBy: [asc(milestones.position)],
+    });
 
-    if (remaining && remaining.length > 0) {
-      await supabase
-        .from("milestones")
-        .update({ status: "in_progress" })
-        .eq("id", remaining[0].id);
+    if (remaining.length > 0) {
+      await db.update(milestones)
+        .set({ status: "in_progress" })
+        .where(eq(milestones.id, remaining[0].id));
     } else {
-      await supabase
-        .from("goals")
-        .update({ status: "completed" })
-        .eq("id", goalId)
-        .eq("user_id", user.id);
+      await db.update(goals)
+        .set({ status: "completed" })
+        .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
     }
   } else {
-    await supabase
-      .from("milestones")
-      .update({ status, completed_at: null })
-      .eq("id", milestoneId);
+    await db.update(milestones)
+      .set({ status, completed_at: null })
+      .where(eq(milestones.id, milestoneId));
 
-    const { data: parentGoal } = await supabase
-      .from("goals")
-      .select("status")
-      .eq("id", goalId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const parentGoal = await db.query.goals.findFirst({
+      where: and(eq(goals.id, goalId), eq(goals.user_id, userId)),
+    });
 
     if (parentGoal?.status === "completed") {
-      await supabase
-        .from("goals")
-        .update({ status: "active" })
-        .eq("id", goalId)
-        .eq("user_id", user.id);
+      await db.update(goals)
+        .set({ status: "active" })
+        .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
     }
 
-    await supabase.from("activity_log").insert({
+    await db.insert(activity_log).values({
       goal_id: goalId,
       milestone_id: milestoneId,
       action: "milestone_status_changed",
@@ -86,87 +74,35 @@ export async function updateMilestoneStatus(
 }
 
 export async function addMilestone(goalId: string, formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
 
-  const maxRetries = 5;
-  let insertedMilestoneId: string | null = null;
+  const existing = await db.query.milestones.findMany({
+    where: eq(milestones.goal_id, goalId),
+    orderBy: [desc(milestones.position)],
+  });
 
-  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-    const { data: existing, error: existingError } = await supabase
-      .from("milestones")
-      .select("position")
-      .eq("goal_id", goalId)
-      .order("position", { ascending: false })
-      .limit(1);
+  const nextPosition = (existing[0]?.position ?? -1) + 1;
 
-    if (existingError) throw existingError;
+  await db.insert(milestones).values({
+    goal_id: goalId,
+    title,
+    position: nextPosition,
+    status: "upcoming",
+  });
 
-    const nextPosition = (existing?.[0]?.position ?? -1) + 1;
-
-    if (!insertedMilestoneId) {
-      const { data: insertedMilestone, error: insertError } = await supabase
-        .from("milestones")
-        .insert({
-          goal_id: goalId,
-          title,
-          position: nextPosition,
-          status: "upcoming",
-        })
-        .select("id, position")
-        .single();
-
-      if (insertError) throw insertError;
-
-      insertedMilestoneId = insertedMilestone.id;
-    } else {
-      const { error: updateError } = await supabase
-        .from("milestones")
-        .update({ position: nextPosition })
-        .eq("id", insertedMilestoneId);
-
-      if (updateError) throw updateError;
-    }
-
-    const { data: conflicts, error: conflictsError } = await supabase
-      .from("milestones")
-      .select("id")
-      .eq("goal_id", goalId)
-      .eq("position", nextPosition)
-      .order("id", { ascending: true });
-
-    if (conflictsError) throw conflictsError;
-
-    if (!conflicts || conflicts.length === 1) {
-      revalidatePath(`/goals/${goalId}`);
-      revalidatePath("/dashboard");
-      return;
-    }
-
-    if (conflicts[0].id === insertedMilestoneId) {
-      revalidatePath(`/goals/${goalId}`);
-      revalidatePath("/dashboard");
-      return;
-    }
-  }
-
-  throw new Error("Failed to assign a unique milestone position after multiple retries.");
+  revalidatePath(`/goals/${goalId}`);
+  revalidatePath("/dashboard");
 }
 
 export async function deleteMilestone(milestoneId: string, goalId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  await supabase.from("milestones").delete().eq("id", milestoneId);
+  await db.delete(milestones).where(eq(milestones.id, milestoneId));
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/dashboard");
@@ -177,11 +113,9 @@ export async function updateGoal(
   _prev: unknown,
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
   const raw = {
     title: (formData.get("title") as string)?.trim() ?? "",
@@ -198,13 +132,9 @@ export async function updateGoal(
 
   const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
 
-  const { error } = await supabase
-    .from("goals")
-    .update({ title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate })
-    .eq("id", goalId)
-    .eq("user_id", user.id);
-
-  if (error) return { error: "Failed to update goal" };
+  await db.update(goals)
+    .set({ title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate })
+    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");
@@ -214,13 +144,13 @@ export async function updateGoal(
 }
 
 export async function setGoalStatus(goalId: string, status: GoalStatus) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
-  await supabase.from("goals").update({ status }).eq("id", goalId).eq("user_id", user.id);
+  await db.update(goals)
+    .set({ status })
+    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");
@@ -229,19 +159,13 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
 }
 
 export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
-  const { error } = await supabase
-    .from("goals")
-    .update({ status: "archived" })
-    .eq("id", goalId)
-    .eq("user_id", user.id);
-
-  if (error) return { error: "Failed to archive goal" };
+  await db.update(goals)
+    .set({ status: "archived" })
+    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath("/goals");
   revalidatePath(`/goals/${goalId}`);
@@ -251,19 +175,12 @@ export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
 }
 
 export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
-  const { error } = await supabase
-    .from("goals")
-    .delete()
-    .eq("id", goalId)
-    .eq("user_id", user.id);
-
-  if (error) return { error: "Failed to delete goal" };
+  await db.delete(goals)
+    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath("/goals");
   revalidatePath("/dashboard");
@@ -272,19 +189,13 @@ export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
 }
 
 export async function reactivateGoal(goalId: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
 
-  const { error } = await supabase
-    .from("goals")
-    .update({ status: "active" })
-    .eq("id", goalId)
-    .eq("user_id", user.id);
-
-  if (error) return { error: "Failed to reactivate goal" };
+  await db.update(goals)
+    .set({ status: "active" })
+    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath("/goals");
   revalidatePath(`/goals/${goalId}`);

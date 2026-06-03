@@ -1,39 +1,44 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals, groups } from "@/db/schema";
+import { eq, and, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import { Target } from "lucide-react";
 import { GoalsList } from "./GoalsList";
-import type { GoalWithDetails, Group } from "@/lib/types";
+import type { GoalWithDetails, Group, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function GoalsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .order("sort_order", { ascending: true });
+  const [groupsRaw, goalsRaw] = await Promise.all([
+    db.query.groups.findMany({
+      where: eq(groups.user_id, userId),
+      orderBy: [asc(groups.sort_order)],
+    }),
+    db.query.goals.findMany({
+      where: eq(goals.user_id, userId),
+      with: { groups: true, milestones: true },
+      orderBy: [desc(goals.created_at)],
+    }),
+  ]);
 
-  const { data: goalsRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .order("created_at", { ascending: false });
-
-  const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
+  const goalsList = goalsRaw.map((g) => ({
     ...g,
+    groups: g.groups!,
     milestones: [...(g.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+      (a, b) => a.position - b.position
     ),
-  }));
+  })) as unknown as GoalWithDetails[];
 
-  const safeGroups: Group[] = groups ?? [];
-  const active = goals.filter((g) => g.status === "active").length;
-  const completed = goals.filter((g) => g.status === "completed").length;
+  const safeGroups: Group[] = groupsRaw as Group[];
+  const active = goalsList.filter((g) => g.status === "active").length;
+  const completed = goalsList.filter((g) => g.status === "completed").length;
 
   return (
     <AppShell user={user}>
@@ -49,7 +54,7 @@ export default async function GoalsPage() {
             </p>
           </div>
         </div>
-        <GoalsList goals={goals} groups={safeGroups} />
+        <GoalsList goals={goalsList} groups={safeGroups} />
       </div>
     </AppShell>
   );

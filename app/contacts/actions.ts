@@ -1,20 +1,21 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_contacts } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createContact(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
   const firstName = (formData.get("first_name") as string)?.trim();
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) return;
 
-  await supabase.from("crm_contacts").insert({
-    user_id: user.id,
+  await db.insert(crm_contacts).values({
+    user_id: userId,
     first_name: firstName,
     last_name: lastName,
     email: (formData.get("email") as string) || null,
@@ -28,12 +29,12 @@ export async function createContact(formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase.from("crm_contacts").delete().eq("id", id).eq("user_id", user.id);
+  await db.delete(crm_contacts)
+    .where(and(eq(crm_contacts.id, id), eq(crm_contacts.user_id, userId)));
+
   revalidatePath("/contacts");
 }

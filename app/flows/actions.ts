@@ -1,13 +1,14 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_flows } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createFlow(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
@@ -18,8 +19,8 @@ export async function createFlow(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  await supabase.from("crm_flows").insert({
-    user_id: user.id,
+  await db.insert(crm_flows).values({
+    user_id: userId,
     name,
     description: (formData.get("description") as string) || null,
     color: (formData.get("color") as string) || "#1769FF",
@@ -30,12 +31,12 @@ export async function createFlow(formData: FormData) {
 }
 
 export async function deleteFlow(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase.from("crm_flows").delete().eq("id", id).eq("user_id", user.id);
+  await db.delete(crm_flows)
+    .where(and(eq(crm_flows.id, id), eq(crm_flows.user_id, userId)));
+
   revalidatePath("/flows");
 }
