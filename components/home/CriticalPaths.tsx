@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { Star, Trophy, Check, Plus, Building2 } from "lucide-react";
+import { Star, Trophy, Check, Plus, Briefcase } from "lucide-react";
 import { calcProgress, getGoalHealth, type GoalHealth } from "@/lib/progress";
 import { toggleGoalPinned } from "@/app/dashboard/task-actions";
 import type { GoalWithDetails, Milestone } from "@/lib/types";
@@ -137,7 +137,7 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
           className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${accent}1A` }}
         >
-          <Building2 size={17} style={{ color: accent }} />
+          <Briefcase size={17} style={{ color: accent }} />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -186,23 +186,27 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
   );
 }
 
-export default function CriticalPaths({ goals }: { goals: GoalWithDetails[] }) {
+export default function CriticalPaths({
+  goals,
+  onNewGoal,
+}: {
+  goals: GoalWithDetails[];
+  onNewGoal?: () => void;
+}) {
   return (
     <section>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 tracking-tight">Critical Paths</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Your active destination goals and progress
-          </p>
+          <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Active Goals</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Track progress on your work goals</p>
         </div>
-        <Link
-          href="/dashboard#create-goal"
-          className="flex items-center gap-1.5 bg-milestone-navy text-white px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors shrink-0"
+        <button
+          onClick={onNewGoal}
+          className="flex items-center gap-1.5 bg-milestone-blue text-white px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors shrink-0 shadow-sm shadow-blue-200"
         >
           <Plus size={15} strokeWidth={2.5} />
-          New Goal
-        </Link>
+          New
+        </button>
       </div>
 
       {goals.length === 0 ? (
