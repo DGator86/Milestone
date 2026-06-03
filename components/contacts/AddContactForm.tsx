@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, User, ChevronDown } from "lucide-react";
-import { createContact } from "@/app/contacts/actions";
+import { createLegacyContact as createContact } from "@/app/contacts/touch-actions";
 import type { Group } from "@/lib/types";
 
 const CADENCE_OPTIONS = [

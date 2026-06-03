@@ -1,10 +1,13 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { contacts, touches } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import LogTouchForm from "@/components/contacts/LogTouchForm";
 import { Phone, Mail, Building2, User, Clock, ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import type { Touch, TouchType } from "@/lib/types";
+import type { Touch, TouchType, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -64,28 +67,25 @@ export default async function ContactDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const [{ data: contact }, { data: touchesRaw }] = await Promise.all([
-    supabase
-      .from("contacts")
-      .select("*, groups(*)")
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .single(),
-    supabase
-      .from("touches")
-      .select("*")
-      .eq("contact_id", id)
-      .order("touched_at", { ascending: false })
-      .limit(50),
+  const [contact, touchesRaw] = await Promise.all([
+    db.query.contacts.findFirst({
+      where: and(eq(contacts.id, id), eq(contacts.user_id, userId)),
+      with: { groups: true },
+    }),
+    db.query.touches.findMany({
+      where: and(eq(touches.contact_id, id), eq(touches.user_id, userId)),
+      orderBy: [desc(touches.touched_at)],
+    }),
   ]);
 
   if (!contact) notFound();
 
-  const touches: Touch[] = touchesRaw ?? [];
+  const touchList: Touch[] = touchesRaw.slice(0, 50) as unknown as Touch[];
 
   const avatarColors = [
     "from-blue-500 to-blue-600", "from-purple-500 to-purple-600",
@@ -97,16 +97,14 @@ export default async function ContactDetailPage({
   return (
     <AppShell user={user}>
       <div className="p-4 md:p-6 max-w-2xl">
-        {/* Back */}
         <Link
-          href="/contacts"
+          href="/follow-ups"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors mb-4"
         >
           <ArrowLeft size={13} />
-          Contacts
+          Follow-ups
         </Link>
 
-        {/* Contact header */}
         <div className="bg-white rounded-xl border border-milestone-line shadow-card p-6 mb-4">
           <div className="flex items-start gap-4">
             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradientColor} flex items-center justify-center shrink-0`}>
@@ -164,30 +162,27 @@ export default async function ContactDetailPage({
           )}
         </div>
 
-        {/* Overdue banner */}
         <TouchHealthBanner
-          lastTouchedAt={contact.last_touched_at}
-          frequencyDays={contact.touch_frequency_days}
+          lastTouchedAt={contact.last_touched_at ?? null}
+          frequencyDays={contact.touch_frequency_days ?? null}
         />
 
-        {/* Log touch */}
         <div className="mb-4">
           <LogTouchForm contactId={id} />
         </div>
 
-        {/* Touch history */}
         <div>
           <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400 mb-3">
             Touch History
           </h2>
-          {touches.length === 0 ? (
+          {touchList.length === 0 ? (
             <div className="bg-white rounded-xl border border-milestone-line p-10 text-center">
               <p className="text-sm text-gray-400">No touches logged yet.</p>
               <p className="text-xs text-gray-300 mt-1">Log your first interaction above.</p>
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
-              {touches.map((touch) => (
+              {touchList.map((touch) => (
                 <div
                   key={touch.id}
                   className="flex items-start gap-3 px-5 py-4 border-b border-milestone-line last:border-0"

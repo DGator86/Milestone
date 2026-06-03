@@ -1,17 +1,16 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
 import { Bot } from "lucide-react";
 import AiClient from "./AiClient";
+import type { AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function AIPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   return (
     <AppShell user={user}>

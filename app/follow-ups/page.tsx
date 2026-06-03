@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { contacts } from "@/db/schema";
+import { eq, and, isNotNull } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import { Bell, ChevronRight, AlertCircle, Clock } from "lucide-react";
 import Link from "next/link";
-import type { Contact } from "@/lib/types";
+import type { Contact, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +17,11 @@ interface FollowUpItem {
   lastTouched: string | null;
 }
 
-function getFollowUps(contacts: Contact[]): FollowUpItem[] {
+function getFollowUps(contactList: Contact[]): FollowUpItem[] {
   const items: FollowUpItem[] = [];
   const now = Date.now();
 
-  for (const contact of contacts) {
+  for (const contact of contactList) {
     if (!contact.touch_frequency_days) continue;
     const freq = contact.touch_frequency_days;
     const last = contact.last_touched_at ? new Date(contact.last_touched_at).getTime() : null;
@@ -39,18 +42,21 @@ function avatarColor(name: string): string {
 }
 
 export default async function FollowUpsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: contactsRaw } = await supabase
-    .from("contacts")
-    .select("*")
-    .eq("status", "active")
-    .not("touch_frequency_days", "is", null);
+  const contactsRaw = await db.query.contacts.findMany({
+    where: and(
+      eq(contacts.user_id, userId),
+      eq(contacts.status, "active"),
+      isNotNull(contacts.touch_frequency_days)
+    ),
+  });
 
-  const contacts: Contact[] = contactsRaw ?? [];
-  const followUps = getFollowUps(contacts);
+  const contactList: Contact[] = contactsRaw as unknown as Contact[];
+  const followUps = getFollowUps(contactList);
 
   return (
     <AppShell user={user}>
@@ -92,7 +98,6 @@ export default async function FollowUpsPage() {
                   href={`/contacts/${contact.id}`}
                   className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors group"
                 >
-                  {/* Rank */}
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                     index === 0 ? "bg-milestone-red-dim" : "bg-gray-100"
                   }`}>
@@ -103,12 +108,10 @@ export default async function FollowUpsPage() {
                     )}
                   </div>
 
-                  {/* Avatar */}
                   <div className={`w-9 h-9 rounded-full ${color} flex items-center justify-center shrink-0`}>
                     <span className="text-white text-xs font-bold">{initials}</span>
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 text-sm leading-snug">{contact.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -117,7 +120,6 @@ export default async function FollowUpsPage() {
                     </p>
                   </div>
 
-                  {/* Overdue badge */}
                   <div className="shrink-0 text-right">
                     <span className="text-xs font-bold text-milestone-red bg-milestone-red-dim px-2 py-0.5 rounded-full">
                       {neverTouched ? "Never touched" : `${daysOverdue}d overdue`}

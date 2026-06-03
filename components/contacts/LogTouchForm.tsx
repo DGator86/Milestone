@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Phone, Mail, Users, FileText, Plus } from "lucide-react";
-import { logTouch } from "@/app/contacts/actions";
+import { logTouch } from "@/app/contacts/touch-actions";
 import type { TouchType } from "@/lib/types";
 
 const TOUCH_TYPES: { type: TouchType; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
@@ -35,8 +35,8 @@ export default function LogTouchForm({ contactId }: { contactId: string }) {
         action={async (fd) => {
           fd.set("contact_id", contactId);
           fd.set("type", selected);
-          await logTouch(fd);
-          setOpen(false);
+          const result = await logTouch(fd);
+          if (!result?.error) setOpen(false);
         }}
         className="space-y-3"
       >

@@ -23,7 +23,7 @@ export const CreateGroupSchema = z.object({
 
 export const CreateContactSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name too long"),
-  email: z.string().email("Invalid email").max(200).nullable(),
+  email: z.string().max(200).pipe(z.email("Invalid email")).nullable(),
   phone: z.string().max(30).nullable(),
   company: z.string().max(100).nullable(),
   role: z.string().max(100).nullable(),
