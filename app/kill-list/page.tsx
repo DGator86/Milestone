@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals } from "@/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import { getKillList, getTaskHealth } from "@/lib/progress";
 import { Crosshair, AlertCircle, Clock, ArrowRight, X } from "lucide-react";
 import Link from "next/link";
-import type { GoalWithDetails } from "@/lib/types";
+import type { GoalWithDetails, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -36,31 +39,31 @@ export default async function KillListPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: goalsRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
+  const goalsRaw = await db.query.goals.findMany({
+    where: and(eq(goals.user_id, userId), eq(goals.status, "active")),
+    with: { groups: true, milestones: true },
+    orderBy: [asc(goals.created_at)],
+  });
 
-  const goals: GoalWithDetails[] = (goalsRaw ?? []).map((g) => ({
+  const goalsList = goalsRaw.map((g) => ({
     ...g,
+    groups: g.groups!,
     milestones: [...(g.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+      (a, b) => a.position - b.position
     ),
-  }));
+  })) as unknown as GoalWithDetails[];
 
   const params = await searchParams;
   const filter = params.filter ?? "";
 
-  const { stuck, needsAttention, waiting } = getTaskHealth(goals);
+  const { stuck, needsAttention, waiting } = getTaskHealth(goalsList);
 
-  let filteredGoals = goals;
+  let filteredGoals = goalsList;
   if (filter === "stuck") filteredGoals = stuck;
   else if (filter === "attention") filteredGoals = needsAttention;
   else if (filter === "waiting") filteredGoals = waiting;
@@ -71,7 +74,6 @@ export default async function KillListPage({
   return (
     <AppShell user={user}>
       <div className="p-4 md:p-6 max-w-3xl">
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
@@ -116,33 +118,33 @@ export default async function KillListPage({
               const overdueGoal = isOverdue(goal.due_date);
               const overdueMilestone = isOverdue(milestone.due_date);
               const overdue = overdueGoal || overdueMilestone;
-              const stuck = milestone.status === "stuck";
-              const urgent = stuck || overdue;
+              const isStuck = milestone.status === "stuck";
+              const urgent = isStuck || overdue;
 
               return (
-                <div
+                <Link
                   key={goal.id}
+                  href={`/goals/${goal.id}`}
                   className={`flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors ${
                     urgent ? "border-l-[3px]" : ""
                   } ${
-                    stuck
+                    isStuck
                       ? "border-l-milestone-red"
                       : overdue
                       ? "border-l-milestone-amber"
                       : ""
                   }`}
                 >
-                  {/* Priority number */}
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                      stuck
+                      isStuck
                         ? "bg-milestone-red-dim text-milestone-red"
                         : overdue
                         ? "bg-milestone-amber-dim text-milestone-amber"
                         : "bg-gray-100 text-gray-400"
                     }`}
                   >
-                    {stuck ? (
+                    {isStuck ? (
                       <AlertCircle size={16} />
                     ) : (
                       <span className="tabular-nums">{index + 1}</span>
@@ -157,12 +159,12 @@ export default async function KillListPage({
                       {urgent && (
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                            stuck
+                            isStuck
                               ? "bg-milestone-red-dim text-milestone-red"
                               : "bg-milestone-amber-dim text-milestone-amber"
                           }`}
                         >
-                          {stuck ? "Stuck" : "Overdue"}
+                          {isStuck ? "Stuck" : "Overdue"}
                         </span>
                       )}
                     </div>
@@ -192,7 +194,7 @@ export default async function KillListPage({
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

@@ -1,50 +1,46 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
+import { authConfig } from "./auth.config";
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+const { auth } = NextAuth(authConfig);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+const protectedRoutes = [
+  "/dashboard",
+  "/kill-list",
+  "/goals",
+  "/groups",
+  "/settings",
+  "/timeline",
+  "/templates",
+  "/ai",
+  "/customers",
+  "/contacts",
+  "/opportunities",
+  "/flows",
+  "/follow-ups",
+  "/pipeline",
+  "/reports",
+];
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const authRoutes = ["/login", "/signup"];
 
-  const { pathname } = request.nextUrl;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const isAuthed = !!req.auth;
+  const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  const protectedRoutes = ["/dashboard", "/kill-list", "/goals", "/groups", "/settings"];
-  const authRoutes = ["/login", "/signup"];
-
-  if (!user && protectedRoutes.some((r) => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!isAuthed && isProtected) {
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (user && authRoutes.some((r) => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isAuthed && isAuthRoute) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  return supabaseResponse;
-}
+  return NextResponse.next();
+});
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|favicon.png|manifest.json|icons/|api/auth/).*)"],
 };

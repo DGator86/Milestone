@@ -1,36 +1,50 @@
-import { CheckCircle, Flag, TrendingUp } from "lucide-react";
+import { CheckCircle, Flag, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { GoalWithDetails } from "@/lib/types";
 
 export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
-  const today = new Date().toDateString();
+  const now = new Date();
+  const todayStr = now.toDateString();
+
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - 7);
+  const lastWeekStart = new Date(now);
+  lastWeekStart.setDate(now.getDate() - 14);
+
   let milestonesCompletedToday = 0;
   let goalsAdvancedToday = 0;
+  let thisWeekCount = 0;
+  let lastWeekCount = 0;
   const goalsAdvancedSet = new Set<string>();
+  const activeDays = new Set<string>();
 
   for (const goal of goals) {
     for (const ms of goal.milestones ?? []) {
-      if (ms.completed_at && new Date(ms.completed_at).toDateString() === today) {
+      if (!ms.completed_at) continue;
+      const completedAt = new Date(ms.completed_at);
+      const completedStr = completedAt.toDateString();
+
+      activeDays.add(completedStr);
+
+      if (completedStr === todayStr) {
         milestonesCompletedToday++;
         goalsAdvancedSet.add(goal.id);
+      }
+
+      if (completedAt >= thisWeekStart) {
+        thisWeekCount++;
+      } else if (completedAt >= lastWeekStart) {
+        lastWeekCount++;
       }
     }
   }
   goalsAdvancedToday = goalsAdvancedSet.size;
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d;
-  });
-
-  const activeDays = new Set<string>();
-  for (const goal of goals) {
-    for (const ms of goal.milestones ?? []) {
-      if (ms.completed_at) {
-        activeDays.add(new Date(ms.completed_at).toDateString());
-      }
-    }
-  }
+  const weekChange =
+    lastWeekCount === 0
+      ? thisWeekCount > 0
+        ? 100
+        : 0
+      : Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100);
 
   let streak = 0;
   const checkDate = new Date();
@@ -39,7 +53,28 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
     checkDate.setDate(checkDate.getDate() - 1);
   }
 
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+
   const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
+
+  const TrendIcon =
+    weekChange > 0 ? TrendingUp : weekChange < 0 ? TrendingDown : Minus;
+  const trendColor =
+    weekChange > 0
+      ? "text-milestone-green"
+      : weekChange < 0
+      ? "text-milestone-red"
+      : "text-gray-400";
+  const trendBg =
+    weekChange > 0
+      ? "bg-milestone-green-dim"
+      : weekChange < 0
+      ? "bg-milestone-red-dim"
+      : "bg-gray-100";
 
   return (
     <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
@@ -51,7 +86,6 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
       </div>
 
       <div className="flex gap-5">
-        {/* Streak ring */}
         <div className="flex flex-col items-center justify-center shrink-0">
           <div className="relative w-[88px] h-[88px]">
             <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
@@ -78,7 +112,6 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
           <p className="text-[11px] font-semibold text-gray-500 mt-1.5">Day Streak</p>
         </div>
 
-        {/* Stats + week */}
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-milestone-green-dim flex items-center justify-center shrink-0">
@@ -103,20 +136,22 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-milestone-green-dim flex items-center justify-center shrink-0">
-              <TrendingUp size={16} className="text-milestone-green" />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${trendBg}`}>
+              <TrendIcon size={16} className={trendColor} />
             </div>
             <div>
-              <span className="text-lg font-bold text-milestone-green tabular-nums">+12%</span>
+              <span className={`text-lg font-bold tabular-nums ${trendColor}`}>
+                {weekChange > 0 ? "+" : ""}
+                {weekChange}%
+              </span>
               <span className="text-xs text-gray-400 ml-1.5">vs last week</span>
             </div>
           </div>
 
-          {/* Week calendar */}
           <div className="flex items-end gap-1 pt-1">
             {weekDays.map((day, i) => {
               const isActive = activeDays.has(day.toDateString());
-              const isToday = day.toDateString() === new Date().toDateString();
+              const isToday = day.toDateString() === todayStr;
               return (
                 <div key={i} className="flex flex-col items-center gap-1 flex-1">
                   <div

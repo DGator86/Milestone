@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
 import { ollamaChat, ollamaConfigured, OLLAMA_MODEL } from "@/lib/ollama";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -10,9 +10,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!ollamaConfigured()) {
     return NextResponse.json({ error: "OLLAMA_BASE_URL not configured" }, { status: 503 });
@@ -34,14 +33,10 @@ export async function POST(req: NextRequest) {
         },
         {
           role: "user",
-          content: `Goal: "${title.trim()}"
-Type: ${typeLabel}
-
-Return a JSON array of 4 sequential milestone steps, e.g.:
-["Research and define scope","Complete first draft","Review and revise","Finalize and deliver"]`,
+          content: `Goal: "${title.trim()}"\nType: ${typeLabel}\n\nReturn a JSON array of 4 sequential milestone steps, e.g.:\n["Research and define scope","Complete first draft","Review and revise","Finalize and deliver"]`,
         },
       ],
-      true // request JSON mode
+      true,
     );
 
     const match = text.match(/\[[\s\S]*?\]/);

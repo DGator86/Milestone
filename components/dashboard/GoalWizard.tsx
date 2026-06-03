@@ -21,7 +21,7 @@ export default function GoalWizard({ groups }: { groups: Group[] }) {
   const [title, setTitle] = useState("");
   const [goalType, setGoalType] = useState("concrete");
   const [milestones, setMilestones] = useState(["", "", ""]);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
@@ -33,6 +33,7 @@ export default function GoalWizard({ groups }: { groups: Group[] }) {
   }
 
   function handleSubmit() {
+    if (isPending) return;
     const filled = milestones.filter((m) => m.trim());
     if (!groupId || !title.trim() || filled.length === 0) return;
     const formData = new FormData();
@@ -208,7 +209,7 @@ export default function GoalWizard({ groups }: { groups: Group[] }) {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || isPending}
               className="flex items-center gap-1.5 bg-milestone-blue text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-blue-200"
             >
               <Target size={15} />

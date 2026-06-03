@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { AlertCircle, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { getTaskHealth } from "@/lib/progress";
@@ -90,28 +88,36 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
       )}
 
       <div className="space-y-1.5">
-        {rows.map(({ icon, count, label, color, bg, href }) => (
-          <Link
-            key={label}
-            href={href}
-            className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            {icon}
-            <span className={`text-xl font-bold tabular-nums w-7 shrink-0 ${color}`}>
-              {count}
-            </span>
-            <span className="text-sm font-semibold text-gray-700 flex-1">{label}</span>
-            {count > 0 && (
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${bg} ${color}`}>
+        {rows.map(({ icon, count, label, color, bg, href }) => {
+          const cls = `flex items-center gap-3 py-2 px-3 rounded-lg transition-colors group ${
+            count > 0 ? "hover:bg-gray-50" : "cursor-default opacity-60"
+          }`;
+          const content = (
+            <>
+              {icon}
+              <span className={`text-xl font-bold tabular-nums w-7 shrink-0 ${color}`}>
                 {count}
               </span>
-            )}
-            <ChevronRight
-              size={14}
-              className="text-gray-200 group-hover:text-gray-400 transition-colors shrink-0"
-            />
-          </Link>
-        ))}
+              <span className="text-sm font-semibold text-gray-700 flex-1">{label}</span>
+              {count > 0 && (
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${bg} ${color}`}>
+                  {count}
+                </span>
+              )}
+              <ChevronRight
+                size={14}
+                className={`shrink-0 transition-colors ${
+                  count > 0 ? "text-gray-200 group-hover:text-gray-400" : "text-gray-100"
+                }`}
+              />
+            </>
+          );
+          return count > 0 ? (
+            <Link key={label} href={href} className={cls}>{content}</Link>
+          ) : (
+            <div key={label} className={cls} aria-disabled="true">{content}</div>
+          );
+        })}
       </div>
     </div>
   );

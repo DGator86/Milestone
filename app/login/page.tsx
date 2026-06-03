@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Zap, Briefcase, Home, Heart } from "lucide-react";
-import { signIn } from "./actions";
+import { signIn_action } from "./actions";
 
 const features = [
   { icon: Briefcase, label: "Work", desc: "Close deals, ship projects, hit targets" },
@@ -11,7 +11,7 @@ const features = [
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   return (
     <div
@@ -57,7 +57,7 @@ export default function LoginPage({
           <h2 className="text-[18px] font-bold text-gray-900 mb-0.5">Welcome back</h2>
           <p className="text-sm text-gray-400 mb-5">Sign in to your account</p>
 
-          <form action={signIn} className="space-y-4">
+          <form action={signIn_action} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                 Email
@@ -85,7 +85,7 @@ export default function LoginPage({
               />
             </div>
 
-            <ErrorMessage searchParams={searchParams} />
+            <AuthFlash searchParams={searchParams} />
 
             <button
               type="submit"
@@ -102,21 +102,40 @@ export default function LoginPage({
             </Link>
           </p>
         </div>
+
+        <p className="text-center text-[11px] text-white/30 mt-6">
+          <Link href="/privacy" className="hover:text-white/50">
+            Privacy
+          </Link>
+          {" · "}
+          <Link href="/terms" className="hover:text-white/50">
+            Terms
+          </Link>
+        </p>
       </div>
     </div>
   );
 }
 
-async function ErrorMessage({
+async function AuthFlash({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
-  if (!params.error) return null;
-  return (
-    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3.5 py-2.5">
-      {params.error}
-    </div>
-  );
+  if (params.error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3.5 py-2.5">
+        {params.error}
+      </div>
+    );
+  }
+  if (params.message) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-3.5 py-2.5">
+        {params.message}
+      </div>
+    );
+  }
+  return null;
 }

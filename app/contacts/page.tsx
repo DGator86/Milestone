@@ -1,55 +1,38 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_contacts, crm_customers } from "@/db/schema";
+import { eq, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
-import ContactList from "@/components/contacts/ContactList";
-import AddContactForm from "@/components/contacts/AddContactForm";
-import { Users } from "lucide-react";
-import type { Contact, Group } from "@/lib/types";
+import ContactsView from "@/components/crm/ContactsView";
+import type { CrmContact, CrmCustomer, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContactsPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const [{ data: contactsRaw }, { data: listsRaw }] = await Promise.all([
-    supabase
-      .from("contacts")
-      .select("*, groups(*)")
-      .eq("status", "active")
-      .order("name", { ascending: true }),
-    supabase
-      .from("groups")
-      .select("*")
-      .order("sort_order", { ascending: true }),
+  const [contactsRaw, customersRaw] = await Promise.all([
+    db.query.crm_contacts.findMany({
+      where: eq(crm_contacts.user_id, userId),
+      with: { crm_customers: true },
+      orderBy: [desc(crm_contacts.created_at)],
+    }),
+    db.select({ id: crm_customers.id, name: crm_customers.name })
+      .from(crm_customers)
+      .where(eq(crm_customers.user_id, userId))
+      .orderBy(asc(crm_customers.name)),
   ]);
 
-  const contacts: Contact[] = contactsRaw ?? [];
-  const lists: Group[] = listsRaw ?? [];
+  const contacts: CrmContact[] = contactsRaw as unknown as CrmContact[];
+  const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
 
   return (
     <AppShell user={user}>
-      <div className="p-4 md:p-6 max-w-3xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <Users size={20} className="text-milestone-blue" />
-              Contacts
-            </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {contacts.length} active contact{contacts.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-
-        <ContactList contacts={contacts} />
-
-        <div className="mt-4">
-          <AddContactForm lists={lists} />
-        </div>
-      </div>
+      <ContactsView contacts={contacts} customers={customers} />
     </AppShell>
   );
 }
