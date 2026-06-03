@@ -29,12 +29,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     serverActions: {
-      allowedOrigins: [
-        "localhost:3000",
-        "milestone-red.vercel.app",
-        "milestone-darrins-projects-5d4fb02f.vercel.app",
-      ],
-      allowedOrigins: serverActionAllowedOrigins(),
+      allowedOrigins: Array.from(
+        new Set([
+          ...serverActionAllowedOrigins(),
+          "milestone-red.vercel.app",
+          "milestone-darrins-projects-5d4fb02f.vercel.app",
+        ])
+      ),
     },
   },
   async headers() {
