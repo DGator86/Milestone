@@ -18,6 +18,11 @@ function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+function parseDateStr(s: string): Date {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /**
  * Buckets open (not-done) tasks into Overdue / Today / Upcoming-this-week / Later.
  * Tasks with no due date fall into "later". Each bucket is sorted by priority
@@ -36,7 +41,7 @@ export function groupTasks(tasks: CrmTask[]): TaskGroups {
       groups.later.push(task);
       continue;
     }
-    const due = startOfDay(new Date(task.due_date));
+    const due = startOfDay(parseDateStr(task.due_date));
     if (due < todayStart) groups.overdue.push(task);
     else if (due === todayStart) groups.today.push(task);
     else if (due <= weekEnd) groups.upcoming.push(task);
@@ -46,8 +51,8 @@ export function groupTasks(tasks: CrmTask[]): TaskGroups {
   const sorter = (a: CrmTask, b: CrmTask) => {
     const p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
     if (p !== 0) return p;
-    const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
-    const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+    const ad = a.due_date ? parseDateStr(a.due_date).getTime() : Infinity;
+    const bd = b.due_date ? parseDateStr(b.due_date).getTime() : Infinity;
     return ad - bd;
   };
 

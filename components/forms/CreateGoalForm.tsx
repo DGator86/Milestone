@@ -41,7 +41,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
       setPrefill(data);
       setOpen(true);
       if (data.milestones?.length) setMilestoneCount(Math.min(6, data.milestones.length));
-      if (data.goal_type) setGoalType(data.goal_type);
+      if (data.goal_type && GOAL_TYPES.some((t) => t.value === data.goal_type)) setGoalType(data.goal_type);
       if (data.importance === "important" || data.importance === "critical") {
         setImportance(data.importance);
       }

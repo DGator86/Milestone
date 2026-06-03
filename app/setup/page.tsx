@@ -22,9 +22,9 @@ export default function SetupPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-milestone-blue mb-4 shadow-lg shadow-blue-900/50">
             <Zap size={22} className="text-white fill-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Configure Supabase</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Configure Database</h1>
           <p className="text-white/40 text-sm mt-1">
-            Milestone needs your project URL and anon key before it can run.
+            Milestone needs a Neon database URL before it can run.
           </p>
         </div>
 
@@ -39,38 +39,17 @@ export default function SetupPage() {
                 <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">.env.local</code> in the project root.
               </p>
               <p>
-                Set <span className="font-semibold text-gray-800">NEXT_PUBLIC_SUPABASE_URL</span> and{" "}
-                <span className="font-semibold text-gray-800">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> from your Supabase
-                project: Settings → API.
+                Set <span className="font-semibold text-gray-800">DATABASE_URL</span> from your Neon project
+                dashboard and <span className="font-semibold text-gray-800">AUTH_SECRET</span> to a random secret.
               </p>
               <p className="text-xs text-gray-400">
-                Replace placeholder values from the example file with your real credentials, then run{" "}
-                <code className="text-[11px] bg-gray-100 px-1 py-0.5 rounded">npm run dev</code> again.
+                Run <code className="text-[11px] bg-gray-100 px-1 py-0.5 rounded">npm run db:push</code> to apply
+                the schema, then restart the dev server.
               </p>
             </div>
           </div>
 
-          <p className="text-xs text-gray-400 border-t border-milestone-line pt-4">
-            Apply <code className="bg-gray-100 px-1 rounded">supabase/schema.sql</code> in the Supabase SQL Editor so
-            tables and <code className="bg-gray-100 px-1 rounded">ensure_default_groups</code> exist.
-          </p>
-
-          <p className="text-xs text-gray-400">
-            In Authentication → URL Configuration, add your app origin and{" "}
-            <code className="bg-gray-100 px-1 rounded">/auth/callback</code> to Redirect URLs (for example{" "}
-            <code className="bg-gray-100 px-1 rounded text-[11px]">https://your-domain.com/auth/callback</code>
-            ).
-          </p>
-
           <div className="pt-2 flex flex-col gap-2">
-            <Link
-              href="https://supabase.com/dashboard"
-              className="block text-center w-full bg-milestone-blue text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600 transition-colors text-sm"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open Supabase dashboard
-            </Link>
             <Link
               href="/login"
               className="block text-center text-sm text-milestone-blue font-semibold hover:underline py-2"

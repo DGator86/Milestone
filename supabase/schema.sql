@@ -284,6 +284,17 @@ create or replace trigger crm_tasks_tenant_check
 
 create index if not exists crm_tasks_user_due_idx on crm_tasks(user_id, due_date);
 
+create index if not exists crm_contacts_customer_idx on crm_contacts(customer_id);
+create index if not exists crm_contacts_user_idx on crm_contacts(user_id);
+create index if not exists crm_opportunities_customer_idx on crm_opportunities(customer_id);
+create index if not exists crm_opportunities_contact_idx on crm_opportunities(contact_id);
+create index if not exists crm_opportunities_flow_idx on crm_opportunities(flow_id);
+create index if not exists crm_opportunities_user_idx on crm_opportunities(user_id);
+create index if not exists crm_tasks_customer_idx on crm_tasks(customer_id);
+create index if not exists crm_tasks_contact_idx on crm_tasks(contact_id);
+create index if not exists crm_tasks_opportunity_idx on crm_tasks(opportunity_id);
+create index if not exists crm_tasks_user_idx on crm_tasks(user_id);
+
 -- Star / pin goals on the home page
 alter table goals add column if not exists pinned boolean not null default false;
 

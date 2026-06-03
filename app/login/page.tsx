@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Zap, Briefcase, Home, Heart } from "lucide-react";
-import { signIn } from "./actions";
+import { signIn_action } from "./actions";
 
 const features = [
   { icon: Briefcase, label: "Work", desc: "Close deals, ship projects, hit targets" },
@@ -57,7 +57,7 @@ export default function LoginPage({
           <h2 className="text-[18px] font-bold text-gray-900 mb-0.5">Welcome back</h2>
           <p className="text-sm text-gray-400 mb-5">Sign in to your account</p>
 
-          <form action={signIn} className="space-y-4">
+          <form action={signIn_action} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                 Email

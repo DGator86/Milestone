@@ -44,7 +44,8 @@ const INPUT =
 
 function fmtDue(d: string | null) {
   if (!d) return "—";
-  const date = new Date(d);
+  const [y, m, day] = d.split("-").map(Number);
+  const date = new Date(y, m - 1, day);
   const today = new Date();
   const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const d0 = new Date(date.getFullYear(), date.getMonth(), date.getDate());

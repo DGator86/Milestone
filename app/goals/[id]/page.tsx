@@ -1,10 +1,13 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { goals, groups, activity_log } from "@/db/schema";
+import { eq, and, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
 import { ArrowLeft, Target, Briefcase, Home, Heart } from "lucide-react";
 import { calcProgress } from "@/lib/progress";
-import type { GoalWithDetails, Group, ActivityLog } from "@/lib/types";
+import type { GoalWithDetails, Group, ActivityLog, AppUser } from "@/lib/types";
 import MilestoneList from "@/components/goals/MilestoneList";
 import EditGoalPanel from "@/components/goals/EditGoalPanel";
 import GoalStatusControls from "@/components/goals/GoalStatusControls";
@@ -61,41 +64,38 @@ export default async function GoalDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+  const user: AppUser = { id: userId, email: session.user.email };
 
-  const { data: goalRaw } = await supabase
-    .from("goals")
-    .select("*, groups(*), milestones(*)")
-    .eq("id", id)
-    .single();
+  const [goalRaw, groupsRaw, activityRaw] = await Promise.all([
+    db.query.goals.findFirst({
+      where: and(eq(goals.id, id), eq(goals.user_id, userId)),
+      with: { groups: true, milestones: true },
+    }),
+    db.query.groups.findMany({
+      where: eq(groups.user_id, userId),
+      orderBy: [asc(groups.sort_order)],
+    }),
+    db.query.activity_log.findMany({
+      where: eq(activity_log.goal_id, id),
+      orderBy: [desc(activity_log.created_at)],
+    }),
+  ]);
 
   if (!goalRaw) notFound();
 
-  const goal: GoalWithDetails = {
+  const goal = {
     ...goalRaw,
+    groups: goalRaw.groups!,
     milestones: [...(goalRaw.milestones ?? [])].sort(
-      (a: { position: number }, b: { position: number }) => a.position - b.position
+      (a, b) => a.position - b.position
     ),
-  };
+  } as unknown as GoalWithDetails;
 
-  const { data: groups } = await supabase
-    .from("groups")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  const { data: activityRaw } = await supabase
-    .from("activity_log")
-    .select("*")
-    .eq("goal_id", id)
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  const safeGroups: Group[] = groups ?? [];
-  const activity: ActivityLog[] = activityRaw ?? [];
+  const safeGroups: Group[] = groupsRaw as Group[];
+  const activity: ActivityLog[] = activityRaw.slice(0, 10) as ActivityLog[];
   const progress = calcProgress(goal.milestones);
   const completedCount = goal.milestones.filter((m) => m.status === "completed").length;
 
@@ -106,7 +106,6 @@ export default async function GoalDetailPage({
   return (
     <AppShell user={user}>
       <div className="p-6 max-w-3xl">
-        {/* Back */}
         <Link
           href="/goals"
           className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-5 transition-colors"
@@ -115,7 +114,6 @@ export default async function GoalDetailPage({
           All Goals
         </Link>
 
-        {/* Goal header card */}
         <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex-1 min-w-0">
@@ -162,7 +160,6 @@ export default async function GoalDetailPage({
             </div>
           </div>
 
-          {/* Progress */}
           <div className="mt-5 pt-5 border-t border-milestone-line">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
@@ -186,10 +183,8 @@ export default async function GoalDetailPage({
           </div>
         </div>
 
-        {/* Milestones */}
         <MilestoneList goal={goal} />
 
-        {/* Activity log */}
         {activity.length > 0 && (
           <div className="mt-6">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">

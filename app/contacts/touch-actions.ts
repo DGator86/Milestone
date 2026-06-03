@@ -2,15 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { contacts, touches } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { LogTouchSchema, CreateContactSchema } from "@/lib/schemas";
 
 export async function logTouch(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const raw = {
     contact_id: formData.get("contact_id") as string,
@@ -20,10 +21,15 @@ export async function logTouch(formData: FormData) {
   };
 
   const parsed = LogTouchSchema.safeParse(raw);
-  if (!parsed.success) return;
+  if (!parsed.success) return { error: "Invalid input" };
 
-  await supabase.from("touches").insert({
-    user_id: user.id,
+  const contactOwner = await db.query.contacts.findFirst({
+    where: and(eq(contacts.id, parsed.data.contact_id), eq(contacts.user_id, userId)),
+  });
+  if (!contactOwner) return { error: "Contact not found" };
+
+  await db.insert(touches).values({
+    user_id: userId,
     contact_id: parsed.data.contact_id,
     type: parsed.data.type,
     notes: parsed.data.notes,
@@ -36,11 +42,9 @@ export async function logTouch(formData: FormData) {
 }
 
 export async function createLegacyContact(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
 
   const freqRaw = formData.get("touch_frequency_days");
   const raw = {
@@ -57,13 +61,11 @@ export async function createLegacyContact(formData: FormData) {
   const parsed = CreateContactSchema.safeParse(raw);
   if (!parsed.success) return;
 
-  const { data: contact, error } = await supabase
-    .from("contacts")
-    .insert({ user_id: user.id, ...parsed.data })
-    .select()
-    .single();
+  const [contact] = await db.insert(contacts)
+    .values({ user_id: userId, ...parsed.data })
+    .returning();
 
-  if (error || !contact) redirect("/follow-ups?error=Failed+to+create+contact");
+  if (!contact) redirect("/follow-ups?error=Failed+to+create+contact");
 
   revalidatePath("/follow-ups");
   revalidatePath("/dashboard");

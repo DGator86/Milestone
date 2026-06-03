@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Pencil, ChevronDown, X } from "lucide-react";
 import { updateGoal } from "@/app/goals/actions";
 import type { GoalWithDetails, Group } from "@/lib/types";
@@ -15,6 +15,15 @@ export default function EditGoalPanel({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   if (!open) {
     return (
       <button
@@ -28,10 +37,19 @@ export default function EditGoalPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-card-lg border border-milestone-line w-full max-w-md animate-fade-up">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-goal-title"
+        className="bg-white rounded-2xl shadow-card-lg border border-milestone-line w-full max-w-md animate-fade-up"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-milestone-line">
-          <h2 className="text-sm font-bold text-gray-900">Edit Goal</h2>
+          <h2 id="edit-goal-title" className="text-sm font-bold text-gray-900">Edit Goal</h2>
           <button
             onClick={() => setOpen(false)}
             className="text-gray-400 hover:text-gray-600 transition-colors"

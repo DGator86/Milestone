@@ -1,5 +1,8 @@
 "use server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { crm_opportunities } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { OpportunityStatus } from "@/lib/types";
 
@@ -10,11 +13,9 @@ function stageToStatus(stage: string): OpportunityStatus {
 }
 
 export async function createOpportunity(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
@@ -23,13 +24,13 @@ export async function createOpportunity(formData: FormData) {
   const value = valueStr ? parseFloat(valueStr) : null;
   const stage = (formData.get("stage") as string) || "Lead";
 
-  await supabase.from("crm_opportunities").insert({
-    user_id: user.id,
+  await db.insert(crm_opportunities).values({
+    user_id: userId,
     title,
     customer_id: (formData.get("customer_id") as string) || null,
     contact_id: (formData.get("contact_id") as string) || null,
     flow_id: (formData.get("flow_id") as string) || null,
-    value: value !== null && !isNaN(value) ? value : null,
+    value: value !== null && !isNaN(value) ? String(value) : null,
     stage,
     status: stageToStatus(stage),
     close_date: (formData.get("close_date") as string) || null,
@@ -40,13 +41,13 @@ export async function createOpportunity(formData: FormData) {
 }
 
 export async function deleteOpportunity(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase.from("crm_opportunities").delete().eq("id", id).eq("user_id", user.id);
+  await db.delete(crm_opportunities)
+    .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
+
   revalidatePath("/opportunities");
 }
 
@@ -54,16 +55,13 @@ export async function moveOpportunity(id: string, stage: string) {
   const trimmed = stage.trim();
   if (!trimmed) return;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = session.user.id;
 
-  await supabase
-    .from("crm_opportunities")
-    .update({ stage: trimmed, status: stageToStatus(trimmed) })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  await db.update(crm_opportunities)
+    .set({ stage: trimmed, status: stageToStatus(trimmed) })
+    .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
+
   revalidatePath("/opportunities");
 }

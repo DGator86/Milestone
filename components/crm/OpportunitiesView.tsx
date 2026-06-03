@@ -99,10 +99,10 @@ function OppCard({
         )}
         {opp.close_date && (
           <span className="text-[11px] text-gray-400">
-            {new Date(opp.close_date).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
+            {(() => {
+              const [y, m, d] = opp.close_date.split("-").map(Number);
+              return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            })()}
           </span>
         )}
       </div>
@@ -171,7 +171,9 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
     return { byStage: map, mismatchedIds: mismatched };
   }, [visibleOpps, activeStages]);
 
-  const totalValue = visibleOpps.reduce((sum, o) => sum + (o.value ?? 0), 0);
+  const totalValue = visibleOpps
+    .filter((o) => o.status === "open")
+    .reduce((sum, o) => sum + (o.value ?? 0), 0);
   const openCount = visibleOpps.filter((o) => o.status === "open").length;
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {

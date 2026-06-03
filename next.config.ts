@@ -6,17 +6,10 @@ function serverActionAllowedOrigins(): string[] {
       .map((s) => s.trim())
       .filter(Boolean) ?? [];
 
-  const hosts = new Set<string>([
-    "localhost:3000",
-    "milestone-red.vercel.app",
-    "milestone-darrins-projects-5d4fb02f.vercel.app",
-    ...extra,
-  ]);
+  const hosts = new Set<string>(["localhost:3000", ...extra]);
 
-  for (const raw of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
-    if (!raw?.trim()) continue;
-    hosts.add(raw.replace(/^https?:\/\//, ""));
-  }
+  const railwayUrl = process.env.RAILWAY_STATIC_URL ?? process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (railwayUrl) hosts.add(railwayUrl.replace(/^https?:\/\//, ""));
 
   for (const envVar of [process.env.NEXT_PUBLIC_SITE_URL, process.env.NEXT_PUBLIC_APP_URL]) {
     const site = envVar?.trim();
@@ -33,6 +26,7 @@ function serverActionAllowedOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   experimental: {
     serverActions: {
       allowedOrigins: serverActionAllowedOrigins(),
