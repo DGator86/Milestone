@@ -29,7 +29,7 @@ export async function createOpportunity(formData: FormData) {
     customer_id: (formData.get("customer_id") as string) || null,
     contact_id: (formData.get("contact_id") as string) || null,
     flow_id: (formData.get("flow_id") as string) || null,
-    value: value && !isNaN(value) ? value : null,
+    value: value !== null && !isNaN(value) ? value : null,
     stage,
     status: stageToStatus(stage),
     close_date: (formData.get("close_date") as string) || null,

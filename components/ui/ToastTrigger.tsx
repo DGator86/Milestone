@@ -15,9 +15,10 @@ export function ToastTrigger() {
     const error = searchParams.get("error");
     const msg = searchParams.get("msg");
 
+    const safeDecode = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } };
     if (created === "1") show("Goal created successfully!", "success");
-    if (error) show(decodeURIComponent(error), "error");
-    if (msg) show(decodeURIComponent(msg), "info");
+    if (error) show(safeDecode(error), "error");
+    if (msg) show(safeDecode(msg), "info");
 
     if (created || error || msg) {
       const params = new URLSearchParams(searchParams.toString());

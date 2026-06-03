@@ -31,7 +31,7 @@ export async function createGroup(
     .select("id")
     .eq("user_id", user.id)
     .ilike("name", name)
-    .single();
+    .maybeSingle();
 
   if (existing) return { error: "A group with that name already exists" };
 
@@ -41,7 +41,7 @@ export async function createGroup(
     .eq("user_id", user.id)
     .order("sort_order", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   await supabase.from("groups").insert({
     user_id: user.id,

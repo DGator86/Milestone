@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROJECT_REF = "bqpaemaechuupanyxgbf";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const PROJECT_REF = supabaseUrl.split("//")[1]?.split(".")[0] ?? "bqpaemaechuupanyxgbf";
 
 const protectedRoutes = [
   "/dashboard",
