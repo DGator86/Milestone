@@ -13,10 +13,21 @@ export async function createGoal(formData: FormData) {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const milestoneTitles: string[] = [];
-  for (let i = 1; i <= 6; i++) {
-    const t = formData.get(`milestone_${i}`) as string;
-    if (t?.trim()) milestoneTitles.push(t.trim());
+  interface MilestoneData {
+    title: string;
+    due_date: string | null;
+    touch_target: number | null;
+    touch_period: string | null;
+  }
+  const milestoneData: MilestoneData[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const t = (formData.get(`milestone_${i}`) as string)?.trim();
+    if (!t) continue;
+    const schedType = (formData.get(`milestone_${i}_schedule`) as string) || "none";
+    const schedDate = schedType === "date" ? ((formData.get(`milestone_${i}_date`) as string) || null) : null;
+    const touchTarget = schedType === "frequency" ? parseInt(formData.get(`milestone_${i}_target`) as string) || null : null;
+    const touchPeriod = schedType === "frequency" ? ((formData.get(`milestone_${i}_period`) as string) || null) : null;
+    milestoneData.push({ title: t, due_date: schedDate, touch_target: touchTarget, touch_period: touchPeriod });
   }
 
   const raw = {
@@ -33,7 +44,7 @@ export async function createGoal(formData: FormData) {
     redirect(`/dashboard?error=${encodeURIComponent(msg)}`);
   }
 
-  if (milestoneTitles.length === 0) {
+  if (milestoneData.length === 0) {
     redirect("/dashboard?error=At+least+one+milestone+is+required");
   }
 
@@ -51,11 +62,14 @@ export async function createGoal(formData: FormData) {
 
   if (!goal) redirect("/dashboard?error=Failed+to+create+goal");
 
-  const milestoneRows = milestoneTitles.map((t, i) => ({
+  const milestoneRows = milestoneData.map((m, i) => ({
     goal_id: goal.id,
-    title: t,
+    title: m.title,
     position: i,
     status: i === 0 ? "in_progress" : "upcoming",
+    due_date: m.due_date,
+    touch_target: m.touch_target,
+    touch_period: m.touch_period,
   }));
 
   await db.insert(milestones).values(milestoneRows);
