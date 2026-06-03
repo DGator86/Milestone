@@ -43,12 +43,14 @@ export async function createGroup(
     .limit(1)
     .maybeSingle();
 
-  await supabase.from("groups").insert({
+  const { error: insertError } = await supabase.from("groups").insert({
     user_id: user.id,
     name,
     color,
     sort_order: (last?.sort_order ?? 0) + 1,
   });
+
+  if (insertError) return { error: "Failed to create group" };
 
   revalidatePath("/groups");
   revalidatePath("/dashboard");
@@ -73,7 +75,13 @@ export async function deleteGroup(groupId: string): Promise<{ error?: string }> 
     return { error: "Cannot delete a group that has active goals" };
   }
 
-  await supabase.from("groups").delete().eq("id", groupId).eq("user_id", user.id);
+  const { error: deleteError } = await supabase
+    .from("groups")
+    .delete()
+    .eq("id", groupId)
+    .eq("user_id", user.id);
+
+  if (deleteError) return { error: "Failed to delete group" };
 
   revalidatePath("/groups");
   revalidatePath("/dashboard");

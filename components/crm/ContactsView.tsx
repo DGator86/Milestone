@@ -45,6 +45,7 @@ export default function ContactsView({ contacts, customers }: Props) {
   }
 
   function handleDelete(id: string) {
+    if (!window.confirm("Delete this contact? This cannot be undone.")) return;
     startTransition(() => deleteContact(id));
   }
 

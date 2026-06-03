@@ -44,13 +44,32 @@ export async function updateMilestoneStatus(
         .update({ status: "in_progress" })
         .eq("id", remaining[0].id);
     } else {
-      await supabase.from("goals").update({ status: "completed" }).eq("id", goalId);
+      await supabase
+        .from("goals")
+        .update({ status: "completed" })
+        .eq("id", goalId)
+        .eq("user_id", user.id);
     }
   } else {
     await supabase
       .from("milestones")
       .update({ status, completed_at: null })
       .eq("id", milestoneId);
+
+    const { data: parentGoal } = await supabase
+      .from("goals")
+      .select("status")
+      .eq("id", goalId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (parentGoal?.status === "completed") {
+      await supabase
+        .from("goals")
+        .update({ status: "active" })
+        .eq("id", goalId)
+        .eq("user_id", user.id);
+    }
 
     await supabase.from("activity_log").insert({
       goal_id: goalId,

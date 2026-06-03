@@ -1,6 +1,9 @@
 // These are public-by-design values — the anon key is safe to embed in client code.
 // Vercel env vars take priority when set; these are the fallback for local/preview.
-const isProd = process.env.NODE_ENV === "production";
+// NEXT_PHASE is "phase-production-build" during `next build`; skip fail-fast then.
+const isProd =
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PHASE !== "phase-production-build";
 
 export const SUPABASE_URL = (() => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -63,6 +63,7 @@ function ToastCard({
       <p className="flex-1 text-sm font-medium text-gray-800">{toast.message}</p>
       <button
         onClick={onDismiss}
+        aria-label="Dismiss"
         className="text-gray-300 hover:text-gray-500 transition-colors shrink-0 ml-1"
       >
         <X size={13} />
@@ -91,7 +92,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"
+      >
         {toasts.map((t) => (
           <ToastCard key={t.id} toast={t} onDismiss={() => dismiss(t.id)} />
         ))}

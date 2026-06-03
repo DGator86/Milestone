@@ -171,7 +171,9 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
     return { byStage: map, mismatchedIds: mismatched };
   }, [visibleOpps, activeStages]);
 
-  const totalValue = visibleOpps.reduce((sum, o) => sum + (o.value ?? 0), 0);
+  const totalValue = visibleOpps
+    .filter((o) => o.status === "open")
+    .reduce((sum, o) => sum + (o.value ?? 0), 0);
   const openCount = visibleOpps.filter((o) => o.status === "open").length;
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {

@@ -7,8 +7,13 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const emailRaw = formData.get("email");
+  const passwordRaw = formData.get("password");
+  if (!emailRaw || typeof emailRaw !== "string" || !passwordRaw || typeof passwordRaw !== "string") {
+    redirect(`/login?error=${encodeURIComponent("Email and password are required")}`);
+  }
+  const email = emailRaw;
+  const password = passwordRaw;
 
   let authError: string | null = null;
   const MAX_ATTEMPTS = 3;
