@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
+import { auth } from "@/auth";
 import {
   Zap,
   Target,
@@ -14,15 +13,8 @@ import {
 } from "lucide-react";
 
 export default async function Home() {
-  if (!isSupabaseConfigured()) {
-    redirect("/setup");
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) redirect("/dashboard");
+  const session = await auth();
+  if (session?.user?.id) redirect("/dashboard");
 
   return (
     <div className="min-h-screen bg-[#07111F] text-white overflow-x-hidden">
