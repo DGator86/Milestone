@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Workflow, Plus, X, Trash2, GitBranch } from "lucide-react";
-import type { CrmFlow } from "@/lib/types";
-import { createFlow, deleteFlow } from "@/app/flows/actions";
+import { Workflow, Plus, X, Trash2, GitBranch, ChevronRight } from "lucide-react";
+import type { CrmFlow, CrmFlowInstance, CrmCustomer } from "@/lib/types";
+import { createFlow, deleteFlow, createFlowInstance, advanceFlowInstance, deleteFlowInstance } from "@/app/flows/actions";
 
 const PRESET_COLORS = [
   { label: "Blue", value: "#1769FF" },
@@ -26,77 +26,97 @@ const LABEL = "block text-xs font-medium text-gray-500 mb-1";
 interface Props {
   flows: CrmFlow[];
   oppCountByFlow: Record<string, number>;
+  instances: CrmFlowInstance[];
+  customers: Pick<CrmCustomer, "id" | "name">[];
 }
 
-function FlowCard({
-  flow,
-  oppCount,
+function InstanceRow({
+  instance,
+  onAdvance,
   onDelete,
 }: {
-  flow: CrmFlow;
-  oppCount: number;
+  instance: CrmFlowInstance;
+  onAdvance: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const flow = instance.crm_flows;
+  const stageName = flow ? (flow.stages[instance.current_stage_idx] ?? flow.stages[0]) : "—";
+  const color = flow?.color ?? "#1769FF";
+
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden group">
-      {/* Colored top bar */}
-      <div className="h-1.5" style={{ backgroundColor: flow.color }} />
-
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${flow.color}18` }}
-            >
-              <GitBranch size={17} style={{ color: flow.color }} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-bold text-gray-900 truncate">{flow.name}</p>
-              {flow.description && (
-                <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{flow.description}</p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={() => onDelete(flow.id)}
-            className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-1"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-
-        {/* Stages */}
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {flow.stages.map((stage, i) => (
-            <span
-              key={i}
-              className="text-[11px] font-medium px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: `${flow.color}18`,
-                color: flow.color,
-              }}
-            >
-              {stage}
-            </span>
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-4 pt-3.5 border-t border-milestone-line flex items-center justify-between">
-          <span className="text-xs text-gray-400">
-            {flow.stages.length} stages
-          </span>
-          <span className="text-xs font-semibold text-gray-500">
-            {oppCount} {oppCount === 1 ? "opportunity" : "opportunities"}
-          </span>
-        </div>
+    <div className="group flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50/60 transition-colors">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 truncate">
+          {instance.crm_customers?.name ?? "Unassigned"}
+        </p>
+        {instance.run_count > 1 && (
+          <p className="text-[11px] text-gray-400">Cycle #{instance.run_count}</p>
+        )}
       </div>
+      <span
+        className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+        style={{ backgroundColor: `${color}18`, color }}
+      >
+        {stageName}
+      </span>
+      <button
+        onClick={() => onAdvance(instance.id)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-milestone-blue transition-colors shrink-0"
+      >
+        <ChevronRight size={13} />
+        Advance
+      </button>
+      <button
+        onClick={() => onDelete(instance.id)}
+        className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        aria-label="Remove instance"
+      >
+        <X size={13} />
+      </button>
     </div>
   );
 }
 
-export default function FlowsView({ flows, oppCountByFlow }: Props) {
+function AssignForm({
+  flowId,
+  customers,
+  onSubmit,
+}: {
+  flowId: string;
+  customers: Pick<CrmCustomer, "id" | "name">[];
+  onSubmit: (flowId: string, customerId: string | null) => void;
+}) {
+  const [customerId, setCustomerId] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit(flowId, customerId || null);
+    setCustomerId("");
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 border-t border-milestone-line/50">
+      <select
+        value={customerId}
+        onChange={(e) => setCustomerId(e.target.value)}
+        className="flex-1 px-2.5 py-1.5 text-xs border border-milestone-line rounded-lg focus:outline-none focus:ring-1 focus:ring-milestone-blue focus:border-milestone-blue bg-white text-gray-700"
+      >
+        <option value="">Unassigned</option>
+        {customers.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        className="px-3 py-1.5 bg-milestone-blue text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors shrink-0"
+      >
+        Assign
+      </button>
+    </form>
+  );
+}
+
+export default function FlowsView({ flows, oppCountByFlow, instances, customers }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0].value);
   const [isPending, startTransition] = useTransition();
@@ -112,13 +132,26 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
     });
   }
 
-  function handleDelete(id: string) {
+  function handleDeleteFlow(id: string) {
     startTransition(() => deleteFlow(id));
   }
 
+  function handleCreateInstance(flowId: string, customerId: string | null) {
+    startTransition(() => createFlowInstance(flowId, customerId));
+  }
+
+  function handleAdvance(instanceId: string) {
+    startTransition(() => advanceFlowInstance(instanceId));
+  }
+
+  function handleDeleteInstance(instanceId: string) {
+    startTransition(() => deleteFlowInstance(instanceId));
+  }
+
+  const flowsWithInstances = flows.filter((f) => instances.some((i) => i.flow_id === f.id));
+
   return (
     <div className="p-6 max-w-6xl" style={{ opacity: isPending ? 0.7 : 1 }}>
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
@@ -126,7 +159,7 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
             Flows
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            {flows.length} {flows.length === 1 ? "pipeline" : "pipelines"} · Define custom deal stages per sales motion
+            {flows.length} {flows.length === 1 ? "pipeline" : "pipelines"} · Track active deals through each stage
           </p>
         </div>
         <button
@@ -138,7 +171,6 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
         </button>
       </div>
 
-      {/* Create form */}
       {showForm && (
         <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 mb-6 animate-fade-up">
           <p className="text-sm font-bold text-gray-900 mb-4">New Flow</p>
@@ -154,7 +186,6 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
               </div>
             </div>
 
-            {/* Color picker */}
             <div className="mt-4">
               <label className={LABEL}>Color</label>
               <div className="flex gap-2 flex-wrap mt-1">
@@ -175,7 +206,6 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
               </div>
             </div>
 
-            {/* Stages */}
             <div className="mt-4">
               <label className={LABEL}>Stages (one per line)</label>
               <textarea
@@ -208,38 +238,107 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
         </div>
       )}
 
-      {/* Flows grid */}
-      {flows.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
-          <Workflow size={36} className="mx-auto mb-3 text-gray-200" />
-          <p className="text-sm font-medium text-gray-400">No flows yet.</p>
-          <p className="text-xs text-gray-300 mt-1">
-            Create a flow to define custom pipeline stages for your opportunities.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {flows.map((flow) => (
-            <FlowCard
-              key={flow.id}
-              flow={flow}
-              oppCount={oppCountByFlow[flow.id] ?? 0}
-              onDelete={handleDelete}
-            />
-          ))}
-
-          {/* Add placeholder */}
-          <button
-            onClick={() => setShowForm(true)}
-            className="rounded-xl border-2 border-dashed border-milestone-line p-8 flex flex-col items-center justify-center gap-3 text-gray-300 hover:border-milestone-blue hover:text-milestone-blue transition-colors group"
-          >
-            <div className="w-10 h-10 rounded-xl border-2 border-dashed border-current flex items-center justify-center group-hover:bg-milestone-blue-dim">
-              <Plus size={18} />
-            </div>
-            <p className="text-sm font-semibold">Create a flow</p>
-          </button>
+      {instances.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Active Flows</h2>
+          <div className="space-y-3">
+            {flowsWithInstances.map((flow) => {
+              const flowInstances = instances.filter((i) => i.flow_id === flow.id);
+              return (
+                <div key={flow.id} className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+                  <div className="h-1" style={{ backgroundColor: flow.color }} />
+                  <div className="px-4 py-3 border-b border-milestone-line/60 flex items-center gap-2.5">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: flow.color }}
+                    />
+                    <p className="text-sm font-bold text-gray-900">{flow.name}</p>
+                    <span className="text-[11px] text-gray-400 ml-auto">{flow.stages.length} stages</span>
+                  </div>
+                  <div className="divide-y divide-milestone-line/60">
+                    {flowInstances.map((instance) => (
+                      <InstanceRow
+                        key={instance.id}
+                        instance={instance}
+                        onAdvance={handleAdvance}
+                        onDelete={handleDeleteInstance}
+                      />
+                    ))}
+                  </div>
+                  <AssignForm flowId={flow.id} customers={customers} onSubmit={handleCreateInstance} />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Flow Templates</h2>
+        {flows.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+            <Workflow size={36} className="mx-auto mb-3 text-gray-200" />
+            <p className="text-sm font-medium text-gray-400">No flows yet.</p>
+            <p className="text-xs text-gray-300 mt-1">
+              Create a flow to define custom pipeline stages for your opportunities.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden divide-y divide-milestone-line">
+            {flows.map((flow) => (
+              <div key={flow.id} className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${flow.color}18` }}
+                >
+                  <GitBranch size={15} style={{ color: flow.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{flow.name}</p>
+                  <p className="text-[11px] text-gray-400">{flow.stages.length} stages · {oppCountByFlow[flow.id] ?? 0} opportunities</p>
+                </div>
+                <div className="flex flex-wrap gap-1 shrink-0 max-w-[200px] hidden sm:flex">
+                  {flow.stages.slice(0, 4).map((stage, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${flow.color}18`, color: flow.color }}
+                    >
+                      {stage}
+                    </span>
+                  ))}
+                  {flow.stages.length > 4 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                      +{flow.stages.length - 4}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleCreateInstance(flow.id, null)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-milestone-blue hover:bg-milestone-blue-dim px-2 py-1 rounded-lg transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                >
+                  <Plus size={11} />
+                  Start
+                </button>
+                <button
+                  onClick={() => handleDeleteFlow(flow.id)}
+                  className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  aria-label="Delete flow"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 w-full px-4 py-3 text-gray-300 hover:text-milestone-blue hover:bg-gray-50/50 transition-colors text-sm font-semibold"
+            >
+              <Plus size={15} />
+              Create a flow
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
