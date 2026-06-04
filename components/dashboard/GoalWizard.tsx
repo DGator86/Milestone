@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import {
   X, ChevronRight, ChevronLeft, Target, Zap, Calendar, RefreshCw,
   Flag, Plus, Trash2, CalendarDays, Repeat,
@@ -51,10 +51,12 @@ export default function GoalWizard({
   groups,
   open,
   onClose,
+  prefill,
 }: {
   groups: Group[];
   open: boolean;
   onClose: () => void;
+  prefill?: { title?: string; goal_type?: string; milestones?: string[] } | null;
 }) {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
@@ -62,19 +64,33 @@ export default function GoalWizard({
   const [goalType, setGoalType] = useState("concrete");
   const [items, setItems] = useState<MilestoneItem[]>(() => [newItem("concrete"), newItem("concrete"), newItem("concrete")]);
   const [isPending, startTransition] = useTransition();
+  const prefillRef = useRef(prefill);
+  prefillRef.current = prefill;
 
   const groupId = groups[0]?.id ?? "";
 
-  function reset() {
+  useEffect(() => {
+    if (!open) return;
+    const p = prefillRef.current;
     setStep(1);
-    setTitle("");
     setEndDate("");
-    setGoalType("concrete");
-    setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
-  }
+    if (p) {
+      setTitle(p.title ?? "");
+      const type = p.goal_type ?? "concrete";
+      setGoalType(type);
+      setItems(
+        p.milestones?.length
+          ? p.milestones.map((t) => ({ ...newItem(type), title: t }))
+          : [newItem(type), newItem(type), newItem(type)]
+      );
+    } else {
+      setTitle("");
+      setGoalType("concrete");
+      setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
+    }
+  }, [open]);
 
   function dismiss() {
-    reset();
     onClose();
   }
 
