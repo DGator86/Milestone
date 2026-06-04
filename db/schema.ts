@@ -171,6 +171,20 @@ export const crm_tasks = pgTable("crm_tasks", {
   updated_at: ts("updated_at"),
 });
 
+// ─── CRM Flow Instances ────────────────────────────────────────────────────────
+export const crm_flow_instances = pgTable("crm_flow_instances", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  flow_id: uuid("flow_id").notNull().references(() => crm_flows.id, { onDelete: "cascade" }),
+  customer_id: uuid("customer_id").references(() => crm_customers.id, { onDelete: "set null" }),
+  current_stage_idx: integer("current_stage_idx").notNull().default(0),
+  run_count: integer("run_count").notNull().default(1),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  created_at: ts("created_at"),
+  updated_at: ts("updated_at"),
+});
+
 // ─── Relations ─────────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
   groups: many(groups),
@@ -229,4 +243,14 @@ export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one }) 
 export const crmTasksRelations = relations(crm_tasks, ({ one }) => ({
   crm_customers: one(crm_customers, { fields: [crm_tasks.customer_id], references: [crm_customers.id] }),
   crm_contacts: one(crm_contacts, { fields: [crm_tasks.contact_id], references: [crm_contacts.id] }),
+}));
+
+export const crmFlowsRelations = relations(crm_flows, ({ one, many }) => ({
+  user: one(users, { fields: [crm_flows.user_id], references: [users.id] }),
+  instances: many(crm_flow_instances),
+}));
+
+export const crmFlowInstancesRelations = relations(crm_flow_instances, ({ one }) => ({
+  crm_flows: one(crm_flows, { fields: [crm_flow_instances.flow_id], references: [crm_flows.id] }),
+  crm_customers: one(crm_customers, { fields: [crm_flow_instances.customer_id], references: [crm_customers.id] }),
 }));

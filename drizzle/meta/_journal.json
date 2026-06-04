@@ -8,6 +8,13 @@
       "when": 1780520024142,
       "tag": "0000_add_milestone_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780606424142,
+      "tag": "0001_add_flow_instances",
+      "breakpoints": true
     }
   ]
 }

@@ -164,6 +164,21 @@ export interface ContactWithDetails extends Contact {
   touches?: Touch[];
 }
 
+export interface CrmFlowInstance {
+  id: string;
+  user_id: string;
+  flow_id: string;
+  customer_id: string | null;
+  current_stage_idx: number;
+  run_count: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_flows?: Pick<CrmFlow, "id" | "name" | "stages" | "color">;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+}
+
 export type TaskType = "call" | "email" | "meeting" | "task" | "document";
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 
