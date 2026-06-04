@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
-import { Settings, User, Shield, LogOut } from "lucide-react";
+import { Settings, User, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/auth-actions";
+import { getSettings } from "@/lib/settings";
+import WorkspaceSettingsForm from "@/components/settings/WorkspaceSettingsForm";
 import type { AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const user: AppUser = { id: session.user.id, email: session.user.email };
+  const settings = await getSettings(user.id);
 
   const username = user.email?.split("@")[0] ?? "User";
   const initial = username[0].toUpperCase();
@@ -23,7 +26,7 @@ export default async function SettingsPage() {
             <Settings size={20} className="text-milestone-blue" />
             Settings
           </h1>
-          <p className="text-xs text-gray-400 mt-0.5">Manage your account and preferences</p>
+          <p className="text-xs text-gray-400 mt-0.5">Customize your workspace, branding, and preferences</p>
         </div>
 
         <div className="space-y-4">
@@ -50,31 +53,12 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                <Shield size={12} />
-                Preferences
-              </p>
-            </div>
-            <div className="divide-y divide-milestone-line">
-              {[
-                { label: "Email notifications", desc: "Get updates on goal progress" },
-                { label: "Weekly digest", desc: "Summary every Monday morning" },
-                { label: "Dark mode", desc: "Coming soon" },
-              ].map(({ label, desc }) => (
-                <div key={label} className="flex items-center justify-between px-5 py-3.5">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">{label}</p>
-                    <p className="text-xs text-gray-400">{desc}</p>
-                  </div>
-                  <div className="w-9 h-5 rounded-full bg-gray-100 relative cursor-not-allowed opacity-50">
-                    <div className="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow-sm" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <WorkspaceSettingsForm
+            companyName={settings.companyName}
+            brandColor={settings.brandColor}
+            terms={settings.terms}
+            preferences={settings.preferences}
+          />
 
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-red-50/60">

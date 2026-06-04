@@ -13,6 +13,18 @@ export const users = pgTable("users", {
   created_at: ts("created_at"),
 });
 
+// ─── Workspace settings (per-user customization) ────────────────────────────────
+export const user_settings = pgTable("user_settings", {
+  user_id: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  company_name: text("company_name"),
+  brand_color: text("brand_color").notNull().default("#1769FF"),
+  terminology: jsonb("terminology").$type<Record<string, string>>().notNull().default({}),
+  preferences: jsonb("preferences").$type<Record<string, boolean>>().notNull().default({}),
+  custom_fields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
+  created_at: ts("created_at"),
+  updated_at: ts("updated_at"),
+});
+
 // ─── Groups ────────────────────────────────────────────────────────────────────
 export const groups = pgTable("groups", {
   id,

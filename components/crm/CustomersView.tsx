@@ -19,9 +19,13 @@ const LABEL = "block text-xs font-medium text-gray-500 mb-1";
 export default function CustomersView({
   customers,
   goalCounts = {},
+  labelPlural = "Companies",
+  labelSingular = "Company",
 }: {
   customers: CrmCustomer[];
   goalCounts?: Record<string, number>;
+  labelPlural?: string;
+  labelSingular?: string;
 }) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -63,7 +67,7 @@ export default function CustomersView({
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <Building2 size={20} className="text-milestone-blue" />
-            Customers
+            {labelPlural}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">
             {customers.length} total · {customers.filter((c) => c.status === "active").length} active
@@ -74,7 +78,7 @@ export default function CustomersView({
           className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
         >
           {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? "Cancel" : "Add Customer"}
+          {showForm ? "Cancel" : `Add ${labelSingular}`}
         </button>
       </div>
 

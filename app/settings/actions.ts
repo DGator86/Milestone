@@ -4,7 +4,52 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { contacts, goals, groups, milestones } from "@/db/schema";
+import { contacts, goals, groups, milestones, user_settings } from "@/db/schema";
+import { EDITABLE_TERMS, singularize } from "@/lib/terms";
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+
+export async function updateWorkspaceSettings(
+  _prev: unknown,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Not authenticated" };
+  const userId = session.user.id;
+
+  const companyName = ((formData.get("company_name") as string) ?? "").trim().slice(0, 80) || null;
+  const brandRaw = ((formData.get("brand_color") as string) ?? "").trim();
+  const brandColor = HEX.test(brandRaw) ? brandRaw : "#1769FF";
+
+  const terminology: Record<string, string> = {};
+  for (const t of EDITABLE_TERMS) {
+    const value = ((formData.get(`term_${t.key}`) as string) ?? "").trim().slice(0, 40);
+    if (value) {
+      terminology[t.key] = value;
+      terminology[t.singularKey] = singularize(value);
+    }
+  }
+
+  const preferences: Record<string, boolean> = {
+    email_notifications: formData.get("pref_email_notifications") === "on",
+    weekly_digest: formData.get("pref_weekly_digest") === "on",
+  };
+
+  try {
+    await db
+      .insert(user_settings)
+      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences })
+      .onConflictDoUpdate({
+        target: user_settings.user_id,
+        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, updated_at: new Date().toISOString() },
+      });
+  } catch {
+    return { error: "Could not save — the settings table may not be migrated yet (run npm run db:push)." };
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true };
+}
 
 export async function seedDemoData() {
   const session = await auth();

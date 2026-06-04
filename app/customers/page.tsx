@@ -5,6 +5,7 @@ import { crm_customers, goals } from "@/db/schema";
 import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import CustomersView from "@/components/crm/CustomersView";
+import { getSettings } from "@/lib/settings";
 import type { CrmCustomer, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +34,16 @@ export default async function CustomersPage() {
     if (row.customer_id) goalCounts[row.customer_id] = row.count;
   }
 
+  const { terms } = await getSettings(userId);
+
   return (
     <AppShell user={user}>
-      <CustomersView customers={customers} goalCounts={goalCounts} />
+      <CustomersView
+        customers={customers}
+        goalCounts={goalCounts}
+        labelPlural={terms.customers}
+        labelSingular={terms.customer}
+      />
     </AppShell>
   );
 }
