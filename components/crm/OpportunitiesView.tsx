@@ -138,7 +138,14 @@ function OppCard({
   );
 }
 
-export default function OpportunitiesView({ opportunities, customers, contacts, flows }: Props) {
+export default function OpportunitiesView({
+  opportunities,
+  customers,
+  contacts,
+  flows,
+  labelPlural = "Opportunities",
+  labelSingular = "Opportunity",
+}: Props & { labelPlural?: string; labelSingular?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -200,7 +207,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <TrendingUp size={20} className="text-milestone-blue" />
-            Opportunities
+            {labelPlural}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">
             {openCount} open · {fmt(totalValue) ?? "$0"} total pipeline
@@ -226,7 +233,7 @@ export default function OpportunitiesView({ opportunities, customers, contacts, 
             className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
             {showForm ? <X size={15} /> : <Plus size={15} />}
-            {showForm ? "Cancel" : "Add Opportunity"}
+            {showForm ? "Cancel" : `Add ${labelSingular}`}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { crm_opportunities, crm_customers, crm_contacts, crm_flows } from "@/db/
 import { eq, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import OpportunitiesView from "@/components/crm/OpportunitiesView";
+import { getSettings } from "@/lib/settings";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export default async function OpportunitiesPage() {
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
   const contacts: Pick<CrmContact, "id" | "first_name" | "last_name">[] = contactsRaw;
   const flows: Pick<CrmFlow, "id" | "name" | "stages">[] = flowsRaw as unknown as Pick<CrmFlow, "id" | "name" | "stages">[];
+  const { terms } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
@@ -51,6 +53,8 @@ export default async function OpportunitiesPage() {
         customers={customers}
         contacts={contacts}
         flows={flows}
+        labelPlural={terms.opportunities}
+        labelSingular={terms.opportunity}
       />
     </AppShell>
   );

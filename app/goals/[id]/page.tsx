@@ -5,7 +5,7 @@ import { goals, groups, activity_log } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
-import { ArrowLeft, Target, Briefcase, Home, Heart } from "lucide-react";
+import { ArrowLeft, Target, Briefcase, Home, Heart, Building2, Handshake } from "lucide-react";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, ActivityLog, AppUser } from "@/lib/types";
 import MilestoneList from "@/components/goals/MilestoneList";
@@ -72,7 +72,12 @@ export default async function GoalDetailPage({
   const [goalRaw, groupsRaw, activityRaw] = await Promise.all([
     db.query.goals.findFirst({
       where: and(eq(goals.id, id), eq(goals.user_id, userId)),
-      with: { groups: true, milestones: true },
+      with: {
+        groups: true,
+        milestones: true,
+        crm_customers: { columns: { id: true, name: true } },
+        crm_opportunities: { columns: { id: true, title: true } },
+      },
     }),
     db.query.groups.findMany({
       where: eq(groups.user_id, userId),
@@ -182,6 +187,30 @@ export default async function GoalDetailPage({
             </p>
           </div>
         </div>
+
+        {(goalRaw.crm_customers || goalRaw.crm_opportunities) && (
+          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-4 mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mr-1">Connected</span>
+            {goalRaw.crm_customers && (
+              <Link
+                href="/customers"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-milestone-blue bg-milestone-blue-dim hover:bg-blue-100 rounded-lg px-2.5 py-1.5 transition-colors"
+              >
+                <Building2 size={13} />
+                {goalRaw.crm_customers.name}
+              </Link>
+            )}
+            {goalRaw.crm_opportunities && (
+              <Link
+                href="/opportunities"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-milestone-green bg-milestone-green-dim hover:bg-green-100 rounded-lg px-2.5 py-1.5 transition-colors"
+              >
+                <Handshake size={13} />
+                {goalRaw.crm_opportunities.title}
+              </Link>
+            )}
+          </div>
+        )}
 
         <MilestoneList goal={goal} />
 

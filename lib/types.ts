@@ -54,6 +54,8 @@ export interface Goal {
   user_id: string;
   group_id: string;
   contact_id: string | null;
+  customer_id: string | null;
+  opportunity_id: string | null;
   title: string;
   goal_type: GoalType;
   importance: GoalImportance;
@@ -65,6 +67,8 @@ export interface Goal {
   groups?: Group;
   milestones?: Milestone[];
   contacts?: Contact;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
+  crm_opportunities?: Pick<CrmOpportunity, "id" | "title"> | null;
 }
 
 export interface Milestone {

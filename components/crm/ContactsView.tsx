@@ -15,7 +15,12 @@ interface Props {
   customers: Pick<CrmCustomer, "id" | "name">[];
 }
 
-export default function ContactsView({ contacts, customers }: Props) {
+export default function ContactsView({
+  contacts,
+  customers,
+  labelPlural = "Contacts",
+  labelSingular = "Contact",
+}: Props & { labelPlural?: string; labelSingular?: string }) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -56,7 +61,7 @@ export default function ContactsView({ contacts, customers }: Props) {
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
             <UserRound size={20} className="text-milestone-blue" />
-            Contacts
+            {labelPlural}
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{contacts.length} total</p>
         </div>
@@ -65,7 +70,7 @@ export default function ContactsView({ contacts, customers }: Props) {
           className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
         >
           {showForm ? <X size={15} /> : <Plus size={15} />}
-          {showForm ? "Cancel" : "Add Contact"}
+          {showForm ? "Cancel" : `Add ${labelSingular}`}
         </button>
       </div>
 

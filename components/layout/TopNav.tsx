@@ -15,18 +15,28 @@ import {
   X,
 } from "lucide-react";
 import type { AppUser } from "@/lib/types";
+import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { signOutAction } from "@/app/auth-actions";
 
-const NAV_ITEMS = [
-  { label: "Home", href: "/dashboard" },
-  { label: "Companies", href: "/customers" },
-  { label: "Contacts", href: "/contacts" },
-  { label: "Opportunities", href: "/opportunities" },
-  { label: "Goals", href: "/goals" },
-  { label: "Reports", href: "/reports" },
-];
-
-export default function TopNav({ user }: { user: AppUser }) {
+export default function TopNav({
+  user,
+  terms = DEFAULT_TERMS,
+  companyName = null,
+  brandColor = "#1769FF",
+}: {
+  user: AppUser;
+  terms?: Terms;
+  companyName?: string | null;
+  brandColor?: string;
+}) {
+  const NAV_ITEMS = [
+    { label: "Home", href: "/dashboard" },
+    { label: terms.customers, href: "/customers" },
+    { label: terms.contacts, href: "/contacts" },
+    { label: terms.opportunities, href: "/opportunities" },
+    { label: terms.goals, href: "/goals" },
+    { label: "Reports", href: "/reports" },
+  ];
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -61,11 +71,16 @@ export default function TopNav({ user }: { user: AppUser }) {
       <div className="flex items-center h-16 px-4 md:px-6 gap-2">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 mr-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shadow-sm">
-            <span className="text-white font-extrabold text-lg leading-none">M</span>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+            style={{ background: `linear-gradient(to bottom right, ${brandColor}, ${brandColor}cc)` }}
+          >
+            <span className="text-white font-extrabold text-lg leading-none">
+              {(companyName ?? "Milestone").charAt(0).toUpperCase()}
+            </span>
           </div>
-          <span className="font-bold text-[17px] text-gray-900 tracking-tight hidden sm:block">
-            Milestone CRM
+          <span className="font-bold text-[17px] text-gray-900 tracking-tight hidden sm:block truncate max-w-[200px]">
+            {companyName ?? "Milestone CRM"}
           </span>
         </Link>
 

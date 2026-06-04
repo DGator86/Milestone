@@ -5,6 +5,7 @@ import { crm_contacts, crm_customers } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import ContactsView from "@/components/crm/ContactsView";
+import { getSettings } from "@/lib/settings";
 import type { CrmContact, CrmCustomer, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -29,10 +30,16 @@ export default async function ContactsPage() {
 
   const contacts: CrmContact[] = contactsRaw as unknown as CrmContact[];
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
+  const { terms } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
-      <ContactsView contacts={contacts} customers={customers} />
+      <ContactsView
+        contacts={contacts}
+        customers={customers}
+        labelPlural={terms.contacts}
+        labelSingular={terms.contact}
+      />
     </AppShell>
   );
 }
