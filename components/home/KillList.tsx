@@ -11,10 +11,13 @@ import {
   X,
   Trash2,
   ListChecks,
+  CheckCircle,
 } from "lucide-react";
 import { groupTasks } from "@/lib/tasks";
 import { createTask, toggleTaskDone, deleteTask } from "@/app/dashboard/task-actions";
+import { completeMilestone } from "@/app/dashboard/actions";
 import type { CrmTask, TaskType, TaskPriority, CrmCustomer } from "@/lib/types";
+import type { GoalWithDetails, Milestone } from "@/lib/types";
 
 const TYPE_ICON: Record<TaskType, React.ComponentType<{ size?: number; className?: string }>> = {
   call: Phone,
@@ -41,6 +44,71 @@ const PRIORITY_META: Record<TaskPriority, string> = {
 
 const INPUT =
   "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
+
+type MilestoneHealth = "critical" | "at_risk" | "on_track" | "none";
+
+interface MilestoneWithGoal {
+  milestone: Milestone;
+  goalId: string;
+  goalTitle: string;
+  health: MilestoneHealth;
+  daysUntil: number | null;
+}
+
+function getMilestoneHealth(dueDate: string | null): { health: MilestoneHealth; daysUntil: number | null } {
+  if (!dueDate) return { health: "none", daysUntil: null };
+  const [y, m, d] = dueDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysUntil = Math.round((date.getTime() - t0.getTime()) / 86400000);
+  if (daysUntil < 0) return { health: "critical", daysUntil };
+  if (daysUntil <= 7) return { health: "at_risk", daysUntil };
+  return { health: "on_track", daysUntil };
+}
+
+function fmtMilestoneDate(daysUntil: number | null): { label: string; color: string } {
+  if (daysUntil === null) return { label: "No date", color: "text-gray-300" };
+  if (daysUntil < 0) return { label: `${Math.abs(daysUntil)}d overdue`, color: "text-milestone-red" };
+  if (daysUntil === 0) return { label: "Today", color: "text-milestone-amber" };
+  if (daysUntil === 1) return { label: "Tomorrow", color: "text-gray-400" };
+  return { label: `${daysUntil}d left`, color: "text-gray-400" };
+}
+
+const HEALTH_BORDER: Record<MilestoneHealth, string> = {
+  critical: "border-l-milestone-red",
+  at_risk: "border-l-milestone-amber",
+  on_track: "border-l-milestone-green",
+  none: "border-l-gray-200",
+};
+
+function MilestoneGoalRow({
+  item,
+  onComplete,
+}: {
+  item: MilestoneWithGoal;
+  onComplete: (milestoneId: string, goalId: string) => void;
+}) {
+  const { label, color } = fmtMilestoneDate(item.daysUntil);
+  return (
+    <div className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors border-l-[3px] ${HEALTH_BORDER[item.health]}`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold leading-snug truncate text-gray-900">{item.milestone.title}</p>
+        <p className="text-xs text-gray-400 truncate">{item.goalTitle}</p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className={`text-[11px] font-semibold ${color}`}>{label}</p>
+      </div>
+      <button
+        onClick={() => onComplete(item.milestone.id, item.goalId)}
+        className="text-gray-200 hover:text-milestone-green transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        aria-label="Complete milestone"
+      >
+        <CheckCircle size={16} />
+      </button>
+    </div>
+  );
+}
 
 function fmtDue(d: string | null) {
   if (!d) return "—";
@@ -115,7 +183,7 @@ function TaskRow({
   );
 }
 
-function Group({
+function TaskGroup({
   label,
   tone,
   tasks,
@@ -146,17 +214,33 @@ function Group({
   );
 }
 
+const HEALTH_ORDER: Record<MilestoneHealth, number> = { critical: 0, at_risk: 1, on_track: 2, none: 3 };
+
 interface Props {
   tasks: CrmTask[];
   customers: Pick<CrmCustomer, "id" | "name">[];
+  goals: GoalWithDetails[];
 }
 
-export default function KillList({ tasks, customers }: Props) {
+export default function KillList({ tasks, customers, goals }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const groups = useMemo(() => groupTasks(tasks), [tasks]);
   const openCount = tasks.filter((t) => !t.done).length;
+
+  const goalMilestones = useMemo((): MilestoneWithGoal[] => {
+    const items: MilestoneWithGoal[] = [];
+    for (const goal of goals) {
+      if (goal.status !== "active") continue;
+      const inProgress = goal.milestones?.find((m) => m.status === "in_progress");
+      if (!inProgress) continue;
+      const { health, daysUntil } = getMilestoneHealth(inProgress.due_date);
+      items.push({ milestone: inProgress, goalId: goal.id, goalTitle: goal.title, health, daysUntil });
+    }
+    items.sort((a, b) => HEALTH_ORDER[a.health] - HEALTH_ORDER[b.health]);
+    return items;
+  }, [goals]);
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -177,9 +261,12 @@ export default function KillList({ tasks, customers }: Props) {
     startTransition(() => deleteTask(id));
   }
 
+  function handleComplete(milestoneId: string, goalId: string) {
+    startTransition(() => completeMilestone(milestoneId, goalId));
+  }
+
   return (
     <section className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
-      {/* Header */}
       <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line">
         <div>
           <h2 className="text-lg font-bold text-gray-900 tracking-tight">Kill List</h2>
@@ -194,7 +281,6 @@ export default function KillList({ tasks, customers }: Props) {
         </button>
       </div>
 
-      {/* Add form */}
       {showForm && (
         <form onSubmit={handleCreate} className="p-4 space-y-3 border-b border-milestone-line bg-gray-50/50 animate-fade-up">
           <input name="title" required autoFocus placeholder="What needs doing?" className={INPUT} />
@@ -234,22 +320,41 @@ export default function KillList({ tasks, customers }: Props) {
         </form>
       )}
 
-      {/* Groups */}
       <div className="flex-1 overflow-y-auto max-h-[calc(100vh-220px)]">
-        {openCount === 0 ? (
+        {goalMilestones.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Goal Steps</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                {goalMilestones.length}
+              </span>
+            </div>
+            <div className="divide-y divide-milestone-line/70">
+              {goalMilestones.map((item) => (
+                <MilestoneGoalRow key={item.milestone.id} item={item} onComplete={handleComplete} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {goalMilestones.length > 0 && openCount > 0 && (
+          <div className="mx-4 my-2 border-t border-milestone-line/50" />
+        )}
+
+        {openCount === 0 && goalMilestones.length === 0 ? (
           <div className="p-12 text-center">
             <ListChecks size={34} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">Nothing on the list.</p>
             <p className="text-xs text-gray-300 mt-1">You&apos;re all caught up.</p>
           </div>
-        ) : (
+        ) : openCount > 0 ? (
           <>
-            <Group label="Overdue" tone="bg-milestone-red-dim text-milestone-red" tasks={groups.overdue} onToggle={handleToggle} onDelete={handleDelete} />
-            <Group label="Today" tone="bg-milestone-blue-dim text-milestone-blue" tasks={groups.today} onToggle={handleToggle} onDelete={handleDelete} />
-            <Group label="Upcoming This Week" tone="bg-gray-100 text-gray-500" tasks={groups.upcoming} onToggle={handleToggle} onDelete={handleDelete} />
-            <Group label="Later" tone="bg-gray-100 text-gray-400" tasks={groups.later} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Overdue" tone="bg-milestone-red-dim text-milestone-red" tasks={groups.overdue} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Today" tone="bg-milestone-blue-dim text-milestone-blue" tasks={groups.today} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Upcoming This Week" tone="bg-gray-100 text-gray-500" tasks={groups.upcoming} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Later" tone="bg-gray-100 text-gray-400" tasks={groups.later} onToggle={handleToggle} onDelete={handleDelete} />
           </>
-        )}
+        ) : null}
       </div>
     </section>
   );

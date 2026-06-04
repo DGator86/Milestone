@@ -4,7 +4,7 @@ import { relations, sql } from "drizzle-orm";
 const id = uuid("id").primaryKey().default(sql`gen_random_uuid()`);
 const ts = (col: string) => timestamp(col, { withTimezone: true, mode: "string" }).notNull().defaultNow();
 
-// ─── Users ───────────────────────────────────────────────────────────────────────────────────
+// ─── Users ─────────────────────────────────────────────────────────────────────
 export const users = pgTable("users", {
   id,
   email: text("email").notNull().unique(),
@@ -13,7 +13,7 @@ export const users = pgTable("users", {
   created_at: ts("created_at"),
 });
 
-// ─── Groups ───────────────────────────────────────────────────────────────────────────────────
+// ─── Groups ────────────────────────────────────────────────────────────────────
 export const groups = pgTable("groups", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -23,7 +23,7 @@ export const groups = pgTable("groups", {
   created_at: ts("created_at"),
 });
 
-// ─── Goals ───────────────────────────────────────────────────────────────────────────────────
+// ─── Goals ─────────────────────────────────────────────────────────────────────
 export const goals = pgTable("goals", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -39,7 +39,7 @@ export const goals = pgTable("goals", {
   updated_at: ts("updated_at"),
 });
 
-// ─── Milestones ──────────────────────────────────────────────────────────────────────────────
+// ─── Milestones ────────────────────────────────────────────────────────────────
 export const milestones = pgTable("milestones", {
   id,
   goal_id: uuid("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
@@ -48,13 +48,13 @@ export const milestones = pgTable("milestones", {
   status: text("status").notNull().default("upcoming"),
   due_date: date("due_date"),
   touch_target: integer("touch_target"),
-  touch_period: text("touch_period"), // "day" | "week" | "month"
+  touch_period: text("touch_period"),
   completed_at: timestamp("completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
 
-// ─── Activity Log ────────────────────────────────────────────────────────────────────────────────
+// ─── Activity Log ───────────────────────────────────────────────────────────────
 export const activity_log = pgTable("activity_log", {
   id,
   goal_id: uuid("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
@@ -64,7 +64,7 @@ export const activity_log = pgTable("activity_log", {
   created_at: ts("created_at"),
 });
 
-// ─── Personal Contacts (follow-up system) ────────────────────────────────────────────────────
+// ─── Personal Contacts (follow-up system) ──────────────────────────────────────
 export const contacts = pgTable("contacts", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -82,7 +82,7 @@ export const contacts = pgTable("contacts", {
   updated_at: ts("updated_at"),
 });
 
-// ─── Touches ───────────────────────────────────────────────────────────────────────────────────
+// ─── Touches ───────────────────────────────────────────────────────────────────
 export const touches = pgTable("touches", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -94,7 +94,7 @@ export const touches = pgTable("touches", {
   created_at: ts("created_at"),
 });
 
-// ─── CRM Customers ──────────────────────────────────────────────────────────────────────────────
+// ─── CRM Customers ─────────────────────────────────────────────────────────────
 export const crm_customers = pgTable("crm_customers", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -109,7 +109,7 @@ export const crm_customers = pgTable("crm_customers", {
   updated_at: ts("updated_at"),
 });
 
-// ─── CRM Contacts ──────────────────────────────────────────────────────────────────────────────
+// ─── CRM Contacts ──────────────────────────────────────────────────────────────
 export const crm_contacts = pgTable("crm_contacts", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -124,7 +124,7 @@ export const crm_contacts = pgTable("crm_contacts", {
   updated_at: ts("updated_at"),
 });
 
-// ─── CRM Flows ───────────────────────────────────────────────────────────────────────────────────
+// ─── CRM Flows ─────────────────────────────────────────────────────────────────
 export const crm_flows = pgTable("crm_flows", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -136,7 +136,7 @@ export const crm_flows = pgTable("crm_flows", {
   updated_at: ts("updated_at"),
 });
 
-// ─── CRM Opportunities ─────────────────────────────────────────────────────────────────────────────
+// ─── CRM Opportunities ─────────────────────────────────────────────────────────
 export const crm_opportunities = pgTable("crm_opportunities", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -153,7 +153,7 @@ export const crm_opportunities = pgTable("crm_opportunities", {
   updated_at: ts("updated_at"),
 });
 
-// ─── CRM Tasks ───────────────────────────────────────────────────────────────────────────────────
+// ─── CRM Tasks ─────────────────────────────────────────────────────────────────
 export const crm_tasks = pgTable("crm_tasks", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -171,7 +171,21 @@ export const crm_tasks = pgTable("crm_tasks", {
   updated_at: ts("updated_at"),
 });
 
-// ─── Relations ───────────────────────────────────────────────────────────────────────────────────
+// ─── CRM Flow Instances ────────────────────────────────────────────────────────
+export const crm_flow_instances = pgTable("crm_flow_instances", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  flow_id: uuid("flow_id").notNull().references(() => crm_flows.id, { onDelete: "cascade" }),
+  customer_id: uuid("customer_id").references(() => crm_customers.id, { onDelete: "set null" }),
+  current_stage_idx: integer("current_stage_idx").notNull().default(0),
+  run_count: integer("run_count").notNull().default(1),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  created_at: ts("created_at"),
+  updated_at: ts("updated_at"),
+});
+
+// ─── Relations ─────────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
   groups: many(groups),
   goals: many(goals),
@@ -229,4 +243,14 @@ export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one }) 
 export const crmTasksRelations = relations(crm_tasks, ({ one }) => ({
   crm_customers: one(crm_customers, { fields: [crm_tasks.customer_id], references: [crm_customers.id] }),
   crm_contacts: one(crm_contacts, { fields: [crm_tasks.contact_id], references: [crm_contacts.id] }),
+}));
+
+export const crmFlowsRelations = relations(crm_flows, ({ one, many }) => ({
+  user: one(users, { fields: [crm_flows.user_id], references: [users.id] }),
+  instances: many(crm_flow_instances),
+}));
+
+export const crmFlowInstancesRelations = relations(crm_flow_instances, ({ one }) => ({
+  crm_flows: one(crm_flows, { fields: [crm_flow_instances.flow_id], references: [crm_flows.id] }),
+  crm_customers: one(crm_customers, { fields: [crm_flow_instances.customer_id], references: [crm_customers.id] }),
 }));

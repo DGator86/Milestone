@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import {
   X, ChevronRight, ChevronLeft, Target, Zap, Calendar, RefreshCw,
   Flag, Plus, Trash2, CalendarDays, Repeat,
@@ -51,10 +51,12 @@ export default function GoalWizard({
   groups,
   open,
   onClose,
+  prefill,
 }: {
   groups: Group[];
   open: boolean;
   onClose: () => void;
+  prefill?: { title?: string; goal_type?: string; milestones?: string[] } | null;
 }) {
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
@@ -62,19 +64,33 @@ export default function GoalWizard({
   const [goalType, setGoalType] = useState("concrete");
   const [items, setItems] = useState<MilestoneItem[]>(() => [newItem("concrete"), newItem("concrete"), newItem("concrete")]);
   const [isPending, startTransition] = useTransition();
+  const prefillRef = useRef(prefill);
+  prefillRef.current = prefill;
 
   const groupId = groups[0]?.id ?? "";
 
-  function reset() {
+  useEffect(() => {
+    if (!open) return;
+    const p = prefillRef.current;
     setStep(1);
-    setTitle("");
     setEndDate("");
-    setGoalType("concrete");
-    setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
-  }
+    if (p) {
+      setTitle(p.title ?? "");
+      const type = p.goal_type ?? "concrete";
+      setGoalType(type);
+      setItems(
+        p.milestones?.length
+          ? p.milestones.map((t) => ({ ...newItem(type), title: t }))
+          : [newItem(type), newItem(type), newItem(type)]
+      );
+    } else {
+      setTitle("");
+      setGoalType("concrete");
+      setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
+    }
+  }, [open]);
 
   function dismiss() {
-    reset();
     onClose();
   }
 
@@ -136,7 +152,6 @@ export default function GoalWizard({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md flex flex-col max-h-[92dvh]">
-        {/* Header */}
         <div className="relative px-6 pt-6 pb-5 bg-gradient-to-br from-[#1769FF] to-blue-600 rounded-t-3xl sm:rounded-t-2xl shrink-0">
           <div className="flex items-start justify-between">
             <div>
@@ -178,9 +193,7 @@ export default function GoalWizard({
           </div>
         </div>
 
-        {/* Body — scrollable */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
-          {/* Step 1: Title + end date + type */}
           {step === 1 && (
             <div className="space-y-4">
               <input
@@ -236,7 +249,6 @@ export default function GoalWizard({
             </div>
           )}
 
-          {/* Step 2: Dynamic milestones */}
           {step === 2 && (
             <div className="space-y-3">
               <p className="text-xs text-gray-400 -mt-1 mb-1">
@@ -267,7 +279,6 @@ export default function GoalWizard({
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center gap-2 px-6 py-4 border-t border-gray-100 shrink-0">
           {step > 1 ? (
             <button
@@ -332,7 +343,6 @@ function MilestoneRow({
 
   return (
     <div className="bg-gray-50 rounded-xl p-3 space-y-2.5">
-      {/* Title row */}
       <div className="flex items-center gap-2">
         <div className="w-5 h-5 rounded-full border-2 border-milestone-blue bg-white flex items-center justify-center shrink-0">
           <span className="text-[9px] font-bold text-milestone-blue">{index + 1}</span>
@@ -355,7 +365,6 @@ function MilestoneRow({
         )}
       </div>
 
-      {/* Schedule type pills */}
       <div className="flex items-center gap-1.5 pl-7">
         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mr-0.5">Schedule</span>
         {(["none", isFrequencyDefault ? "frequency" : "date"] as ScheduleType[]).concat(
@@ -380,7 +389,6 @@ function MilestoneRow({
         })}
       </div>
 
-      {/* Date picker */}
       {item.scheduleType === "date" && (
         <div className="pl-7">
           <input
@@ -392,7 +400,6 @@ function MilestoneRow({
         </div>
       )}
 
-      {/* Frequency picker */}
       {item.scheduleType === "frequency" && (
         <div className="pl-7 flex items-center gap-2">
           <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">

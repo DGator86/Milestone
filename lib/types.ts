@@ -95,7 +95,7 @@ export interface GoalWithDetails extends Goal {
   milestones: Milestone[];
 }
 
-// ─── CRM ────────────────────────────────────────────────────────────────────────────────────────
+// ─── CRM ───────────────────────────────────────────────────────────────────────
 
 export type CustomerStatus = "prospect" | "active" | "inactive";
 export type OpportunityStatus = "open" | "won" | "lost";
@@ -162,6 +162,21 @@ export interface CrmOpportunity {
 export interface ContactWithDetails extends Contact {
   groups?: Group;
   touches?: Touch[];
+}
+
+export interface CrmFlowInstance {
+  id: string;
+  user_id: string;
+  flow_id: string;
+  customer_id: string | null;
+  current_stage_idx: number;
+  run_count: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_flows?: Pick<CrmFlow, "id" | "name" | "stages" | "color">;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
 }
 
 export type TaskType = "call" | "email" | "meeting" | "task" | "document";
