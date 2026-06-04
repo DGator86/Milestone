@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { Building2, Plus, Search, Trash2, X } from "lucide-react";
+import { Building2, Plus, Search, Trash2, X, Target } from "lucide-react";
 import type { CrmCustomer, CustomerStatus } from "@/lib/types";
 import { createCustomer, deleteCustomer, updateCustomerStatus } from "@/app/customers/actions";
 
@@ -16,7 +16,13 @@ const INPUT =
 
 const LABEL = "block text-xs font-medium text-gray-500 mb-1";
 
-export default function CustomersView({ customers }: { customers: CrmCustomer[] }) {
+export default function CustomersView({
+  customers,
+  goalCounts = {},
+}: {
+  customers: CrmCustomer[];
+  goalCounts?: Record<string, number>;
+}) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -188,7 +194,15 @@ export default function CustomersView({ customers }: { customers: CrmCustomer[] 
                         <Building2 size={14} className="text-milestone-blue" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{customer.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900">{customer.name}</p>
+                          {goalCounts[customer.id] > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-milestone-blue-dim text-milestone-blue">
+                              <Target size={10} />
+                              {goalCounts[customer.id]}
+                            </span>
+                          )}
+                        </div>
                         {customer.website && (
                           <p className="text-xs text-gray-400 truncate max-w-[180px]">
                             {customer.website.replace(/^https?:\/\//, "")}

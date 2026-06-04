@@ -29,6 +29,8 @@ export const goals = pgTable("goals", {
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   group_id: uuid("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
   contact_id: uuid("contact_id"),
+  customer_id: uuid("customer_id"),
+  opportunity_id: uuid("opportunity_id"),
   title: text("title").notNull(),
   goal_type: text("goal_type").notNull().default("concrete"),
   importance: text("importance").notNull().default("normal"),
@@ -185,6 +187,8 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
 export const goalsRelations = relations(goals, ({ one, many }) => ({
   groups: one(groups, { fields: [goals.group_id], references: [groups.id] }),
   contacts: one(contacts, { fields: [goals.contact_id], references: [contacts.id] }),
+  crm_customers: one(crm_customers, { fields: [goals.customer_id], references: [crm_customers.id] }),
+  crm_opportunities: one(crm_opportunities, { fields: [goals.opportunity_id], references: [crm_opportunities.id] }),
   milestones: many(milestones),
   activity_log: many(activity_log),
 }));
@@ -212,16 +216,18 @@ export const crmCustomersRelations = relations(crm_customers, ({ one, many }) =>
   crm_contacts: many(crm_contacts),
   crm_opportunities: many(crm_opportunities),
   crm_tasks: many(crm_tasks),
+  goals: many(goals),
 }));
 
 export const crmContactsRelations = relations(crm_contacts, ({ one }) => ({
   crm_customers: one(crm_customers, { fields: [crm_contacts.customer_id], references: [crm_customers.id] }),
 }));
 
-export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one }) => ({
+export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one, many }) => ({
   crm_customers: one(crm_customers, { fields: [crm_opportunities.customer_id], references: [crm_customers.id] }),
   crm_contacts: one(crm_contacts, { fields: [crm_opportunities.contact_id], references: [crm_contacts.id] }),
   crm_flows: one(crm_flows, { fields: [crm_opportunities.flow_id], references: [crm_flows.id] }),
+  goals: many(goals),
 }));
 
 export const crmTasksRelations = relations(crm_tasks, ({ one }) => ({
