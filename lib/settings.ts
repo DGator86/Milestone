@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/db";
 import { user_settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -12,7 +13,7 @@ export interface WorkspaceSettings {
 
 const DEFAULT_BRAND = "#1769FF";
 
-export async function getSettings(userId: string): Promise<WorkspaceSettings> {
+export const getSettings = cache(async (userId: string): Promise<WorkspaceSettings> => {
   let row;
   try {
     row = await db.query.user_settings.findFirst({ where: eq(user_settings.user_id, userId) });
@@ -26,4 +27,4 @@ export async function getSettings(userId: string): Promise<WorkspaceSettings> {
     terms: { ...DEFAULT_TERMS, ...((row?.terminology as Partial<Terms>) ?? {}) },
     preferences: (row?.preferences as Record<string, boolean>) ?? {},
   };
-}
+});

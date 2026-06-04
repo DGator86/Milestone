@@ -51,3 +51,27 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ── Workspace brand theming ──────────────────────────────────────────────
+   AppShell sets --brand from the user's settings and adds .brand-scope.
+   These scoped rules remap the default blue accent onto the chosen brand
+   colour (specificity 0,2,0 beats Tailwind's 0,1,0 utilities). */
+.brand-scope .bg-milestone-blue {
+  background-color: var(--brand);
+}
+.brand-scope .text-milestone-blue {
+  color: var(--brand);
+}
+.brand-scope .border-milestone-blue {
+  border-color: var(--brand);
+}
+.brand-scope .ring-milestone-blue {
+  --tw-ring-color: var(--brand);
+}
+.brand-scope .bg-milestone-blue-dim {
+  background-color: color-mix(in srgb, var(--brand) 12%, #ffffff);
+}
+.brand-scope .hover\:bg-blue-600:hover,
+.brand-scope .hover\:bg-blue-700:hover {
+  background-color: color-mix(in srgb, var(--brand) 84%, #000000);
+}

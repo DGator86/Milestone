@@ -16,7 +16,7 @@ export default async function AppShell({
   return (
     <ToastProvider>
       <div
-        className="min-h-screen bg-milestone-bg flex flex-col"
+        className="brand-scope min-h-screen bg-milestone-bg flex flex-col"
         style={{ ["--brand" as string]: settings.brandColor }}
       >
         <TopNav user={user} terms={settings.terms} companyName={settings.companyName} brandColor={settings.brandColor} />
