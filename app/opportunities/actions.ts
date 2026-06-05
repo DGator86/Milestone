@@ -1,7 +1,7 @@
 "use server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { crm_opportunities } from "@/db/schema";
+import { crm_opportunities, crm_customers, crm_contacts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { OpportunityStatus } from "@/lib/types";
@@ -24,11 +24,37 @@ export async function createOpportunity(formData: FormData) {
   const value = valueStr ? parseFloat(valueStr) : null;
   const stage = (formData.get("stage") as string) || "Lead";
 
+  // Validate relationships server-side: the customer must belong to the user,
+  // and the contact must belong to the user and (when set) to that customer.
+  // Client-side filtering in OpportunitiesView is convenience only and bypassable.
+  const submittedCustomerId = (formData.get("customer_id") as string) || null;
+  const submittedContactId = (formData.get("contact_id") as string) || null;
+
+  let customerId: string | null = null;
+  if (submittedCustomerId) {
+    const ownedCustomer = await db.query.crm_customers.findFirst({
+      columns: { id: true },
+      where: and(eq(crm_customers.id, submittedCustomerId), eq(crm_customers.user_id, userId)),
+    });
+    customerId = ownedCustomer ? submittedCustomerId : null;
+  }
+
+  let contactId: string | null = null;
+  if (submittedContactId) {
+    const ownedContact = await db.query.crm_contacts.findFirst({
+      columns: { id: true, customer_id: true },
+      where: and(eq(crm_contacts.id, submittedContactId), eq(crm_contacts.user_id, userId)),
+    });
+    if (ownedContact && (!customerId || ownedContact.customer_id === customerId)) {
+      contactId = submittedContactId;
+    }
+  }
+
   await db.insert(crm_opportunities).values({
     user_id: userId,
     title,
-    customer_id: (formData.get("customer_id") as string) || null,
-    contact_id: (formData.get("contact_id") as string) || null,
+    customer_id: customerId,
+    contact_id: contactId,
     flow_id: (formData.get("flow_id") as string) || null,
     value: value !== null && !isNaN(value) ? String(value) : null,
     stage,

@@ -206,6 +206,15 @@ export default function ContactsView({
                   <tr
                     key={contact.id}
                     onClick={() => setSelectedId(contact.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedId(contact.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open ${contact.first_name} ${contact.last_name}`}
                     className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/40 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-3.5">

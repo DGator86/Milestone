@@ -273,6 +273,15 @@ export default function CustomersView({
                 <tr
                   key={customer.id}
                   onClick={() => setSelectedId(customer.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(customer.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Open ${customer.name}`}
                   className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/40 transition-colors cursor-pointer"
                 >
                   <td className="px-5 py-3.5">
@@ -388,10 +397,14 @@ export default function CustomersView({
             {/* Quick contact links */}
             <div className="flex flex-wrap gap-3 text-xs text-gray-400 border-t border-milestone-line pt-4">
               {selected.email && (
-                <span className="flex items-center gap-1"><Mail size={12} /> {selected.email}</span>
+                <a href={`mailto:${selected.email}`} className="flex items-center gap-1 hover:text-milestone-blue">
+                  <Mail size={12} /> {selected.email}
+                </a>
               )}
               {selected.phone && (
-                <span className="flex items-center gap-1"><Phone size={12} /> {selected.phone}</span>
+                <a href={`tel:${selected.phone}`} className="flex items-center gap-1 hover:text-milestone-blue">
+                  <Phone size={12} /> {selected.phone}
+                </a>
               )}
               {selected.website && (
                 <a
