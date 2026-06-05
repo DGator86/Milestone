@@ -3,7 +3,8 @@
 import { useState, useTransition, useMemo } from "react";
 import { UserRound, Plus, Search, Trash2, X } from "lucide-react";
 import type { CrmContact, CrmCustomer } from "@/lib/types";
-import { createContact, deleteContact } from "@/app/contacts/actions";
+import { createContact, updateContact, deleteContact } from "@/app/contacts/actions";
+import SlideOver from "./SlideOver";
 
 const INPUT =
   "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
@@ -23,7 +24,10 @@ export default function ContactsView({
 }: Props & { labelPlural?: string; labelSingular?: string }) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const selected = contacts.find((c) => c.id === selectedId) ?? null;
 
   const filtered = useMemo(
     () =>
@@ -49,9 +53,23 @@ export default function ContactsView({
     });
   }
 
+  function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selected) return;
+    const formData = new FormData(e.currentTarget);
+    const id = selected.id;
+    startTransition(async () => {
+      await updateContact(id, formData);
+      setSelectedId(null);
+    });
+  }
+
   function handleDelete(id: string) {
-    if (!window.confirm("Delete this contact? This cannot be undone.")) return;
-    startTransition(() => deleteContact(id));
+    if (!window.confirm(`Delete this ${labelSingular.toLowerCase()}? This cannot be undone.`)) return;
+    startTransition(async () => {
+      await deleteContact(id);
+      setSelectedId(null);
+    });
   }
 
   return (
@@ -187,7 +205,17 @@ export default function ContactsView({
                 return (
                   <tr
                     key={contact.id}
-                    className="border-b border-milestone-line last:border-0 hover:bg-gray-50/50 transition-colors"
+                    onClick={() => setSelectedId(contact.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedId(contact.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open ${contact.first_name} ${contact.last_name}`}
+                    className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/40 transition-colors cursor-pointer"
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
@@ -219,9 +247,12 @@ export default function ContactsView({
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <button
-                        onClick={() => handleDelete(contact.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(contact.id);
+                        }}
                         className="text-gray-300 hover:text-milestone-red transition-colors"
-                        title="Delete contact"
+                        title={`Delete ${labelSingular.toLowerCase()}`}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -233,6 +264,74 @@ export default function ContactsView({
           </table>
         </div>
       )}
+
+      {/* Edit portal */}
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={selected ? `${selected.first_name} ${selected.last_name}` : ""}
+        subtitle={`Edit ${labelSingular.toLowerCase()}`}
+      >
+        {selected && (
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={LABEL}>First Name *</label>
+                <input name="first_name" required defaultValue={selected.first_name} className={INPUT} />
+              </div>
+              <div>
+                <label className={LABEL}>Last Name *</label>
+                <input name="last_name" required defaultValue={selected.last_name} className={INPUT} />
+              </div>
+            </div>
+            <div>
+              <label className={LABEL}>Job Title</label>
+              <input name="title" defaultValue={selected.title ?? ""} className={INPUT} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={LABEL}>Email</label>
+                <input name="email" type="email" defaultValue={selected.email ?? ""} className={INPUT} />
+              </div>
+              <div>
+                <label className={LABEL}>Phone</label>
+                <input name="phone" defaultValue={selected.phone ?? ""} className={INPUT} />
+              </div>
+            </div>
+            <div>
+              <label className={LABEL}>Company</label>
+              <select name="customer_id" className={INPUT} defaultValue={selected.customer_id ?? ""}>
+                <option value="">No company</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={LABEL}>Notes</label>
+              <textarea name="notes" rows={3} defaultValue={selected.notes ?? ""} className={INPUT} />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="submit"
+                disabled={isPending}
+                className="px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                Save changes
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(selected.id)}
+                className="text-sm text-gray-400 hover:text-milestone-red transition-colors flex items-center gap-1"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </form>
+        )}
+      </SlideOver>
     </div>
   );
 }

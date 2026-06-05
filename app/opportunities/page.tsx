@@ -26,7 +26,7 @@ export default async function OpportunitiesPage() {
       .from(crm_customers)
       .where(eq(crm_customers.user_id, userId))
       .orderBy(asc(crm_customers.name)),
-    db.select({ id: crm_contacts.id, first_name: crm_contacts.first_name, last_name: crm_contacts.last_name })
+    db.select({ id: crm_contacts.id, first_name: crm_contacts.first_name, last_name: crm_contacts.last_name, customer_id: crm_contacts.customer_id })
       .from(crm_contacts)
       .where(eq(crm_contacts.user_id, userId))
       .orderBy(asc(crm_contacts.first_name)),
@@ -42,7 +42,7 @@ export default async function OpportunitiesPage() {
   })) as unknown as CrmOpportunity[];
 
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
-  const contacts: Pick<CrmContact, "id" | "first_name" | "last_name">[] = contactsRaw;
+  const contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[] = contactsRaw;
   const flows: Pick<CrmFlow, "id" | "name" | "stages">[] = flowsRaw as unknown as Pick<CrmFlow, "id" | "name" | "stages">[];
   const { terms } = await getSettings(userId);
 
