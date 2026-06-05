@@ -119,6 +119,7 @@ export const crm_customers = pgTable("crm_customers", {
   email: text("email"),
   status: text("status").notNull().default("prospect"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -134,6 +135,7 @@ export const crm_contacts = pgTable("crm_contacts", {
   phone: text("phone"),
   title: text("title"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -163,6 +165,7 @@ export const crm_opportunities = pgTable("crm_opportunities", {
   status: text("status").notNull().default("open"),
   close_date: date("close_date"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });

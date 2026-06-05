@@ -59,6 +59,7 @@ export default async function SettingsPage() {
             terms={settings.terms}
             preferences={settings.preferences}
             customerTypes={settings.customerTypes}
+            customFields={settings.customFields}
           />
 
           <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
