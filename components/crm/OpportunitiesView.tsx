@@ -3,11 +3,13 @@
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign } from "lucide-react";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
+import type { CustomFieldDef } from "@/lib/customFields";
 import {
   createOpportunity,
   deleteOpportunity,
   moveOpportunity,
 } from "@/app/opportunities/actions";
+import CustomFieldInput from "./CustomFieldInput";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -143,9 +145,10 @@ export default function OpportunitiesView({
   customers,
   contacts,
   flows,
+  customFields = [],
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
-}: Props & { labelPlural?: string; labelSingular?: string }) {
+}: Props & { customFields?: CustomFieldDef[]; labelPlural?: string; labelSingular?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
   const [formCustomerId, setFormCustomerId] = useState("");
@@ -314,6 +317,9 @@ export default function OpportunitiesView({
                 <label className={LABEL}>Close Date</label>
                 <input name="close_date" type="date" className={INPUT} />
               </div>
+              {customFields.map((f) => (
+                <CustomFieldInput key={f.id} field={f} />
+              ))}
             </div>
             <div className="mt-4">
               <label className={LABEL}>Notes</label>

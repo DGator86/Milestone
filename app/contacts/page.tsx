@@ -30,13 +30,14 @@ export default async function ContactsPage() {
 
   const contacts: CrmContact[] = contactsRaw as unknown as CrmContact[];
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
-  const { terms } = await getSettings(userId);
+  const { terms, customFields } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
       <ContactsView
         contacts={contacts}
         customers={customers}
+        customFields={customFields.contact}
         labelPlural={terms.contacts}
         labelSingular={terms.contact}
       />

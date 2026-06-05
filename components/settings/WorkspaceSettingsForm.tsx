@@ -192,7 +192,11 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
       {/* Custom fields */}
       <CustomFieldsEditor
         initial={customFields}
-        objects={[{ key: "customer", label: `${terms.customer} fields` }]}
+        objects={[
+          { key: "customer", label: `${terms.customer} fields` },
+          { key: "contact", label: `${terms.contact} fields` },
+          { key: "opportunity", label: `${terms.opportunity} fields` },
+        ]}
       />
 
       {/* Preferences */}

@@ -3,8 +3,10 @@
 import { useState, useTransition, useMemo } from "react";
 import { UserRound, Plus, Search, Trash2, X } from "lucide-react";
 import type { CrmContact, CrmCustomer } from "@/lib/types";
+import type { CustomFieldDef } from "@/lib/customFields";
 import { createContact, updateContact, deleteContact } from "@/app/contacts/actions";
 import SlideOver from "./SlideOver";
+import CustomFieldInput from "./CustomFieldInput";
 
 const INPUT =
   "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
@@ -19,9 +21,10 @@ interface Props {
 export default function ContactsView({
   contacts,
   customers,
+  customFields = [],
   labelPlural = "Contacts",
   labelSingular = "Contact",
-}: Props & { labelPlural?: string; labelSingular?: string }) {
+}: Props & { customFields?: CustomFieldDef[]; labelPlural?: string; labelSingular?: string }) {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -130,6 +133,13 @@ export default function ContactsView({
                 </select>
               </div>
             </div>
+            {customFields.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                {customFields.map((f) => (
+                  <CustomFieldInput key={f.id} field={f} />
+                ))}
+              </div>
+            )}
             <div className="mt-4">
               <label className={LABEL}>Notes</label>
               <textarea name="notes" rows={2} placeholder="Any context…" className={INPUT} />
@@ -313,6 +323,13 @@ export default function ContactsView({
               <label className={LABEL}>Notes</label>
               <textarea name="notes" rows={3} defaultValue={selected.notes ?? ""} className={INPUT} />
             </div>
+            {customFields.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 border-t border-milestone-line pt-4">
+                {customFields.map((f) => (
+                  <CustomFieldInput key={f.id} field={f} value={selected.custom?.[f.id]} />
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-between pt-1">
               <button
                 type="submit"
