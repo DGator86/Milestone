@@ -5,6 +5,7 @@ import { crm_customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSettings } from "@/lib/settings";
+import { collectCustomValues } from "@/lib/customFields";
 
 const VALID_CUSTOMER_STATUSES = ["prospect", "active", "inactive"] as const;
 
@@ -31,6 +32,8 @@ export async function createCustomer(formData: FormData) {
     : "prospect";
 
   const customerType = await resolveCustomerType(formData, userId);
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.customer);
 
   await db.insert(crm_customers).values({
     user_id: userId,
@@ -42,6 +45,7 @@ export async function createCustomer(formData: FormData) {
     website: (formData.get("website") as string) || null,
     status,
     notes: (formData.get("notes") as string) || null,
+    custom,
   });
 
   revalidatePath("/customers");
@@ -61,6 +65,8 @@ export async function updateCustomer(id: string, formData: FormData) {
     : "prospect";
 
   const customerType = await resolveCustomerType(formData, userId);
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.customer);
 
   await db.update(crm_customers)
     .set({
@@ -72,6 +78,7 @@ export async function updateCustomer(id: string, formData: FormData) {
       website: (formData.get("website") as string) || null,
       status,
       notes: (formData.get("notes") as string) || null,
+      custom,
     })
     .where(and(eq(crm_customers.id, id), eq(crm_customers.user_id, userId)));
 

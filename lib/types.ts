@@ -113,6 +113,7 @@ export interface CrmCustomer {
   email: string | null;
   status: CustomerStatus;
   notes: string | null;
+  custom: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +128,7 @@ export interface CrmContact {
   phone: string | null;
   title: string | null;
   notes: string | null;
+  custom: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
@@ -155,6 +157,7 @@ export interface CrmOpportunity {
   status: OpportunityStatus;
   close_date: string | null;
   notes: string | null;
+  custom: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;

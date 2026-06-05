@@ -6,6 +6,16 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { contacts, goals, groups, milestones, user_settings } from "@/db/schema";
 import { EDITABLE_TERMS, singularize } from "@/lib/terms";
+import { sanitizeCustomFieldDefs } from "@/lib/customFields";
+
+function parseCustomFieldDefs(raw: string | null) {
+  if (!raw) return undefined;
+  try {
+    return sanitizeCustomFieldDefs(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -61,14 +71,18 @@ export async function updateWorkspaceSettings(
   };
 
   const customerTypes = parseCustomerTypes(formData.get("customer_types") as string | null);
+  const customFields = parseCustomFieldDefs(formData.get("custom_fields") as string | null);
+
+  // Only overwrite custom_fields when the form submitted a valid payload.
+  const customFieldsPatch = customFields ? { custom_fields: customFields } : {};
 
   try {
     await db
       .insert(user_settings)
-      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes })
+      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch })
       .onConflictDoUpdate({
         target: user_settings.user_id,
-        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, updated_at: new Date().toISOString() },
+        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch, updated_at: new Date().toISOString() },
       });
   } catch {
     return { error: "Could not save — the settings table may not be migrated yet (run npm run db:push)." };

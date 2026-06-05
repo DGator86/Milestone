@@ -4,6 +4,8 @@ import { useActionState, useState } from "react";
 import { Building2, Palette, Tags, Check, Users, Plus, X } from "lucide-react";
 import { updateWorkspaceSettings } from "@/app/settings/actions";
 import { EDITABLE_TERMS, type Terms } from "@/lib/terms";
+import { type CustomFieldDefs } from "@/lib/customFields";
+import CustomFieldsEditor from "./CustomFieldsEditor";
 
 const INPUT =
   "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
@@ -17,9 +19,10 @@ interface Props {
   terms: Terms;
   preferences: Record<string, boolean>;
   customerTypes: string[];
+  customFields: CustomFieldDefs;
 }
 
-export default function WorkspaceSettingsForm({ companyName, brandColor, terms, preferences, customerTypes }: Props) {
+export default function WorkspaceSettingsForm({ companyName, brandColor, terms, preferences, customerTypes, customFields }: Props) {
   const [state, action, pending] = useActionState(updateWorkspaceSettings, {} as { error?: string; success?: boolean });
   const [color, setColor] = useState(brandColor);
   const [types, setTypes] = useState<string[]>(customerTypes);
@@ -185,6 +188,12 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
           The classification dropdown shown when creating or editing a {terms.customer.toLowerCase()}.
         </p>
       </div>
+
+      {/* Custom fields */}
+      <CustomFieldsEditor
+        initial={customFields}
+        objects={[{ key: "customer", label: `${terms.customer} fields` }]}
+      />
 
       {/* Preferences */}
       <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
