@@ -9,6 +9,31 @@ import { EDITABLE_TERMS, singularize } from "@/lib/terms";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+// Parse the JSON array of customer types submitted by the Settings form,
+// trimming, de-duplicating (case-insensitively) and capping length/count.
+function parseCustomerTypes(raw: string | null): string[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of parsed) {
+    const value = String(item).trim().slice(0, 40);
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
 export async function updateWorkspaceSettings(
   _prev: unknown,
   formData: FormData
@@ -35,13 +60,15 @@ export async function updateWorkspaceSettings(
     weekly_digest: formData.get("pref_weekly_digest") === "on",
   };
 
+  const customerTypes = parseCustomerTypes(formData.get("customer_types") as string | null);
+
   try {
     await db
       .insert(user_settings)
-      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences })
+      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes })
       .onConflictDoUpdate({
         target: user_settings.user_id,
-        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, updated_at: new Date().toISOString() },
+        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, updated_at: new Date().toISOString() },
       });
   } catch {
     return { error: "Could not save — the settings table may not be migrated yet (run npm run db:push)." };

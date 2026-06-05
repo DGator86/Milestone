@@ -21,6 +21,7 @@ export const user_settings = pgTable("user_settings", {
   terminology: jsonb("terminology").$type<Record<string, string>>().notNull().default({}),
   preferences: jsonb("preferences").$type<Record<string, boolean>>().notNull().default({}),
   custom_fields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
+  customer_types: jsonb("customer_types").$type<string[]>().notNull().default([]),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -111,6 +112,7 @@ export const crm_customers = pgTable("crm_customers", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  customer_type: text("customer_type"),
   industry: text("industry"),
   website: text("website"),
   phone: text("phone"),

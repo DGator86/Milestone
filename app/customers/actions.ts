@@ -4,8 +4,18 @@ import { db } from "@/db";
 import { crm_customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getSettings } from "@/lib/settings";
 
 const VALID_CUSTOMER_STATUSES = ["prospect", "active", "inactive"] as const;
+
+// Accept the submitted customer_type only if it's one of the workspace's
+// configured types (or empty), so the column stays in sync with Settings.
+async function resolveCustomerType(formData: FormData, userId: string): Promise<string | null> {
+  const raw = (formData.get("customer_type") as string)?.trim() || null;
+  if (!raw) return null;
+  const { customerTypes } = await getSettings(userId);
+  return customerTypes.includes(raw) ? raw : null;
+}
 
 export async function createCustomer(formData: FormData) {
   const session = await auth();
@@ -20,9 +30,12 @@ export async function createCustomer(formData: FormData) {
     ? rawStatus
     : "prospect";
 
+  const customerType = await resolveCustomerType(formData, userId);
+
   await db.insert(crm_customers).values({
     user_id: userId,
     name,
+    customer_type: customerType,
     industry: (formData.get("industry") as string) || null,
     email: (formData.get("email") as string) || null,
     phone: (formData.get("phone") as string) || null,
@@ -47,9 +60,12 @@ export async function updateCustomer(id: string, formData: FormData) {
     ? rawStatus
     : "prospect";
 
+  const customerType = await resolveCustomerType(formData, userId);
+
   await db.update(crm_customers)
     .set({
       name,
+      customer_type: customerType,
       industry: (formData.get("industry") as string) || null,
       email: (formData.get("email") as string) || null,
       phone: (formData.get("phone") as string) || null,

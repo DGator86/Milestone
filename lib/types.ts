@@ -106,6 +106,7 @@ export interface CrmCustomer {
   id: string;
   user_id: string;
   name: string;
+  customer_type: string | null;
   industry: string | null;
   website: string | null;
   phone: string | null;

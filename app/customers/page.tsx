@@ -79,7 +79,7 @@ export default async function CustomersPage() {
     });
   }
 
-  const { terms } = await getSettings(userId);
+  const { terms, customerTypes } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
@@ -88,6 +88,7 @@ export default async function CustomersPage() {
         goalCounts={goalCounts}
         contactsByCustomer={contactsByCustomer}
         oppsByCustomer={oppsByCustomer}
+        customerTypes={customerTypes}
         labelPlural={terms.customers}
         labelSingular={terms.customer}
         contactLabelPlural={terms.contacts}
