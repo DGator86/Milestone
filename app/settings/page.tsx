@@ -4,6 +4,7 @@ import AppShell from "@/components/layout/AppShell";
 import { Settings, User, LogOut } from "lucide-react";
 import { signOutAction } from "@/app/auth-actions";
 import { getSettings } from "@/lib/settings";
+import { getIsAdmin } from "@/lib/admin";
 import WorkspaceSettingsForm from "@/components/settings/WorkspaceSettingsForm";
 import type { AppUser } from "@/lib/types";
 
@@ -13,6 +14,7 @@ export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const user: AppUser = { id: session.user.id, email: session.user.email };
+  if (!(await getIsAdmin(user.id))) redirect("/dashboard");
   const settings = await getSettings(user.id);
 
   const username = user.email?.split("@")[0] ?? "User";

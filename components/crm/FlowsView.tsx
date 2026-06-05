@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Workflow, Plus, X, Trash2, GitBranch } from "lucide-react";
+import { Workflow, Plus, X, Trash2, GitBranch, Pencil } from "lucide-react";
 import type { CrmFlow } from "@/lib/types";
-import { createFlow, deleteFlow } from "@/app/flows/actions";
+import { createFlow, updateFlow, deleteFlow } from "@/app/flows/actions";
+import SlideOver from "./SlideOver";
 
 const PRESET_COLORS = [
   { label: "Blue", value: "#1769FF" },
@@ -31,10 +32,12 @@ interface Props {
 function FlowCard({
   flow,
   oppCount,
+  onEdit,
   onDelete,
 }: {
   flow: CrmFlow;
   oppCount: number;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
   return (
@@ -58,12 +61,22 @@ function FlowCard({
               )}
             </div>
           </div>
-          <button
-            onClick={() => onDelete(flow.id)}
-            className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-1"
-          >
-            <Trash2 size={14} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+            <button
+              onClick={() => onEdit(flow.id)}
+              className="text-gray-300 hover:text-milestone-blue transition-colors"
+              aria-label={`Edit ${flow.name}`}
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => onDelete(flow.id)}
+              className="text-gray-300 hover:text-milestone-red transition-colors"
+              aria-label={`Delete ${flow.name}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
 
         {/* Stages */}
@@ -99,7 +112,18 @@ function FlowCard({
 export default function FlowsView({ flows, oppCountByFlow }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0].value);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editColor, setEditColor] = useState(PRESET_COLORS[0].value);
   const [isPending, startTransition] = useTransition();
+
+  const selected = flows.find((f) => f.id === selectedId) ?? null;
+
+  function openEdit(id: string) {
+    const flow = flows.find((f) => f.id === id);
+    if (!flow) return;
+    setEditColor(flow.color);
+    setSelectedId(id);
+  }
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -109,6 +133,18 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
       await createFlow(formData);
       setShowForm(false);
       setSelectedColor(PRESET_COLORS[0].value);
+    });
+  }
+
+  function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selected) return;
+    const formData = new FormData(e.currentTarget);
+    formData.set("color", editColor);
+    const id = selected.id;
+    startTransition(async () => {
+      await updateFlow(id, formData);
+      setSelectedId(null);
     });
   }
 
@@ -224,6 +260,7 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
               key={flow.id}
               flow={flow}
               oppCount={oppCountByFlow[flow.id] ?? 0}
+              onEdit={openEdit}
               onDelete={handleDelete}
             />
           ))}
@@ -240,6 +277,78 @@ export default function FlowsView({ flows, oppCountByFlow }: Props) {
           </button>
         </div>
       )}
+
+      {/* Edit portal */}
+      <SlideOver
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={selected?.name ?? ""}
+        subtitle="Edit flow · rename, recolor, change stages"
+      >
+        {selected && (
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div>
+              <label className={LABEL}>Flow Name *</label>
+              <input name="name" required defaultValue={selected.name} className={INPUT} />
+            </div>
+            <div>
+              <label className={LABEL}>Description</label>
+              <input name="description" defaultValue={selected.description ?? ""} className={INPUT} />
+            </div>
+            <div>
+              <label className={LABEL}>Color</label>
+              <div className="flex gap-2 flex-wrap mt-1">
+                {PRESET_COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setEditColor(c.value)}
+                    title={c.label}
+                    className="w-7 h-7 rounded-full transition-transform hover:scale-110 ring-offset-2"
+                    style={{
+                      backgroundColor: c.value,
+                      outline: editColor === c.value ? `2px solid ${c.value}` : "none",
+                      outlineOffset: "2px",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={LABEL}>Stages (one per line)</label>
+              <textarea
+                name="stages"
+                rows={6}
+                defaultValue={selected.stages.join("\n")}
+                className={INPUT}
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Reorder, rename, add or remove stages. Existing opportunities on a removed stage stay put and show a
+                badge until moved.
+              </p>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="submit"
+                disabled={isPending}
+                className="px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                Save changes
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleDelete(selected.id);
+                  setSelectedId(null);
+                }}
+                className="text-sm text-gray-400 hover:text-milestone-red transition-colors flex items-center gap-1"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          </form>
+        )}
+      </SlideOver>
     </div>
   );
 }
