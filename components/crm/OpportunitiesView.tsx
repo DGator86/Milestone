@@ -29,7 +29,7 @@ const LABEL = "block text-xs font-medium text-gray-500 mb-1";
 interface Props {
   opportunities: CrmOpportunity[];
   customers: Pick<CrmCustomer, "id" | "name">[];
-  contacts: Pick<CrmContact, "id" | "first_name" | "last_name">[];
+  contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[];
   flows: Pick<CrmFlow, "id" | "name" | "stages">[];
 }
 
@@ -148,7 +148,14 @@ export default function OpportunitiesView({
 }: Props & { labelPlural?: string; labelSingular?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
+  const [formCustomerId, setFormCustomerId] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // Contacts shown in the add form are limited to the chosen company (when one is set).
+  const formContacts = useMemo(
+    () => (formCustomerId ? contacts.filter((c) => c.customer_id === formCustomerId) : contacts),
+    [formCustomerId, contacts]
+  );
 
   const activeStages = useMemo(() => {
     if (selectedFlowId) {
@@ -264,7 +271,12 @@ export default function OpportunitiesView({
               </div>
               <div>
                 <label className={LABEL}>Customer</label>
-                <select name="customer_id" className={INPUT} defaultValue="">
+                <select
+                  name="customer_id"
+                  className={INPUT}
+                  value={formCustomerId}
+                  onChange={(e) => setFormCustomerId(e.target.value)}
+                >
                   <option value="">No customer</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -275,14 +287,17 @@ export default function OpportunitiesView({
               </div>
               <div>
                 <label className={LABEL}>Contact</label>
-                <select name="contact_id" className={INPUT} defaultValue="">
+                <select name="contact_id" className={INPUT} defaultValue="" key={formCustomerId}>
                   <option value="">No contact</option>
-                  {contacts.map((c) => (
+                  {formContacts.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.first_name} {c.last_name}
                     </option>
                   ))}
                 </select>
+                {formCustomerId && formContacts.length === 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1">No contacts for this company yet.</p>
+                )}
               </div>
               <div>
                 <label className={LABEL}>Flow (pipeline)</label>
