@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Crosshair, Target, Settings } from "lucide-react";
+import { LayoutDashboard, Target, Workflow, LayoutTemplate } from "lucide-react";
 
 const items = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Kill List", href: "/kill-list", icon: Crosshair },
   { label: "Goals", href: "/goals", icon: Target },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Flows", href: "/flows", icon: Workflow },
+  { label: "Templates", href: "/templates", icon: LayoutTemplate },
 ];
 
 export default function MobileNav() {

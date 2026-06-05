@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { db } from "@/db";
-import { goals, groups, crm_tasks, crm_customers } from "@/db/schema";
+import { goals, groups, crm_tasks, crm_customers, users } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
@@ -17,9 +17,15 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
+
+  const dbUser = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!dbUser) {
+    await signOut({ redirectTo: "/login" });
+  }
+
   const user: AppUser = { id: userId, email: session.user.email };
 
-  await ensureDefaults();
+  try { await ensureDefaults(); } catch { /* non-fatal */ }
 
   const [goalsRaw, safeGroups, tasksRaw, customersRaw] = await Promise.all([
     db.query.goals.findMany({
