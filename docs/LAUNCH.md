@@ -6,7 +6,7 @@ Target: **Web + Apple App Store + Google Play** by **June 11, 2026** (2 weeks fr
 
 | Area | Status |
 |------|--------|
-| Web app (Next.js 15 + Supabase) | Core flows work: auth, dashboard, goals, kill list, groups |
+| Web app (Next.js 15 + Neon/Drizzle + NextAuth) | Core flows work: auth, dashboard, goals, kill list, groups, CRM, AI assistant |
 | PWA manifest | Present (`public/manifest.json`) — no service worker yet |
 | Native iOS / Android | **Not started** — use Capacitor hybrid shell (see `mobile/`) |
 | Mobile UX | Sidebar-only layout — **mobile nav added in this branch** |
@@ -40,12 +40,12 @@ Ship the **same** Next.js app on Vercel. Store apps are thin native wrappers tha
 
 - [ ] **Apple Developer Program** ($99/yr) — [developer.apple.com](https://developer.apple.com/programs/)
 - [ ] **Google Play Console** ($25 one-time) — [play.google.com/console](https://play.google.com/console)
-- [ ] **Vercel production** — import repo, set env vars, deploy
+- [ ] **Neon production database** — create the project, copy the pooled `DATABASE_URL`
+- [ ] **Vercel production** — import repo; set `DATABASE_URL`, `AUTH_SECRET`, and
+  (optional) `ANTHROPIC_API_KEY`; deploy
+- [ ] **Apply the schema** to the production DB: `DATABASE_URL="<prod>" npm run db:push`
 - [ ] **Custom domain** (e.g. `milestone.app` or `getmilestone.com`) — DNS → Vercel
 - [ ] Set `NEXT_PUBLIC_SITE_URL=https://your-domain.com` in Vercel production
-- [ ] Supabase → Authentication → URL configuration:
-  - Site URL: `https://your-domain.com`
-  - Redirect URLs: `https://your-domain.com/**`
 
 ### Day 3–4: Product polish for reviewers
 
@@ -105,7 +105,7 @@ From `mobile/README.md`:
 - [ ] Apple approved → release manually or automatic
 - [ ] Google production rollout
 - [ ] Web live at custom domain
-- [ ] Monitor Supabase auth logs and Vercel errors
+- [ ] Monitor Neon database metrics and Vercel runtime logs
 
 ---
 
@@ -114,7 +114,7 @@ From `mobile/README.md`:
 | Risk | Mitigation |
 |------|------------|
 | “App is just a website” (Apple 4.2) | Native shell + safe areas; optional biometrics later; ensure fast, app-like UX on mobile |
-| Broken auth in WebView | Email/password works; if adding Google OAuth, configure custom URL scheme + Supabase redirect |
+| Broken auth in WebView | Email/password works; if adding Google OAuth, configure a custom URL scheme + NextAuth callback URL |
 | Missing privacy URL | `/privacy` must be public, linked in App Store Connect |
 | Placeholder content | Don’t screenshot “Coming soon” pages as primary flows |
 | Service role key in client | **Rotate to anon key before public launch** — current cloud dev uses admin key; production must use `anon` only |
@@ -145,4 +145,4 @@ cd mobile && npm install && npx cap sync
 3. Legal review of privacy/terms text  
 4. Create App Store Connect + Play Console listings  
 5. Build & upload from Mac (iOS) and any machine (Android)  
-6. Rotate Supabase keys for production (anon only in client)
+6. Use a dedicated production Neon database and a strong `AUTH_SECRET` (never reuse dev secrets)

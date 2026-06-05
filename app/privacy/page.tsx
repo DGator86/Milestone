@@ -16,8 +16,8 @@ export default function PrivacyPage() {
       <Section title="Information we collect">
         <ul className="list-disc pl-5 space-y-2">
           <li>
-            <strong>Account data:</strong> email address and password (stored and
-            authenticated via Supabase).
+            <strong>Account data:</strong> email address and a securely hashed
+            password used to authenticate your account.
           </li>
           <li>
             <strong>Content you create:</strong> goals, milestones, groups, and
@@ -34,16 +34,17 @@ export default function PrivacyPage() {
       </Section>
       <Section title="Storage and security">
         <p>
-          Data is stored in Supabase (PostgreSQL) with row-level security so each
-          user can only access their own records. Passwords are hashed by the
-          auth provider. Use a strong, unique password.
+          Data is stored in a hosted PostgreSQL database (Neon), and every query
+          is scoped to your account so each user can only access their own
+          records. Passwords are hashed (bcrypt) and never stored in plain text.
+          Use a strong, unique password.
         </p>
       </Section>
       <Section title="Third parties">
         <p>
-          We use Supabase (database and authentication) and Vercel (application
-          hosting). These processors act on our instructions and under their own
-          privacy terms.
+          We use Neon (database), Vercel (application hosting), and Anthropic
+          (the optional AI assistant). These processors act on our instructions
+          and under their own privacy terms.
         </p>
       </Section>
       <Section title="Your rights">

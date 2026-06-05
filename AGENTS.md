@@ -1,6 +1,8 @@
 # Milestone
 
-A goal-tracking CRM built with Next.js 15 (App Router), TypeScript, Tailwind CSS, and Supabase (Auth + Postgres + RLS).
+A goal-tracking CRM built with Next.js 15 (App Router), TypeScript, Tailwind CSS,
+Drizzle ORM on Neon (serverless Postgres), and NextAuth (Auth.js v5) for
+email/password auth.
 
 ## Cursor Cloud specific instructions
 
@@ -9,7 +11,7 @@ A goal-tracking CRM built with Next.js 15 (App Router), TypeScript, Tailwind CSS
 | Service | How to run |
 |---------|-----------|
 | Next.js dev server | `npm run dev` (port 3000) |
-| Supabase | Hosted at `https://bqpaemaechuupanyxgbf.supabase.co` — requires `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local` |
+| Database (Neon Postgres) | Set `DATABASE_URL` in `.env.local`; apply the schema with `npm run db:push` |
 
 ### Commands
 
@@ -17,12 +19,18 @@ A goal-tracking CRM built with Next.js 15 (App Router), TypeScript, Tailwind CSS
 - **Typecheck**: `npm run typecheck`
 - **Build**: `npm run build`
 - **Dev**: `npm run dev`
+- **Push schema**: `npm run db:push` (Drizzle — applies `db/schema.ts` to `DATABASE_URL`)
 
 ### Important notes
 
-- **Do NOT run `supabase start` (local Supabase via Docker)** — pulling the container images will OOM and crash the Cloud Agent VM. Always use the hosted Supabase instance.
-- The app redirects to `/setup` when Supabase env vars are missing or invalid. If you see this redirect, verify `.env.local` has correct values.
-- The `NEXT_PUBLIC_SUPABASE_ANON_KEY` for this project is actually a **service_role key** (`sb_secret_...` format). It has admin access to the Auth API, so you can create pre-confirmed test users via `POST /auth/v1/admin/users` with `{"email":"...","password":"...","email_confirm":true}`.
-- Email confirmations ARE enabled on the Supabase project. To create test users without triggering email rate limits, use the admin user creation endpoint above.
-- The schema is in `supabase/schema.sql`. If tables don't exist on the remote project, apply it via the Supabase MCP `apply_migration` tool or the Supabase dashboard SQL Editor.
+- Auth is **NextAuth (Auth.js v5)** with the Credentials provider (email/password,
+  bcrypt hashes in the `users` table, JWT sessions). There is no external auth
+  service. Required env: `DATABASE_URL` and `AUTH_SECRET`.
+- Create a test user by signing up at `/signup` (no email confirmation step), or
+  insert a row into `users` with a bcrypt `password_hash`.
+- The schema lives in `db/schema.ts`; generated SQL migrations are in `drizzle/`.
+  Apply with `npm run db:push` (idempotent diff) or `drizzle-kit generate` for new
+  migration files. `supabase/schema.sql` is a legacy artifact and is not used.
+- `ANTHROPIC_API_KEY` (optional) enables the in-app AI assistant; without it the
+  app runs fully and AI features show a "not connected" notice.
 - `.env.local` is gitignored — credentials stay local.

@@ -56,7 +56,7 @@ Sign up and sign in with email/password on device. Confirm dashboard and goals w
 ## Auth notes
 
 - Email/password auth works in WebView with cookie-based sessions.
-- If you add Google/Apple OAuth later, configure a custom URL scheme and add redirect URLs in Supabase.
+- If you add Google/Apple OAuth later, configure a custom URL scheme and add the matching NextAuth callback URLs.
 
 ## Version bumps
 
