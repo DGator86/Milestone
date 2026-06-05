@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Building2, Palette, Tags, Check } from "lucide-react";
+import { Building2, Palette, Tags, Check, Users, Plus, X } from "lucide-react";
 import { updateWorkspaceSettings } from "@/app/settings/actions";
 import { EDITABLE_TERMS, type Terms } from "@/lib/terms";
 
@@ -16,11 +16,29 @@ interface Props {
   brandColor: string;
   terms: Terms;
   preferences: Record<string, boolean>;
+  customerTypes: string[];
 }
 
-export default function WorkspaceSettingsForm({ companyName, brandColor, terms, preferences }: Props) {
+export default function WorkspaceSettingsForm({ companyName, brandColor, terms, preferences, customerTypes }: Props) {
   const [state, action, pending] = useActionState(updateWorkspaceSettings, {} as { error?: string; success?: boolean });
   const [color, setColor] = useState(brandColor);
+  const [types, setTypes] = useState<string[]>(customerTypes);
+  const [newType, setNewType] = useState("");
+
+  function addType() {
+    const value = newType.trim().slice(0, 40);
+    if (!value) return;
+    if (types.some((t) => t.toLowerCase() === value.toLowerCase())) {
+      setNewType("");
+      return;
+    }
+    setTypes([...types, value]);
+    setNewType("");
+  }
+
+  function removeType(target: string) {
+    setTypes(types.filter((t) => t !== target));
+  }
 
   return (
     <form action={action} className="space-y-4">
@@ -105,6 +123,66 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
         </div>
         <p className="text-[11px] text-gray-400 px-5 pb-4 -mt-1">
           Rename core objects to match your business. Updates the navigation and page headers everywhere.
+        </p>
+      </div>
+
+      {/* Customer types */}
+      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+            <Users size={12} />
+            Customer types
+          </p>
+        </div>
+        <div className="p-5 space-y-3">
+          <input type="hidden" name="customer_types" value={JSON.stringify(types)} />
+          {types.length === 0 ? (
+            <p className="text-xs text-gray-400">No types yet — the default set will be used until you add some.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {types.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium pl-3 pr-1.5 py-1 rounded-full bg-milestone-blue-dim text-milestone-blue"
+                >
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() => removeType(t)}
+                    aria-label={`Remove ${t}`}
+                    className="rounded-full p-0.5 hover:bg-milestone-blue/20 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              value={newType}
+              onChange={(e) => setNewType(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addType();
+                }
+              }}
+              placeholder="Add a type (e.g. Prospect)"
+              maxLength={40}
+              className={INPUT}
+            />
+            <button
+              type="button"
+              onClick={addType}
+              className="shrink-0 flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg border border-milestone-line text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Plus size={14} /> Add
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-400 px-5 pb-4 -mt-1">
+          The classification dropdown shown when creating or editing a {terms.customer.toLowerCase()}.
         </p>
       </div>
 

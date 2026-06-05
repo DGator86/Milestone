@@ -35,13 +35,14 @@ const LABEL = "block text-xs font-medium text-gray-500 mb-1";
 type PortalContact = { id: string; first_name: string; last_name: string; title: string | null };
 type PortalOpp = { id: string; title: string; stage: string; value: number | null };
 
-type SortKey = "name" | "industry" | "status" | "created";
+type SortKey = "name" | "customer_type" | "status" | "created";
 
 export default function CustomersView({
   customers,
   goalCounts = {},
   contactsByCustomer = {},
   oppsByCustomer = {},
+  customerTypes = [],
   labelPlural = "Companies",
   labelSingular = "Company",
   contactLabelPlural = "Contacts",
@@ -51,6 +52,7 @@ export default function CustomersView({
   goalCounts?: Record<string, number>;
   contactsByCustomer?: Record<string, PortalContact[]>;
   oppsByCustomer?: Record<string, PortalOpp[]>;
+  customerTypes?: string[];
   labelPlural?: string;
   labelSingular?: string;
   contactLabelPlural?: string;
@@ -70,6 +72,7 @@ export default function CustomersView({
     const rows = customers.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
+        (c.customer_type ?? "").toLowerCase().includes(q) ||
         (c.industry ?? "").toLowerCase().includes(q) ||
         (c.email ?? "").toLowerCase().includes(q)
     );
@@ -80,9 +83,9 @@ export default function CustomersView({
       if (sortKey === "name") {
         av = a.name.toLowerCase();
         bv = b.name.toLowerCase();
-      } else if (sortKey === "industry") {
-        av = (a.industry ?? "").toLowerCase();
-        bv = (b.industry ?? "").toLowerCase();
+      } else if (sortKey === "customer_type") {
+        av = (a.customer_type ?? "").toLowerCase();
+        bv = (b.customer_type ?? "").toLowerCase();
       } else if (sortKey === "status") {
         av = a.status;
         bv = b.status;
@@ -184,6 +187,15 @@ export default function CustomersView({
                 <input name="name" required placeholder="Acme Corp" className={INPUT} />
               </div>
               <div>
+                <label className={LABEL}>Type</label>
+                <select name="customer_type" className={INPUT} defaultValue="">
+                  <option value="">—</option>
+                  {customerTypes.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className={LABEL}>Industry</label>
                 <input name="industry" placeholder="SaaS, Retail…" className={INPUT} />
               </div>
@@ -260,7 +272,7 @@ export default function CustomersView({
             <thead>
               <tr className="border-b border-milestone-line bg-gray-50/60">
                 <SortHeader label={labelSingular} k="name" className="pl-5" />
-                <SortHeader label="Industry" k="industry" className="hidden sm:table-cell" />
+                <SortHeader label="Type" k="customer_type" className="hidden sm:table-cell" />
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">
                   Email
                 </th>
@@ -307,8 +319,14 @@ export default function CustomersView({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-gray-500 hidden sm:table-cell">
-                    {customer.industry ?? <span className="text-gray-300">—</span>}
+                  <td className="px-4 py-3.5 hidden sm:table-cell">
+                    {customer.customer_type ? (
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                        {customer.customer_type}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">
                     {customer.email ?? <span className="text-gray-300">—</span>}
@@ -346,8 +364,17 @@ export default function CustomersView({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={LABEL}>Industry</label>
-                  <input name="industry" defaultValue={selected.industry ?? ""} className={INPUT} />
+                  <label className={LABEL}>Type</label>
+                  <select name="customer_type" className={INPUT} defaultValue={selected.customer_type ?? ""}>
+                    <option value="">—</option>
+                    {customerTypes.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    {/* Preserve a legacy value no longer in the configured list */}
+                    {selected.customer_type && !customerTypes.includes(selected.customer_type) && (
+                      <option value={selected.customer_type}>{selected.customer_type}</option>
+                    )}
+                  </select>
                 </div>
                 <div>
                   <label className={LABEL}>Status</label>
@@ -357,6 +384,10 @@ export default function CustomersView({
                     <option value="inactive">Inactive</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className={LABEL}>Industry</label>
+                <input name="industry" defaultValue={selected.industry ?? ""} className={INPUT} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

@@ -9,9 +9,14 @@ export interface WorkspaceSettings {
   brandColor: string;
   terms: Terms;
   preferences: Record<string, boolean>;
+  customerTypes: string[];
 }
 
 const DEFAULT_BRAND = "#1769FF";
+
+// Seeded list of company classifications. Admins can edit this in Settings;
+// an empty/missing list falls back to these defaults so the dropdown is never empty.
+export const DEFAULT_CUSTOMER_TYPES = ["Prospect", "Customer", "Partner", "Vendor", "Reseller"];
 
 export const getSettings = cache(async (userId: string): Promise<WorkspaceSettings> => {
   let row;
@@ -21,10 +26,12 @@ export const getSettings = cache(async (userId: string): Promise<WorkspaceSettin
     // Table may not exist yet (migration not applied) — fall back to defaults.
     row = undefined;
   }
+  const storedTypes = (row?.customer_types as string[] | undefined) ?? [];
   return {
     companyName: row?.company_name ?? null,
     brandColor: row?.brand_color ?? DEFAULT_BRAND,
     terms: { ...DEFAULT_TERMS, ...((row?.terminology as Partial<Terms>) ?? {}) },
     preferences: (row?.preferences as Record<string, boolean>) ?? {},
+    customerTypes: storedTypes.length > 0 ? storedTypes : DEFAULT_CUSTOMER_TYPES,
   };
 });
