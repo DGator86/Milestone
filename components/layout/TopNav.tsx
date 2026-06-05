@@ -17,6 +17,7 @@ import {
 import type { AppUser } from "@/lib/types";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { signOutAction } from "@/app/auth-actions";
+import ThemeToggle from "./ThemeToggle";
 
 export default function TopNav({
   user,
@@ -109,6 +110,7 @@ export default function TopNav({
 
         {/* Right actions */}
         <div className="flex items-center gap-1 ml-auto">
+          <ThemeToggle />
           <button
             className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
             aria-label="Search"
