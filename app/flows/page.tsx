@@ -5,6 +5,7 @@ import { crm_flows, crm_opportunities } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import FlowsView from "@/components/crm/FlowsView";
+import { getIsAdmin } from "@/lib/admin";
 import type { CrmFlow, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default async function FlowsPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
   const user: AppUser = { id: userId, email: session.user.email };
+  if (!(await getIsAdmin(userId))) redirect("/dashboard");
 
   const [flowsRaw, oppCounts] = await Promise.all([
     db.query.crm_flows.findMany({

@@ -23,11 +23,13 @@ export default function TopNav({
   terms = DEFAULT_TERMS,
   companyName = null,
   brandColor = "#1769FF",
+  isAdmin = true,
 }: {
   user: AppUser;
   terms?: Terms;
   companyName?: string | null;
   brandColor?: string;
+  isAdmin?: boolean;
 }) {
   const NAV_ITEMS = [
     { label: "Home", href: "/dashboard" },
@@ -146,13 +148,15 @@ export default function TopNav({
                   <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
                   <p className="text-xs text-gray-400 truncate">{user.email}</p>
                 </div>
-                <Link
-                  href="/flows"
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Workflow size={15} className="text-gray-400" />
-                  Flows
-                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/flows"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Workflow size={15} className="text-gray-400" />
+                    Flows
+                  </Link>
+                )}
                 <Link
                   href="/ai"
                   className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
@@ -160,13 +164,15 @@ export default function TopNav({
                   <Bot size={15} className="text-gray-400" />
                   AI Assistant
                 </Link>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Settings size={15} className="text-gray-400" />
-                  Settings
-                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings size={15} className="text-gray-400" />
+                    Settings
+                  </Link>
+                )}
                 <form action={signOutAction} className="border-t border-milestone-line mt-1 pt-1">
                   <button
                     type="submit"
