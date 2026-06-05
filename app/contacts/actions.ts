@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { crm_contacts, crm_customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getSettings } from "@/lib/settings";
+import { collectCustomValues } from "@/lib/customFields";
 
 // Returns the submitted customer_id only if it belongs to the current user,
 // otherwise null. Prevents linking a contact to another tenant's company.
@@ -30,6 +32,8 @@ export async function createContact(formData: FormData) {
   if (!firstName || !lastName) return;
 
   const customerId = await resolveOwnedCustomerId(formData, userId);
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.contact);
 
   await db.insert(crm_contacts).values({
     user_id: userId,
@@ -40,6 +44,7 @@ export async function createContact(formData: FormData) {
     title: (formData.get("title") as string) || null,
     customer_id: customerId,
     notes: (formData.get("notes") as string) || null,
+    custom,
   });
 
   revalidatePath("/contacts");
@@ -55,6 +60,8 @@ export async function updateContact(id: string, formData: FormData) {
   if (!firstName || !lastName) return;
 
   const customerId = await resolveOwnedCustomerId(formData, userId);
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.contact);
 
   await db.update(crm_contacts)
     .set({
@@ -65,6 +72,7 @@ export async function updateContact(id: string, formData: FormData) {
       title: (formData.get("title") as string) || null,
       customer_id: customerId,
       notes: (formData.get("notes") as string) || null,
+      custom,
     })
     .where(and(eq(crm_contacts.id, id), eq(crm_contacts.user_id, userId)));
 

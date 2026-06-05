@@ -5,6 +5,8 @@ import { crm_opportunities, crm_customers, crm_contacts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { OpportunityStatus } from "@/lib/types";
+import { getSettings } from "@/lib/settings";
+import { collectCustomValues } from "@/lib/customFields";
 
 function stageToStatus(stage: string): OpportunityStatus {
   if (stage === "Won") return "won";
@@ -50,6 +52,9 @@ export async function createOpportunity(formData: FormData) {
     }
   }
 
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.opportunity);
+
   await db.insert(crm_opportunities).values({
     user_id: userId,
     title,
@@ -61,6 +66,7 @@ export async function createOpportunity(formData: FormData) {
     status: stageToStatus(stage),
     close_date: (formData.get("close_date") as string) || null,
     notes: (formData.get("notes") as string) || null,
+    custom,
   });
 
   revalidatePath("/opportunities");

@@ -44,7 +44,7 @@ export default async function OpportunitiesPage() {
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
   const contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[] = contactsRaw;
   const flows: Pick<CrmFlow, "id" | "name" | "stages">[] = flowsRaw as unknown as Pick<CrmFlow, "id" | "name" | "stages">[];
-  const { terms } = await getSettings(userId);
+  const { terms, customFields } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
@@ -53,6 +53,7 @@ export default async function OpportunitiesPage() {
         customers={customers}
         contacts={contacts}
         flows={flows}
+        customFields={customFields.opportunity}
         labelPlural={terms.opportunities}
         labelSingular={terms.opportunity}
       />
