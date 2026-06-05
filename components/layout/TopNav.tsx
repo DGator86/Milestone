@@ -11,6 +11,7 @@ import {
   LogOut,
   Bot,
   Workflow,
+  CheckCircle2,
   Menu,
   X,
 } from "lucide-react";
@@ -152,6 +153,13 @@ export default function TopNav({
                 >
                   <Workflow size={15} className="text-gray-400" />
                   Flows
+                </Link>
+                <Link
+                  href="/completed"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <CheckCircle2 size={15} className="text-gray-400" />
+                  Completed
                 </Link>
                 <Link
                   href="/ai"
