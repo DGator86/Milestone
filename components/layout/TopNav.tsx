@@ -11,6 +11,7 @@ import {
   LogOut,
   Bot,
   Workflow,
+  Users,
   Menu,
   X,
 } from "lucide-react";
@@ -164,6 +165,15 @@ export default function TopNav({
                   <Bot size={15} className="text-gray-400" />
                   AI Assistant
                 </Link>
+                {isAdmin && (
+                  <Link
+                    href="/team"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Users size={15} className="text-gray-400" />
+                    Team
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link
                     href="/settings"
