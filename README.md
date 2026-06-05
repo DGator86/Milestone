@@ -2,83 +2,100 @@
 
 > Track the path. Kill the next step.
 
-A no-bullshit goal CRM that tracks goals as milestone paths.
+A no-bullshit goal CRM that tracks goals as milestone paths, with a built-in
+AI assistant that acts on your own data.
 
-## Setup (local web app)
+## Stack
+
+- **Next.js 15** (App Router) + **TypeScript** + **Tailwind CSS**
+- **Neon** (serverless **Postgres**) via **Drizzle ORM**
+- **NextAuth (Auth.js v5)** — email/password (Credentials), bcrypt, JWT sessions
+- **Anthropic** Claude — the in-app AI agent (optional)
+- **Vercel** deployment + PWA manifest
+
+## Setup (local)
 
 Do these **in order**:
 
-1. **Supabase (browser)** — [supabase.com/dashboard](https://supabase.com/dashboard) → New project → wait until ready.
-2. **Schema** — Supabase → **SQL Editor** → paste full contents of **`supabase/schema.sql`** from this repo → **Run**.
-3. **Env (your machine)** — copy `.env.example` to **`.env.local`** and set:
-   - `NEXT_PUBLIC_SUPABASE_URL` = Project URL (Settings → API)
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon **public** key (never `service_role`)
-4. **Install and verify**
+1. **Create a Neon database** — [console.neon.tech](https://console.neon.tech) →
+   New Project → copy the **pooled** connection string (it ends with
+   `?sslmode=require`).
+
+2. **Env** — copy `.env.example` to **`.env.local`** and set at least:
+
+   ```bash
+   DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DB?sslmode=require
+   AUTH_SECRET=...        # generate: openssl rand -base64 32
+   ANTHROPIC_API_KEY=...  # optional — enables the AI assistant
+   ```
+
+3. **Install, push the schema, verify**
 
    ```bash
    npm install
-   npm run verify
+   npm run db:push   # creates/updates all tables from db/schema.ts (idempotent)
+   npm run verify    # checks .env.local has the required vars
    ```
 
-   `verify` checks `.env.local` and calls Supabase’s auth health endpoint.
-
-5. **Run**
+4. **Run**
 
    ```bash
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) — sign up at `/signup`, then use the dashboard.
+   Open [http://localhost:3000](http://localhost:3000), **sign up at `/signup`**,
+   then use the dashboard.
 
-### Test signup and login
+### First account
 
-1. Visit `/signup` and create an account
-2. You'll be redirected to `/dashboard`
-3. Default groups (Work, Home, Health) are created automatically
-4. Click **+ Goal** or scroll down to create your first goal
-
-## App Store & Google Play launch
-
-See **[docs/LAUNCH.md](docs/LAUNCH.md)** for the 14-day checklist (web + Capacitor hybrid apps).
-
-Native shells live in **`mobile/`** — they load your production Vercel URL.
+1. Visit `/signup` and create an account (email + password, min 6 chars).
+2. You're redirected to `/dashboard`; default groups (Work, Home, Health) are
+   created automatically.
+3. Click **+ Goal** to create your first goal, or open the AI assistant and ask
+   it to set one up for you.
 
 ## Deploy to Vercel
 
-Only **after** local setup works (`npm run verify` + `npm run dev`):
+Only **after** local setup works:
 
 1. Push this repo to GitHub.
 2. [vercel.com](https://vercel.com) → **Add New** → **Project** → **Import** this repo.
-3. **Environment Variables** (before or after first deploy, then redeploy):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
-   Same values as `.env.local`.
-4. **Deploy** → copy the production URL (e.g. `https://….vercel.app`).
-5. Supabase → **Authentication** → **URL configuration**:
-   - **Site URL** = `https://….vercel.app`
-   - **Redirect URLs** add: `https://….vercel.app/**`
-6. Open the Vercel URL in a browser and sign up again (production is a separate deployment from localhost).
+3. **Environment Variables** (Production + Preview + Development), then deploy:
 
-**I can’t log into your Vercel or Supabase account from here** — those steps are always yours, but they are only this short list once the app runs locally.
+   | Variable | Required | Notes |
+   |----------|----------|-------|
+   | `DATABASE_URL` | ✅ | Neon pooled connection string |
+   | `AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
+   | `ANTHROPIC_API_KEY` | optional | Enables the AI assistant (`sk-ant-…`) |
+   | `ANTHROPIC_MODEL` | optional | Defaults to `claude-sonnet-4-6` |
+   | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL, e.g. `https://yourdomain.com` (falls back to `VERCEL_URL`) |
 
-## Tech Stack
+4. **Run the schema against your production Neon DB** once:
 
-- **Next.js 15** (App Router)
-- **TypeScript**
-- **Tailwind CSS**
-- **Supabase** (Auth + Postgres + RLS)
-- **Vercel** deployment
-- **PWA** manifest
+   ```bash
+   DATABASE_URL="<your production Neon URL>" npm run db:push
+   ```
+
+5. **Deploy** → open the production URL → sign up (production is a separate
+   database from localhost).
+
+> I can't log into your Vercel or Neon account from here — setting the env vars
+> and running `db:push` against production are always your steps, but that's the
+> whole list.
+
+## App Store & Google Play launch
+
+See **[docs/LAUNCH.md](docs/LAUNCH.md)** for the full checklist (web + Capacitor
+hybrid apps). Native shells live in **`mobile/`** — they load your production
+Vercel URL.
 
 ## Project Structure
 
 ```
-app/            # Next.js App Router routes
-components/     # React components
-  layout/       # Sidebar, AppShell
-  dashboard/    # MilestoneCharts, TaskHealth, Momentum
-  forms/        # CreateGoalForm
-lib/            # Types, helpers, Supabase clients
-supabase/       # schema.sql
+app/            # Next.js App Router routes (incl. /api/ai for the agent)
+components/     # React components (layout, dashboard, crm, ai, forms)
+db/             # Drizzle schema + client (Neon)
+drizzle/        # Generated SQL migrations
+lib/            # Types, helpers, settings, AI agent/tools
 public/         # manifest.json, icons
 ```
