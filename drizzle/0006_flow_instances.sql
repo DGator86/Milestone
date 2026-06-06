@@ -34,3 +34,7 @@ DO $$ BEGIN
 	ALTER TABLE "crm_flow_instances" ADD CONSTRAINT "crm_flow_instances_customer_id_crm_customers_id_fk"
 		FOREIGN KEY ("customer_id") REFERENCES "public"."crm_customers"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_user_id_idx" ON "crm_flow_instances" ("user_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_flow_id_idx" ON "crm_flow_instances" ("flow_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_customer_id_idx" ON "crm_flow_instances" ("customer_id");

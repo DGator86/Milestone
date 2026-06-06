@@ -220,7 +220,11 @@ export const crm_flow_instances = pgTable("crm_flow_instances", {
   notes: text("notes"),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
-});
+}, (t) => [
+  index("crm_flow_instances_user_id_idx").on(t.user_id),
+  index("crm_flow_instances_flow_id_idx").on(t.flow_id),
+  index("crm_flow_instances_customer_id_idx").on(t.customer_id),
+]);
 
 // ─── Relations ─────────────────────────────────────────────────────────────────
 export const usersRelations = relations(users, ({ one, many }) => ({

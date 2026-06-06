@@ -4,7 +4,7 @@
 -- │                                                                           │
 -- │  HOW (no terminal needed):                                                │
 -- │    Neon Console → your project → "SQL Editor" → paste this whole file →   │
--- │    Run.  Equivalent to `npm run db:push`.                                 │
+-- │    Run.  Brings the schema up to date through migration 0007.             │
 -- │                                                                           │
 -- │  Safe to run multiple times — every statement is idempotent.             │
 -- │  (For a full from-scratch schema, see scripts/launch-schema.sql.)         │
@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS "crm_flow_instances" (
 DO $$ BEGIN ALTER TABLE "crm_flow_instances" ADD CONSTRAINT "crm_flow_instances_user_id_users_id_fk"        FOREIGN KEY ("user_id")     REFERENCES "users"("id")          ON DELETE cascade;  EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN ALTER TABLE "crm_flow_instances" ADD CONSTRAINT "crm_flow_instances_flow_id_crm_flows_id_fk"    FOREIGN KEY ("flow_id")     REFERENCES "crm_flows"("id")      ON DELETE cascade;  EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN ALTER TABLE "crm_flow_instances" ADD CONSTRAINT "crm_flow_instances_customer_id_crm_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "crm_customers"("id") ON DELETE set null; EXCEPTION WHEN duplicate_object THEN null; END $$;
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_user_id_idx"     ON "crm_flow_instances" ("user_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_flow_id_idx"     ON "crm_flow_instances" ("flow_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_customer_id_idx" ON "crm_flow_instances" ("customer_id");
 
 -- 0007 · Shared workspaces (members share one dataset, stored under owner_id)
 CREATE TABLE IF NOT EXISTS "workspaces" (
