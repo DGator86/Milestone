@@ -78,6 +78,8 @@ export interface Milestone {
   position: number;
   status: MilestoneStatus;
   due_date: string | null;
+  touch_target: number | null;
+  touch_period: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -168,6 +170,21 @@ export interface CrmOpportunity {
 export interface ContactWithDetails extends Contact {
   groups?: Group;
   touches?: Touch[];
+}
+
+export interface CrmFlowInstance {
+  id: string;
+  user_id: string;
+  flow_id: string;
+  customer_id: string | null;
+  current_stage_idx: number;
+  run_count: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  crm_flows?: Pick<CrmFlow, "id" | "name" | "stages" | "color">;
+  crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
 }
 
 export type TaskType = "call" | "email" | "meeting" | "task" | "document";

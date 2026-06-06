@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
-import { goals, groups, crm_tasks, crm_customers } from "@/db/schema";
+import { goals, groups, crm_tasks, crm_customers, users } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { ensureDefaults } from "./actions";
 import AppShell from "@/components/layout/AppShell";
@@ -16,10 +17,23 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  // Verify the *session* user still exists (signs out stale JWTs); data is
+  // scoped to the workspace owner.
+  const dbUser = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  if (!dbUser) {
+    await signOut({ redirectTo: "/login" });
+  }
 
-  await ensureDefaults();
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
+
+  try {
+    await ensureDefaults();
+  } catch (err) {
+    // Non-fatal: the dashboard still renders, but surface the failure so a
+    // broken default-seed doesn't silently leave new users without bootstrap data.
+    console.error("ensureDefaults failed during dashboard bootstrap", err);
+  }
 
   const [goalsRaw, safeGroups, tasksRaw, customersRaw] = await Promise.all([
     db.query.goals.findMany({

@@ -1,5 +1,6 @@
 "use server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -21,7 +22,7 @@ async function resolveCustomerType(formData: FormData, userId: string): Promise<
 export async function createCustomer(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
@@ -54,7 +55,7 @@ export async function createCustomer(formData: FormData) {
 export async function updateCustomer(id: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
@@ -88,7 +89,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 export async function deleteCustomer(id: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(crm_customers)
     .where(and(eq(crm_customers.id, id), eq(crm_customers.user_id, userId)));
@@ -101,7 +102,7 @@ export async function updateCustomerStatus(id: string, status: string) {
 
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(crm_customers)
     .set({ status })

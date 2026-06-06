@@ -3,20 +3,37 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, workspaces } from "@/db/schema";
 import { requireAdmin, countAdmins } from "@/lib/admin";
+import { getWorkspace } from "@/lib/workspace";
 
 function back(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
   redirect(`/team?${qs}`);
 }
 
-// Create a new account that can sign in to this deployment. Mirrors signup but
-// is admin-driven, sets the chosen role, and does not start a session.
+// Rename the current workspace.
+export async function renameWorkspace(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const ws = await getWorkspace();
+  const nameRaw = formData.get("name");
+  const name = typeof nameRaw === "string" ? nameRaw.trim().slice(0, 60) : "";
+  if (!name) back({ error: "Workspace name is required" });
+  await db
+    .update(workspaces)
+    .set({ name, updated_at: new Date().toISOString() })
+    .where(eq(workspaces.id, ws.id));
+  revalidatePath("/team");
+  back({ ok: "Workspace renamed" });
+}
+
+// Invite a new member into the current workspace. They share the workspace's
+// data. Mirrors signup but is admin-driven, sets the role, and starts no session.
 export async function inviteMember(formData: FormData): Promise<void> {
   await requireAdmin();
+  const ws = await getWorkspace();
 
   const emailRaw = formData.get("email");
   const passwordRaw = formData.get("password");
@@ -36,15 +53,16 @@ export async function inviteMember(formData: FormData): Promise<void> {
   }
 
   const password_hash = await bcrypt.hash(password, 10);
-  await db.insert(users).values({ email, password_hash, is_admin: isAdmin });
+  await db.insert(users).values({ email, password_hash, is_admin: isAdmin, workspace_id: ws.id });
 
   revalidatePath("/team");
   back({ ok: `Invited ${email}` });
 }
 
-// Promote or demote a member. Guards against demoting the last admin.
+// Promote or demote a member of the current workspace. Guards the last admin.
 export async function setMemberRole(formData: FormData): Promise<void> {
   await requireAdmin();
+  const ws = await getWorkspace();
 
   const userId = formData.get("user_id");
   const makeAdmin = formData.get("make_admin") === "true";
@@ -52,7 +70,7 @@ export async function setMemberRole(formData: FormData): Promise<void> {
 
   const target = await db.query.users.findFirst({
     columns: { id: true, email: true, is_admin: true },
-    where: eq(users.id, userId as string),
+    where: and(eq(users.id, userId as string), eq(users.workspace_id, ws.id)),
   });
   if (!target) back({ error: "Member not found" });
 
@@ -68,18 +86,21 @@ export async function setMemberRole(formData: FormData): Promise<void> {
   back({ ok: makeAdmin ? `${target!.email} is now an admin` : `${target!.email} is now a member` });
 }
 
-// Permanently delete a member account. Guards against self-removal and the
-// last admin. Cascades remove that member's own data (FKs are ON DELETE CASCADE).
+// Permanently delete a member of the current workspace. Guards against
+// self-removal, removing the workspace owner (would cascade-delete the shared
+// data), and removing the last admin.
 export async function removeMember(formData: FormData): Promise<void> {
   const adminId = await requireAdmin();
+  const ws = await getWorkspace();
 
   const userId = formData.get("user_id");
   if (typeof userId !== "string" || !userId) back({ error: "Missing member" });
   if (userId === adminId) back({ error: "You can't remove your own account here" });
+  if (userId === ws.ownerId) back({ error: "Can't remove the workspace owner" });
 
   const target = await db.query.users.findFirst({
     columns: { id: true, email: true, is_admin: true },
-    where: eq(users.id, userId as string),
+    where: and(eq(users.id, userId as string), eq(users.workspace_id, ws.id)),
   });
   if (!target) back({ error: "Member not found" });
 

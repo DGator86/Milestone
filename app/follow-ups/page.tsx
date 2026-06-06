@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
@@ -44,8 +45,8 @@ function avatarColor(name: string): string {
 export default async function FollowUpsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const contactsRaw = await db.query.contacts.findMany({
     where: and(
