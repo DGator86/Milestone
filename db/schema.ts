@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 const id = uuid("id").primaryKey().default(sql`gen_random_uuid()`);
@@ -15,16 +15,18 @@ export const users = pgTable("users", {
   // data (CRM, goals, contacts, flows, settings). Lazily assigned on first use.
   workspace_id: uuid("workspace_id").references((): AnyPgColumn => workspaces.id, { onDelete: "set null" }),
   created_at: ts("created_at"),
-});
+}, (t) => [index("users_workspace_id_idx").on(t.workspace_id)]);
 
 // ─── Workspaces ──────────────────────────────────────────────────────────────────
 // A shared container for a team. All of a workspace's data is stored under its
 // owner_id, so every member resolves to the same owner id and sees one shared
 // dataset. Each account starts in its own workspace; admins invite members in.
+// owner_id is unique (one workspace per owner) so bootstrap is race-safe, and
+// RESTRICT prevents deleting an owner out from under their members.
 export const workspaces = pgTable("workspaces", {
   id,
   name: text("name").notNull().default("My Workspace"),
-  owner_id: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  owner_id: uuid("owner_id").notNull().unique().references(() => users.id, { onDelete: "restrict" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });

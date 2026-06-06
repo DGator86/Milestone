@@ -31,10 +31,14 @@ export const getWorkspace = cache(async (): Promise<WorkspaceContext> => {
     if (ws) return { id: ws.id, name: ws.name, ownerId: ws.owner_id };
   }
 
-  // Bootstrap: create a workspace owned by this user and map them to it.
-  const [created] = await db.insert(workspaces).values({ owner_id: uid }).returning();
-  await db.update(users).set({ workspace_id: created.id }).where(eq(users.id, uid));
-  return { id: created.id, name: created.name, ownerId: created.owner_id };
+  // Bootstrap: ensure a workspace owned by this user exists, then map them to
+  // it. Race-safe — owner_id is unique, so a concurrent insert is a no-op and
+  // both requests converge on the same canonical row.
+  await db.insert(workspaces).values({ owner_id: uid }).onConflictDoNothing();
+  const ws = await db.query.workspaces.findFirst({ where: eq(workspaces.owner_id, uid) });
+  if (!ws) throw new Error("Failed to bootstrap workspace");
+  await db.update(users).set({ workspace_id: ws.id }).where(eq(users.id, uid));
+  return { id: ws.id, name: ws.name, ownerId: ws.owner_id };
 });
 
 // The user id under which all of the current workspace's shared data is stored

@@ -16,7 +16,8 @@ export default async function FlowsPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = await getDataOwnerId();
   const user: AppUser = { id: session.user.id, email: session.user.email };
-  if (!(await getIsAdmin(userId))) redirect("/dashboard");
+  // Admin gate uses the real session user (not the workspace owner, who is always admin).
+  if (!(await getIsAdmin(user.id))) redirect("/dashboard");
 
   const [flowsRaw, oppCounts, instancesRaw, customersRaw] = await Promise.all([
     db.query.crm_flows.findMany({

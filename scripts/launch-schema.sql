@@ -300,12 +300,13 @@ CREATE TABLE IF NOT EXISTS "workspaces" (
   "name" text NOT NULL DEFAULT 'My Workspace',
   "owner_id" uuid NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT now(),
-  "updated_at" timestamptz NOT NULL DEFAULT now()
+  "updated_at" timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT "workspaces_owner_id_unique" UNIQUE ("owner_id")
 );
 
 DO $$ BEGIN
   ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_owner_id_users_id_fk"
-    FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE cascade ON UPDATE no action;
+    FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE restrict ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "workspace_id" uuid;
@@ -314,3 +315,5 @@ DO $$ BEGIN
   ALTER TABLE "users" ADD CONSTRAINT "users_workspace_id_workspaces_id_fk"
     FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE INDEX IF NOT EXISTS "users_workspace_id_idx" ON "users" ("workspace_id");
