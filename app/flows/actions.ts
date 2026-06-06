@@ -1,8 +1,8 @@
 "use server";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { crm_flows, crm_flow_instances } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { crm_flows, crm_flow_instances, crm_customers } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createFlow(formData: FormData) {
@@ -71,6 +71,23 @@ export async function createFlowInstance(flowId: string, customerId: string | nu
   const session = await auth();
   if (!session?.user?.id) return;
   const userId = session.user.id;
+
+  // Verify the flow (and customer, if supplied) belong to this user before
+  // binding an instance to them — otherwise a guessed UUID could leak metadata.
+  const flow = await db.query.crm_flows.findFirst({
+    where: and(eq(crm_flows.id, flowId), eq(crm_flows.user_id, userId)),
+    columns: { id: true },
+  });
+  if (!flow) return;
+
+  if (customerId) {
+    const customer = await db.query.crm_customers.findFirst({
+      where: and(eq(crm_customers.id, customerId), eq(crm_customers.user_id, userId)),
+      columns: { id: true },
+    });
+    if (!customer) return;
+  }
+
   await db.insert(crm_flow_instances).values({
     user_id: userId,
     flow_id: flowId,
@@ -94,14 +111,14 @@ export async function advanceFlowInstance(instanceId: string) {
   if (!instance || !instance.crm_flows) return;
 
   const stageCount = instance.crm_flows.stages.length;
-  const next = instance.current_stage_idx + 1;
-  const wraps = next >= stageCount;
 
+  // Advance atomically in-DB (CASE on the live columns) so concurrent advances
+  // can't lose a stage step or a cycle increment.
   await db
     .update(crm_flow_instances)
     .set({
-      current_stage_idx: wraps ? 0 : next,
-      run_count: wraps ? instance.run_count + 1 : instance.run_count,
+      current_stage_idx: sql`CASE WHEN ${crm_flow_instances.current_stage_idx} + 1 >= ${stageCount} THEN 0 ELSE ${crm_flow_instances.current_stage_idx} + 1 END`,
+      run_count: sql`${crm_flow_instances.run_count} + CASE WHEN ${crm_flow_instances.current_stage_idx} + 1 >= ${stageCount} THEN 1 ELSE 0 END`,
       updated_at: new Date().toISOString(),
     })
     .where(and(eq(crm_flow_instances.id, instanceId), eq(crm_flow_instances.user_id, userId)));

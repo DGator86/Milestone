@@ -8,6 +8,8 @@ import {
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
 
+const MAX_MILESTONES = 10;
+
 const GOAL_TYPES = [
   { value: "concrete",    label: "Project",  description: "Defined end goal",  icon: Target,    color: "#1769FF" },
   { value: "touches",     label: "Habit",    description: "Regular cadence",   icon: Zap,       color: "#36A852" },
@@ -110,7 +112,9 @@ export default function GoalWizard({
   }
 
   function addItem() {
-    setItems((prev) => [...prev, newItem(goalType)]);
+    // Backend (createGoal) persists at most milestone_1..milestone_10, so cap
+    // the UI to match and avoid silently dropping extra steps.
+    setItems((prev) => (prev.length >= MAX_MILESTONES ? prev : [...prev, newItem(goalType)]));
   }
 
   function removeItem(key: string) {
@@ -119,7 +123,7 @@ export default function GoalWizard({
 
   function handleSubmit() {
     if (isPending || !groupId || !title.trim()) return;
-    const filled = items.filter((it) => it.title.trim());
+    const filled = items.filter((it) => it.title.trim()).slice(0, MAX_MILESTONES);
     if (filled.length === 0) return;
 
     const formData = new FormData();
@@ -270,10 +274,11 @@ export default function GoalWizard({
 
               <button
                 onClick={addItem}
-                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-milestone-blue hover:text-milestone-blue transition-all text-sm font-medium"
+                disabled={items.length >= MAX_MILESTONES}
+                className="flex items-center gap-2 w-full px-4 py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-milestone-blue hover:text-milestone-blue transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-gray-400"
               >
                 <Plus size={15} />
-                Add step
+                {items.length >= MAX_MILESTONES ? "Step limit reached (10)" : "Add step"}
               </button>
             </div>
           )}

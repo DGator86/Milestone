@@ -90,9 +90,23 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
+  // Authorize: the milestone must belong to a goal owned by this user before
+  // any mutation — otherwise a guessed milestone id could be completed.
+  const owned = await db
+    .select({ id: milestones.id })
+    .from(milestones)
+    .innerJoin(goals, eq(goals.id, milestones.goal_id))
+    .where(and(
+      eq(milestones.id, milestoneId),
+      eq(milestones.goal_id, goalId),
+      eq(goals.user_id, userId),
+    ))
+    .limit(1);
+  if (owned.length === 0) redirect("/dashboard?error=Not+authorized");
+
   await db.update(milestones)
     .set({ status: "completed", completed_at: new Date().toISOString() })
-    .where(eq(milestones.id, milestoneId));
+    .where(and(eq(milestones.id, milestoneId), eq(milestones.goal_id, goalId)));
 
   const remaining = await db.query.milestones.findMany({
     where: and(eq(milestones.goal_id, goalId), ne(milestones.status, "completed")),

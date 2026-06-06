@@ -9,6 +9,19 @@ import type { GoalWithDetails, Group, CrmTask, CrmCustomer } from "@/lib/types";
 
 const WIZARD_KEY = "wizard_dismissed";
 
+type GoalPrefill = { title?: string; goal_type?: string; milestones?: string[] };
+
+function isGoalPrefill(v: unknown): v is GoalPrefill {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    (o.title === undefined || typeof o.title === "string") &&
+    (o.goal_type === undefined || typeof o.goal_type === "string") &&
+    (o.milestones === undefined ||
+      (Array.isArray(o.milestones) && o.milestones.every((m) => typeof m === "string")))
+  );
+}
+
 export default function DashboardShell({
   goals,
   groups,
@@ -27,10 +40,12 @@ export default function DashboardShell({
     try {
       const raw = sessionStorage.getItem("goal_prefill");
       if (raw) {
-        const data = JSON.parse(raw);
-        setPrefill(data);
+        const data: unknown = JSON.parse(raw);
         sessionStorage.removeItem("goal_prefill");
-        setWizardOpen(true);
+        if (isGoalPrefill(data)) {
+          setPrefill(data);
+          setWizardOpen(true);
+        }
         return;
       }
     } catch {}

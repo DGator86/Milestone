@@ -197,6 +197,7 @@ function AssignForm({
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 border-t border-milestone-line/50">
       <select
+        aria-label="Assign customer"
         value={customerId}
         onChange={(e) => setCustomerId(e.target.value)}
         className="flex-1 px-2.5 py-1.5 text-xs border border-milestone-line rounded-lg focus:outline-none focus:ring-1 focus:ring-milestone-blue focus:border-milestone-blue bg-white text-gray-700"

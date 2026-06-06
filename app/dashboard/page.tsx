@@ -25,7 +25,13 @@ export default async function DashboardPage() {
 
   const user: AppUser = { id: userId, email: session.user.email };
 
-  try { await ensureDefaults(); } catch { /* non-fatal */ }
+  try {
+    await ensureDefaults();
+  } catch (err) {
+    // Non-fatal: the dashboard still renders, but surface the failure so a
+    // broken default-seed doesn't silently leave new users without bootstrap data.
+    console.error("ensureDefaults failed during dashboard bootstrap", err);
+  }
 
   const [goalsRaw, safeGroups, tasksRaw, customersRaw] = await Promise.all([
     db.query.goals.findMany({
