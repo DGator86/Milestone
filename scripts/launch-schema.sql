@@ -290,6 +290,10 @@ DO $$ BEGIN
     FOREIGN KEY ("customer_id") REFERENCES "crm_customers"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_user_id_idx" ON "crm_flow_instances" ("user_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_flow_id_idx" ON "crm_flow_instances" ("flow_id");
+CREATE INDEX IF NOT EXISTS "crm_flow_instances_customer_id_idx" ON "crm_flow_instances" ("customer_id");
+
 -- goals → CRM links (added alongside the reconciled trunk)
 ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "customer_id" uuid;
 ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "opportunity_id" uuid;

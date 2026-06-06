@@ -76,6 +76,13 @@ Only **after** local setup works:
    DATABASE_URL="<your production Neon URL>" npm run db:push
    ```
 
+   > **No terminal? (e.g. on mobile)** Open the **Neon Console → your project →
+   > SQL Editor**, paste the contents of [`RUN_THIS.sql`](./RUN_THIS.sql), and
+   > **Run**. It's idempotent (safe to re-run) and brings an existing database
+   > up to date with the latest features (admin role, custom fields, flow
+   > instances, shared workspaces). For a full from-scratch schema, use
+   > [`scripts/launch-schema.sql`](./scripts/launch-schema.sql).
+
 5. **Deploy** → open the production URL → sign up (production is a separate
    database from localhost).
 
