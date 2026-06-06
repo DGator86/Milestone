@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { runAgent, agentConfigured } from "@/lib/ai/agent";
 
 export const runtime = "nodejs";
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runAgent({ userId: session.user.id }, history);
+    const result = await runAgent({ userId: await getDataOwnerId() }, history);
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Assistant error";

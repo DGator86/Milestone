@@ -3,6 +3,7 @@ import FloatingAssistant from "@/components/ai/FloatingAssistant";
 import { ToastProvider } from "@/lib/toast-context";
 import { getSettings } from "@/lib/settings";
 import { getIsAdmin } from "@/lib/admin";
+import { getDataOwnerId } from "@/lib/workspace";
 import type { AppUser } from "@/lib/types";
 
 export default async function AppShell({
@@ -12,7 +13,11 @@ export default async function AppShell({
   user: AppUser;
   children: React.ReactNode;
 }) {
-  const [settings, isAdmin] = await Promise.all([getSettings(user.id), getIsAdmin(user.id)]);
+  // Settings are workspace-wide (shared branding/terminology); admin is per-user.
+  const [settings, isAdmin] = await Promise.all([
+    getSettings(await getDataOwnerId()),
+    getIsAdmin(user.id),
+  ]);
 
   return (
     <ToastProvider>

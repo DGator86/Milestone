@@ -1,5 +1,6 @@
 "use server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_flows, crm_flow_instances, crm_customers } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -8,7 +9,7 @@ import { revalidatePath } from "next/cache";
 export async function createFlow(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
@@ -33,7 +34,7 @@ export async function createFlow(formData: FormData) {
 export async function updateFlow(id: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const name = (formData.get("name") as string)?.trim();
   if (!name) return;
@@ -59,7 +60,7 @@ export async function updateFlow(id: string, formData: FormData) {
 export async function deleteFlow(id: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(crm_flows)
     .where(and(eq(crm_flows.id, id), eq(crm_flows.user_id, userId)));
@@ -70,9 +71,9 @@ export async function deleteFlow(id: string) {
 export async function createFlowInstance(flowId: string, customerId: string | null) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
-  // Verify the flow (and customer, if supplied) belong to this user before
+  // Verify the flow (and customer, if supplied) belong to this workspace before
   // binding an instance to them — otherwise a guessed UUID could leak metadata.
   const flow = await db.query.crm_flows.findFirst({
     where: and(eq(crm_flows.id, flowId), eq(crm_flows.user_id, userId)),
@@ -102,7 +103,7 @@ export async function createFlowInstance(flowId: string, customerId: string | nu
 export async function advanceFlowInstance(instanceId: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const instance = await db.query.crm_flow_instances.findFirst({
     where: and(eq(crm_flow_instances.id, instanceId), eq(crm_flow_instances.user_id, userId)),
@@ -129,7 +130,7 @@ export async function advanceFlowInstance(instanceId: string) {
 export async function deleteFlowInstance(instanceId: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
   await db
     .delete(crm_flow_instances)
     .where(and(eq(crm_flow_instances.id, instanceId), eq(crm_flow_instances.user_id, userId)));

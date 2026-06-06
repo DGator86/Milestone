@@ -1,5 +1,6 @@
 "use server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_opportunities, crm_customers, crm_contacts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -17,7 +18,7 @@ function stageToStatus(stage: string): OpportunityStatus {
 export async function createOpportunity(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
@@ -75,7 +76,7 @@ export async function createOpportunity(formData: FormData) {
 export async function deleteOpportunity(id: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(crm_opportunities)
     .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
@@ -89,7 +90,7 @@ export async function moveOpportunity(id: string, stage: string) {
 
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(crm_opportunities)
     .set({ stage: trimmed, status: stageToStatus(trimmed) })

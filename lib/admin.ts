@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq, count } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
+import { getWorkspace } from "@/lib/workspace";
 
 // Whether the given user may access admin/config surfaces (Settings, Flows).
 // Falls back to `true` if the column isn't migrated yet, so the single-user
@@ -37,19 +38,23 @@ export interface Member {
   created_at: string;
 }
 
-// All accounts that can sign in to this deployment, oldest first.
+// Members of the current workspace, oldest first.
 export async function listMembers(): Promise<Member[]> {
+  const ws = await getWorkspace();
   return db.query.users.findMany({
     columns: { id: true, email: true, name: true, is_admin: true, created_at: true },
+    where: eq(users.workspace_id, ws.id),
     orderBy: (u, { asc }) => [asc(u.created_at)],
   });
 }
 
-// How many admins remain — used to prevent locking out the last admin.
+// How many admins remain in the current workspace — used to prevent locking out
+// the last admin.
 export async function countAdmins(): Promise<number> {
+  const ws = await getWorkspace();
   const [row] = await db
     .select({ n: count() })
     .from(users)
-    .where(eq(users.is_admin, true));
+    .where(and(eq(users.is_admin, true), eq(users.workspace_id, ws.id)));
   return row?.n ?? 0;
 }

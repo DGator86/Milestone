@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_flows, crm_opportunities, crm_flow_instances, crm_customers } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
@@ -13,9 +14,10 @@ export const dynamic = "force-dynamic";
 export default async function FlowsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
-  if (!(await getIsAdmin(userId))) redirect("/dashboard");
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
+  // Admin gate uses the real session user (not the workspace owner, who is always admin).
+  if (!(await getIsAdmin(user.id))) redirect("/dashboard");
 
   const [flowsRaw, oppCounts, instancesRaw, customersRaw] = await Promise.all([
     db.query.crm_flows.findMany({

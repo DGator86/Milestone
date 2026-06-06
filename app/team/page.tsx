@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
-import { Users, ShieldCheck, UserPlus, Trash2, Shield } from "lucide-react";
+import { Users, ShieldCheck, UserPlus, Trash2, Shield, Building2 } from "lucide-react";
 import { getIsAdmin, listMembers } from "@/lib/admin";
-import { inviteMember, setMemberRole, removeMember } from "./actions";
+import { getWorkspace } from "@/lib/workspace";
+import { inviteMember, setMemberRole, removeMember, renameWorkspace } from "./actions";
 import type { AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function TeamPage({
   if (!(await getIsAdmin(user.id))) redirect("/dashboard");
 
   const { ok, error } = await searchParams;
-  const members = await listMembers();
+  const [workspace, members] = await Promise.all([getWorkspace(), listMembers()]);
   const adminCount = members.filter((m) => m.is_admin).length;
 
   return (
@@ -45,6 +46,38 @@ export default async function TeamPage({
             {error}
           </div>
         )}
+
+        {/* Workspace */}
+        <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden mb-4">
+          <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+              <Building2 size={12} />
+              Workspace
+            </p>
+          </div>
+          <form action={renameWorkspace} className="p-5 flex items-end gap-3">
+            <label className="block flex-1">
+              <span className="text-xs font-semibold text-gray-500">Name</span>
+              <input
+                type="text"
+                name="name"
+                required
+                maxLength={60}
+                defaultValue={workspace.name}
+                className="mt-1 w-full rounded-lg border border-milestone-line px-3 py-2 text-sm focus:border-milestone-blue focus:ring-1 focus:ring-milestone-blue outline-none"
+              />
+            </label>
+            <button
+              type="submit"
+              className="bg-milestone-blue text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 active:opacity-80 transition-opacity"
+            >
+              Save
+            </button>
+          </form>
+          <p className="px-5 pb-4 -mt-2 text-xs text-gray-400">
+            Everyone in this workspace shares the same customers, contacts, opportunities, flows, and goals.
+          </p>
+        </div>
 
         {/* Members list */}
         <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden mb-4">

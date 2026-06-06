@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_customers, crm_contacts, crm_opportunities, goals } from "@/db/schema";
 import { eq, desc, and, isNotNull, sql, asc } from "drizzle-orm";
@@ -13,8 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function CustomersPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [data, goalCountRows, contactRows, oppRows] = await Promise.all([
     db.query.crm_customers.findMany({

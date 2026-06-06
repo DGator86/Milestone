@@ -1,5 +1,6 @@
 "use server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_contacts, crm_customers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -25,7 +26,7 @@ async function resolveOwnedCustomerId(
 export async function createContact(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const firstName = (formData.get("first_name") as string)?.trim();
   const lastName = (formData.get("last_name") as string)?.trim();
@@ -53,7 +54,7 @@ export async function createContact(formData: FormData) {
 export async function updateContact(id: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const firstName = (formData.get("first_name") as string)?.trim();
   const lastName = (formData.get("last_name") as string)?.trim();
@@ -82,7 +83,7 @@ export async function updateContact(id: string, formData: FormData) {
 export async function deleteContact(id: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(crm_contacts)
     .where(and(eq(crm_contacts.id, id), eq(crm_contacts.user_id, userId)));

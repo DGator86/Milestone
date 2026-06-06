@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { groups, goals } from "@/db/schema";
 import { eq, and, ilike } from "drizzle-orm";
@@ -13,7 +14,7 @@ export async function createGroup(
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const raw = {
     name: (formData.get("name") as string)?.trim() ?? "",
@@ -55,7 +56,7 @@ export async function createGroup(
 export async function deleteGroup(groupId: string): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const activeGoals = await db.query.goals.findMany({
     where: and(eq(goals.group_id, groupId), eq(goals.status, "active")),

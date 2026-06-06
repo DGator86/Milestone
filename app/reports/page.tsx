@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, groups } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -15,8 +16,8 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [groupsRaw, goalsRaw] = await Promise.all([
     db.query.groups.findMany({
