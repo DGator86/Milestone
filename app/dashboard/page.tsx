@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth, signOut } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, groups, crm_tasks, crm_customers, users } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
@@ -16,14 +17,15 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-
-  const dbUser = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  // Verify the *session* user still exists (signs out stale JWTs); data is
+  // scoped to the workspace owner.
+  const dbUser = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   if (!dbUser) {
     await signOut({ redirectTo: "/login" });
   }
 
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   try {
     await ensureDefaults();

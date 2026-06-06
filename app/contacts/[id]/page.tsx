@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts, touches } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -69,8 +70,8 @@ export default async function ContactDetailPage({
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [contact, touchesRaw] = await Promise.all([
     db.query.contacts.findFirst({

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, milestones, activity_log, groups } from "@/db/schema";
 import { eq, and, ne, asc, max } from "drizzle-orm";
@@ -11,7 +12,7 @@ import { CreateGoalSchema } from "@/lib/schemas";
 export async function createGoal(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   interface MilestoneData {
     title: string;
@@ -88,7 +89,7 @@ export async function createGoal(formData: FormData) {
 export async function completeMilestone(milestoneId: string, goalId: string) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   // Authorize: the milestone must belong to a goal owned by this user before
   // any mutation — otherwise a guessed milestone id could be completed.
@@ -137,7 +138,7 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
 export async function ensureDefaults() {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const existing = await db.query.groups.findFirst({
     where: eq(groups.user_id, userId),

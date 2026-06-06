@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, milestones, activity_log } from "@/db/schema";
 import { eq, and, ne, asc, desc } from "drizzle-orm";
@@ -16,7 +17,7 @@ export async function updateMilestoneStatus(
 ) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   if (status === "completed") {
     await db.update(milestones)
@@ -115,7 +116,7 @@ export async function updateGoal(
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const raw = {
     title: (formData.get("title") as string)?.trim() ?? "",
@@ -146,7 +147,7 @@ export async function updateGoal(
 export async function setGoalStatus(goalId: string, status: GoalStatus) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(goals)
     .set({ status })
@@ -161,7 +162,7 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
 export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(goals)
     .set({ status: "archived" })
@@ -177,7 +178,7 @@ export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
 export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(goals)
     .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
@@ -191,7 +192,7 @@ export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
 export async function reactivateGoal(goalId: string): Promise<{ error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(goals)
     .set({ status: "active" })

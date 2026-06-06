@@ -1,5 +1,6 @@
 "use server";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_tasks, goals } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -12,7 +13,7 @@ const TASK_PRIORITIES: TaskPriority[] = ["critical", "high", "medium", "low"];
 export async function createTask(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const title = (formData.get("title") as string)?.trim();
   if (!title) return;
@@ -38,7 +39,7 @@ export async function createTask(formData: FormData) {
 export async function toggleTaskDone(id: string, done: boolean) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(crm_tasks)
     .set({ done, completed_at: done ? new Date().toISOString() : null })
@@ -50,7 +51,7 @@ export async function toggleTaskDone(id: string, done: boolean) {
 export async function deleteTask(id: string) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.delete(crm_tasks)
     .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
@@ -61,7 +62,7 @@ export async function deleteTask(id: string) {
 export async function toggleGoalPinned(id: string, pinned: boolean) {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   await db.update(goals)
     .set({ pinned })

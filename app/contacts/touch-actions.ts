@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts, touches } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -11,7 +12,7 @@ import { LogTouchSchema, CreateContactSchema } from "@/lib/schemas";
 export async function logTouch(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const raw = {
     contact_id: formData.get("contact_id") as string,
@@ -44,7 +45,7 @@ export async function logTouch(formData: FormData) {
 export async function createLegacyContact(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const freqRaw = formData.get("touch_frequency_days");
   const raw = {

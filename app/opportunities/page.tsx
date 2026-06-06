@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_opportunities, crm_customers, crm_contacts, crm_flows } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
@@ -13,8 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function OpportunitiesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [oppsRaw, customersRaw, contactsRaw, flowsRaw] = await Promise.all([
     db.query.crm_opportunities.findMany({

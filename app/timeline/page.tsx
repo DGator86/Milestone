@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
@@ -147,8 +148,8 @@ function Section({
 export default async function TimelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const goalsRaw = await db.query.goals.findMany({
     where: and(

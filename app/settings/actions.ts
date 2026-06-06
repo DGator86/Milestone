@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts, goals, groups, milestones, user_settings } from "@/db/schema";
 import { EDITABLE_TERMS, singularize } from "@/lib/terms";
@@ -50,7 +51,7 @@ export async function updateWorkspaceSettings(
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const companyName = ((formData.get("company_name") as string) ?? "").trim().slice(0, 80) || null;
   const brandRaw = ((formData.get("brand_color") as string) ?? "").trim();
@@ -95,7 +96,7 @@ export async function updateWorkspaceSettings(
 export async function seedDemoData() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const [workGroup, personalGroup] = await db
     .insert(groups)
