@@ -62,7 +62,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                     className="absolute top-[14px] left-1/2 h-0.5"
                     style={{
                       width: "100%",
-                      backgroundColor: nextDone ? "#36A852" : "#E2E8F0",
+                      backgroundColor: nextDone ? "#36A852" : "var(--ms-line)",
                       zIndex: 0,
                     }}
                   />
@@ -76,7 +76,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                       ? "bg-milestone-blue border-milestone-blue text-white ring-4 ring-milestone-blue/15"
                       : state === "stuck"
                       ? "bg-milestone-red border-milestone-red text-white"
-                      : "bg-white border-gray-200 text-gray-300"
+                      : "bg-white dark:bg-[#0f2032] border-gray-200 dark:border-white/15 text-gray-300 dark:text-white/30"
                   }`}
                 >
                   {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
@@ -85,10 +85,10 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                 <span
                   className={`mt-1.5 text-[11px] leading-tight px-0.5 line-clamp-2 ${
                     state === "current"
-                      ? "font-semibold text-gray-900"
+                      ? "font-semibold text-gray-900 dark:text-white"
                       : state === "done"
-                      ? "text-gray-500"
-                      : "text-gray-400"
+                      ? "text-gray-500 dark:text-white/40"
+                      : "text-gray-400 dark:text-white/30"
                   }`}
                 >
                   {ms.title}
@@ -129,7 +129,7 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
 
   return (
     <div
-      className="bg-white rounded-xl shadow-card border border-milestone-line p-5 border-l-[3px]"
+      className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-5 border-l-[3px]"
       style={{ borderLeftColor: accent, opacity: isPending ? 0.6 : 1 }}
     >
       <div className="flex items-start gap-3">
@@ -144,7 +144,7 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
           <div className="flex items-center gap-2">
             <Link
               href={`/goals/${goal.id}`}
-              className="font-bold text-gray-900 hover:text-milestone-blue transition-colors truncate"
+              className="font-bold text-gray-900 dark:text-white hover:text-milestone-blue transition-colors truncate"
             >
               {goal.title}
             </Link>
@@ -161,7 +161,7 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
             </button>
           </div>
           {goal.groups?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">{goal.groups.name}</p>
+            <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{goal.groups.name}</p>
           )}
         </div>
 
@@ -197,8 +197,8 @@ export default function CriticalPaths({
     <section>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Active Goals</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Track progress on your work goals</p>
+          <h2 className="text-[15px] font-bold text-gray-900 dark:text-white tracking-tight">Active Goals</h2>
+          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">Track progress on your work goals</p>
         </div>
         <button
           onClick={onNewGoal}
@@ -210,7 +210,7 @@ export default function CriticalPaths({
       </div>
 
       {goals.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+        <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-14 text-center">
           <Trophy size={36} className="mx-auto mb-3 text-gray-200" />
           <p className="text-sm font-medium text-gray-400">No active goals yet.</p>
           <p className="text-xs text-gray-300 mt-1">Create a goal to map its path.</p>

@@ -52,6 +52,28 @@ body {
   scrollbar-width: none;
 }
 
+/* ── CSS variables for dark-mode–aware inline styles ─────────────────────
+   Components use var(--ms-line) in inline styles where dark: prefixes can't
+   reach (e.g., SVG connector lines between milestone dots). */
+:root {
+  --ms-line: #E2E8F0;
+  --ms-dot-bg: #ffffff;
+  --ms-dot-border: #E5E7EB;
+}
+.dark {
+  --ms-line: rgba(255,255,255,0.08);
+  --ms-dot-bg: #0f2032;
+  --ms-dot-border: rgba(255,255,255,0.15);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 /* ── Workspace brand theming ──────────────────────────────────────────────
    AppShell sets --brand from the user's settings and adds .brand-scope.
    These scoped rules remap the default blue accent onto the chosen brand

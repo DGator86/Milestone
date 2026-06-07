@@ -91,10 +91,10 @@ function MilestoneGoalRow({
 }) {
   const { label, color } = fmtMilestoneDate(item.daysUntil);
   return (
-    <div className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors border-l-[3px] ${HEALTH_BORDER[item.health]}`}>
+    <div className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors border-l-[3px] ${HEALTH_BORDER[item.health]}`}>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-snug truncate text-gray-900">{item.milestone.title}</p>
-        <p className="text-xs text-gray-400 truncate">{item.goalTitle}</p>
+        <p className="text-sm font-semibold leading-snug truncate text-gray-900 dark:text-white">{item.milestone.title}</p>
+        <p className="text-xs text-gray-400 dark:text-white/40 truncate">{item.goalTitle}</p>
       </div>
       <div className="text-right shrink-0">
         <p className={`text-[11px] font-semibold ${color}`}>{label}</p>
@@ -135,7 +135,7 @@ function TaskRow({
 }) {
   const Icon = TYPE_ICON[task.type];
   return (
-    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors">
+    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
       <button
         onClick={() => onToggle(task.id, !task.done)}
         className={`w-[18px] h-[18px] rounded-md border-2 shrink-0 flex items-center justify-center transition-colors ${
@@ -157,7 +157,7 @@ function TaskRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold leading-snug truncate ${task.done ? "text-gray-300 line-through" : "text-gray-900"}`}>
+        <p className={`text-sm font-semibold leading-snug truncate ${task.done ? "text-gray-300 dark:text-white/20 line-through" : "text-gray-900 dark:text-white"}`}>
           {task.title}
         </p>
         {task.crm_customers?.name && (
@@ -266,11 +266,11 @@ export default function KillList({ tasks, customers, goals }: Props) {
   }
 
   return (
-    <section className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
-      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line">
+    <section className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
+      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line dark:border-white/[0.08]">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 tracking-tight">Kill List</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{openCount} prioritized actions</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Kill List</h2>
+          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{openCount} prioritized actions</p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -282,7 +282,7 @@ export default function KillList({ tasks, customers, goals }: Props) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="p-4 space-y-3 border-b border-milestone-line bg-gray-50/50 animate-fade-up">
+        <form onSubmit={handleCreate} className="p-4 space-y-3 border-b border-milestone-line dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.03] animate-fade-up">
           <input name="title" required autoFocus placeholder="What needs doing?" className={INPUT} />
           <div className="grid grid-cols-2 gap-2">
             <select name="type" className={INPUT} defaultValue="call">
@@ -344,8 +344,8 @@ export default function KillList({ tasks, customers, goals }: Props) {
         {openCount === 0 && goalMilestones.length === 0 ? (
           <div className="p-12 text-center">
             <ListChecks size={34} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-400">Nothing on the list.</p>
-            <p className="text-xs text-gray-300 mt-1">You&apos;re all caught up.</p>
+            <p className="text-sm font-medium text-gray-400 dark:text-white/30">Nothing on the list.</p>
+            <p className="text-xs text-gray-300 dark:text-white/20 mt-1">You&apos;re all caught up.</p>
           </div>
         ) : openCount > 0 ? (
           <>

@@ -83,20 +83,20 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
 
       {/* ── Rows: #2 and #3 ── */}
       {rest.length > 0 && (
-        <div className="bg-white divide-y divide-milestone-line/60">
+        <div className="bg-white dark:bg-[#0B1929] divide-y divide-milestone-line/60 dark:divide-white/[0.06]">
           {rest.map(({ goal, milestone }, i) => {
             const rowBadge = urgencyBadge(milestone.due_date);
             return (
               <div
                 key={milestone.id}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 transition-colors"
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 dark:hover:bg-white/[0.03] transition-colors"
               >
-                <span className="text-[15px] font-black text-gray-200 w-4 shrink-0 tabular-nums select-none">
+                <span className="text-[15px] font-black text-gray-200 dark:text-white/15 w-4 shrink-0 tabular-nums select-none">
                   {i + 2}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-gray-400 truncate">{goal.title}</p>
-                  <p className="text-sm font-semibold text-gray-800 leading-snug truncate">
+                  <p className="text-[11px] text-gray-400 dark:text-white/40 truncate">{goal.title}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white leading-snug truncate">
                     {milestone.title}
                   </p>
                   {rowBadge && (
@@ -107,7 +107,7 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
                 </div>
                 <button
                   onClick={() => handleComplete(milestone.id, goal.id)}
-                  className="shrink-0 text-gray-200 hover:text-milestone-green active:text-milestone-green transition-colors p-1"
+                  className="shrink-0 text-gray-200 dark:text-white/20 hover:text-milestone-green active:text-milestone-green transition-colors p-1"
                   aria-label="Mark done"
                 >
                   <CheckCircle size={18} />
