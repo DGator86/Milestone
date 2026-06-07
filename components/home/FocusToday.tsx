@@ -6,16 +6,16 @@ import { getTopFocus } from "@/lib/progress";
 import { completeMilestone } from "@/app/dashboard/actions";
 import type { GoalWithDetails } from "@/lib/types";
 
-function dueDateLabel(dateStr: string | null): { text: string; cls: string } | null {
+function urgencyBadge(dateStr: string | null): { text: string; cls: string } | null {
   if (!dateStr) return null;
   const [y, m, d] = dateStr.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-  const today = new Date();
-  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const t0 = new Date();
+  t0.setHours(0, 0, 0, 0);
   const days = Math.round((date.getTime() - t0.getTime()) / 86400000);
-  if (days < 0) return { text: `${Math.abs(days)}d overdue`, cls: "text-milestone-red" };
-  if (days === 0) return { text: "Due today", cls: "text-milestone-amber" };
-  if (days <= 2) return { text: `${days}d left`, cls: "text-milestone-amber" };
+  if (days < 0) return { text: `${Math.abs(days)}d overdue`, cls: "bg-milestone-red/20 text-milestone-red" };
+  if (days === 0) return { text: "Due today", cls: "bg-milestone-amber/15 text-milestone-amber" };
+  if (days <= 2) return { text: `${days}d left`, cls: "bg-milestone-amber/15 text-milestone-amber" };
   return null;
 }
 
@@ -34,56 +34,89 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
 
   if (items.length === 0) {
     return (
-      <section className="bg-white rounded-xl shadow-card border border-milestone-line p-10 text-center">
-        <p className="text-sm font-medium text-gray-500">No active goals yet.</p>
+      <section className="bg-[#07111F] rounded-2xl px-7 py-10 text-center">
+        <p className="text-white/30 text-sm mb-5">No active goals yet.</p>
         <button
           onClick={onNewGoal}
-          className="mt-3 inline-flex items-center gap-1.5 bg-milestone-blue text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors"
+          className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#07111F] px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
         >
-          Create a goal
-          <ArrowRight size={14} />
+          Create your first goal <ArrowRight size={13} />
         </button>
       </section>
     );
   }
 
+  const [first, ...rest] = items;
+  const badge = urgencyBadge(first.milestone.due_date);
+
   return (
-    <section
-      className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden"
-      style={{ opacity: isPending ? 0.7 : 1 }}
-    >
-      <div className="px-5 pt-4 pb-3 border-b border-milestone-line">
-        <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Today&apos;s Focus</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Top {items.length} next actions, ranked by urgency</p>
+    <section className="rounded-2xl overflow-hidden shadow-card-lg" style={{ opacity: isPending ? 0.75 : 1 }}>
+      {/* ── Hero: #1 ranked action ── */}
+      <div className="bg-[#07111F] px-6 py-7">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25 mb-5">
+          Up Next
+        </p>
+        <p className="text-[11px] font-medium text-white/35 mb-1.5 truncate">
+          {first.goal.title}
+        </p>
+        <p className="text-[22px] font-bold text-white leading-snug mb-6">
+          {first.milestone.title}
+        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            {badge ? (
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${badge.cls}`}>
+                {badge.text}
+              </span>
+            ) : (
+              <span className="text-[11px] text-white/20">No deadline</span>
+            )}
+          </div>
+          <button
+            onClick={() => handleComplete(first.milestone.id, first.goal.id)}
+            className="flex items-center gap-2 bg-white hover:bg-gray-100 active:scale-95 text-[#07111F] px-4 py-2 rounded-full text-sm font-bold transition-all shrink-0"
+          >
+            Mark done <ArrowRight size={13} />
+          </button>
+        </div>
       </div>
-      <div className="divide-y divide-milestone-line/70">
-        {items.map(({ goal, milestone }) => {
-          const due = dueDateLabel(milestone.due_date);
-          return (
-            <div
-              key={milestone.id}
-              className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-gray-400 truncate">{goal.title}</p>
-                <p className="text-[15px] font-semibold text-gray-900 leading-snug mt-0.5 truncate">
-                  {milestone.title}
-                </p>
-                {due && (
-                  <p className={`text-[11px] font-semibold mt-0.5 ${due.cls}`}>{due.text}</p>
-                )}
-              </div>
-              <button
-                onClick={() => handleComplete(milestone.id, goal.id)}
-                className="shrink-0 text-gray-300 hover:text-milestone-green active:text-milestone-green transition-colors p-1"
-                aria-label="Mark done"
+
+      {/* ── Rows: #2 and #3 ── */}
+      {rest.length > 0 && (
+        <div className="bg-white divide-y divide-milestone-line/60">
+          {rest.map(({ goal, milestone }, i) => {
+            const rowBadge = urgencyBadge(milestone.due_date);
+            return (
+              <div
+                key={milestone.id}
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/80 transition-colors"
               >
-                <CheckCircle size={22} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
+                <span className="text-[15px] font-black text-gray-200 w-4 shrink-0 tabular-nums select-none">
+                  {i + 2}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] text-gray-400 truncate">{goal.title}</p>
+                  <p className="text-sm font-semibold text-gray-800 leading-snug truncate">
+                    {milestone.title}
+                  </p>
+                  {rowBadge && (
+                    <span className={`text-[10px] font-bold ${rowBadge.cls.split(" ")[1]}`}>
+                      {rowBadge.text}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleComplete(milestone.id, goal.id)}
+                  className="shrink-0 text-gray-200 hover:text-milestone-green active:text-milestone-green transition-colors p-1"
+                  aria-label="Mark done"
+                >
+                  <CheckCircle size={18} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
