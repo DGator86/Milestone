@@ -1,4 +1,4 @@
-import type { Milestone, GoalWithDetails } from "./types";
+import type { Milestone, GoalWithDetails, GoalImportance } from "./types";
 
 export function calcProgress(milestones: Milestone[]): number {
   if (!milestones.length) return 0;
@@ -36,6 +36,80 @@ export function getGoalHealth(goal: GoalWithDetails): GoalHealth {
   if (next?.due_date && new Date(next.due_date) < new Date()) return "at_risk";
   if (ms.some((m) => m.status === "waiting")) return "waiting";
   return "on_track";
+}
+
+// ── Focus Queue ────────────────────────────────────────────────────────────────
+
+export interface FocusItem {
+  goal: GoalWithDetails;
+  milestone: Milestone;
+  score: number;
+}
+
+// ── Tunable weights (keep these obvious and editable) ──────────────────────
+const IMPORTANCE_WEIGHT: Record<GoalImportance, number> = {
+  critical: 3,
+  important: 2,
+  normal: 1,
+};
+
+function daysUntil(dateStr: string | null, now: Date): number | null {
+  if (!dateStr) return null;
+  return Math.ceil((new Date(dateStr).getTime() - now.getTime()) / 86_400_000);
+}
+
+function urgencyScore(dueDate: string | null, now: Date): number {
+  const d = daysUntil(dueDate, now);
+  if (d === null) return 1;
+  if (d < 0) return 5;   // overdue
+  if (d === 0) return 4; // due today
+  if (d <= 2) return 3;
+  if (d <= 7) return 2;
+  return 1;
+}
+
+// Staleness floats neglected goals UP the queue. This is a ranking input,
+// NOT a guilt/decay mechanic — we never punish, we just resurface.
+function stalenessScore(lastActivityAt: string | null, now: Date): number {
+  if (!lastActivityAt) return 2;
+  const days = Math.floor((now.getTime() - new Date(lastActivityAt).getTime()) / 86_400_000);
+  if (days >= 14) return 3;
+  if (days >= 7) return 2;
+  if (days >= 3) return 1.5;
+  return 1;
+}
+
+/**
+ * Ranked "what to do next." Higher score = more urgent.
+ * score = importance × max(goal urgency, next-milestone urgency) × staleness,
+ * with a boost for pinned goals.
+ */
+export function getFocusQueue(goals: GoalWithDetails[], now: Date = new Date()): FocusItem[] {
+  const items: FocusItem[] = [];
+
+  for (const goal of goals) {
+    if (goal.status !== "active") continue;
+    const milestone = getNextMilestone(goal.milestones ?? []);
+    if (!milestone) continue;
+
+    const importance = IMPORTANCE_WEIGHT[goal.importance] ?? 1;
+    const urgency = Math.max(
+      urgencyScore(goal.due_date, now),
+      urgencyScore(milestone.due_date, now),
+    );
+    // TODO: replace goal.updated_at with MAX(activity_log.created_at) per goal
+    // for true "last meaningful action" — pass via Map<goalId, lastActivityAt>
+    const staleness = stalenessScore(goal.updated_at, now);
+    const pinBoost = goal.pinned ? 1.25 : 1;
+
+    items.push({ goal, milestone, score: importance * urgency * staleness * pinBoost });
+  }
+
+  return items.sort((a, b) => b.score - a.score);
+}
+
+export function getTopFocus(goals: GoalWithDetails[], n = 3, now: Date = new Date()): FocusItem[] {
+  return getFocusQueue(goals, now).slice(0, n);
 }
 
 export function getTaskHealth(goals: GoalWithDetails[]) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CriticalPaths from "@/components/home/CriticalPaths";
+import FocusToday from "@/components/home/FocusToday";
 import CreateGoalForm from "@/components/forms/CreateGoalForm";
 import KillList from "@/components/home/KillList";
 import GoalWizard from "@/components/dashboard/GoalWizard";
@@ -67,7 +68,10 @@ export default function DashboardShell({
   return (
     <>
       <GoalWizard groups={groups} open={wizardOpen} onClose={closeWizard} prefill={prefill} />
-      <div className="p-3 md:p-6 max-w-7xl mx-auto">
+      <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
+        {/* Primary: what to do right now */}
+        <FocusToday goals={goals} onNewGoal={openWizard} />
+        {/* Secondary: full goal paths and task queue */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             <CriticalPaths goals={goals} onNewGoal={openWizard} />
