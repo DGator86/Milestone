@@ -33,7 +33,8 @@ export default async function AIPage() {
           <div className="bg-milestone-amber-dim border border-milestone-amber/20 rounded-xl px-5 py-4 mb-4 space-y-1">
             <p className="text-sm font-semibold text-milestone-amber">Assistant not connected</p>
             <p className="text-xs text-milestone-amber/80">
-              Set <code className="bg-white/60 px-1 rounded">ANTHROPIC_API_KEY</code> in your Vercel environment variables to enable the AI assistant.
+              Set <code className="bg-white/60 px-1 rounded">GEMINI_API_KEY</code> in your Vercel environment variables to enable the AI assistant.
+              Get a free key at <code className="bg-white/60 px-1 rounded">aistudio.google.com</code>.
             </p>
           </div>
         )}
