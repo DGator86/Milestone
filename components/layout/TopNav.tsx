@@ -18,6 +18,7 @@ import {
 import type { AppUser } from "@/lib/types";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { signOutAction } from "@/app/auth-actions";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function TopNav({
   user,
@@ -70,7 +71,7 @@ export default function TopNav({
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-milestone-line">
+    <header className="sticky top-0 z-40 bg-white dark:bg-[#0B1929] border-b border-milestone-line dark:border-white/[0.07]">
       <div className="flex items-center h-16 px-4 md:px-6 gap-2">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 mr-2">
@@ -82,7 +83,7 @@ export default function TopNav({
               {(companyName ?? "Milestone").charAt(0).toUpperCase()}
             </span>
           </div>
-          <span className="font-bold text-[17px] text-gray-900 tracking-tight hidden sm:block truncate max-w-[200px]">
+          <span className="font-bold text-[17px] text-gray-900 dark:text-white tracking-tight hidden sm:block truncate max-w-[200px]">
             {companyName ?? "Milestone CRM"}
           </span>
         </Link>
@@ -98,7 +99,7 @@ export default function TopNav({
                 className={`relative px-3.5 py-2 text-sm font-semibold rounded-lg transition-colors ${
                   active
                     ? "text-milestone-blue"
-                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                    : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                 }`}
               >
                 {item.label}
@@ -112,15 +113,16 @@ export default function TopNav({
 
         {/* Right actions */}
         <div className="flex items-center gap-1 ml-auto">
+          <ThemeToggle />
           <button
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            className="p-2 rounded-lg text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
             aria-label="Search"
           >
             <Search size={19} />
           </button>
           <Link
             href="/follow-ups"
-            className="relative p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            className="relative p-2 rounded-lg text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
             aria-label="Notifications"
           >
             <Bell size={19} />
@@ -132,61 +134,61 @@ export default function TopNav({
               onClick={() => setMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 ring-1 ring-black/5">
                 <span className="text-white text-xs font-bold">{initial}</span>
               </div>
-              <span className="text-sm font-semibold text-gray-700 hidden lg:block">
+              <span className="text-sm font-semibold text-gray-700 dark:text-white/80 hidden lg:block">
                 {displayName}
               </span>
               <ChevronDown size={15} className="text-gray-400 hidden lg:block" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-card-lg border border-milestone-line p-1.5 z-50">
-                <div className="px-3 py-2 border-b border-milestone-line mb-1">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0B1929] rounded-xl shadow-card-lg border border-milestone-line dark:border-white/[0.08] p-1.5 z-50">
+                <div className="px-3 py-2 border-b border-milestone-line dark:border-white/[0.08] mb-1">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{displayName}</p>
+                  <p className="text-xs text-gray-400 dark:text-white/40 truncate">{user.email}</p>
                 </div>
                 {isAdmin && (
                   <Link
                     href="/flows"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
                   >
-                    <Workflow size={15} className="text-gray-400" />
+                    <Workflow size={15} className="text-gray-400 dark:text-white/30" />
                     Flows
                   </Link>
                 )}
                 <Link
                   href="/ai"
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
                 >
-                  <Bot size={15} className="text-gray-400" />
+                  <Bot size={15} className="text-gray-400 dark:text-white/30" />
                   AI Assistant
                 </Link>
                 {isAdmin && (
                   <Link
                     href="/team"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
                   >
-                    <Users size={15} className="text-gray-400" />
+                    <Users size={15} className="text-gray-400 dark:text-white/30" />
                     Team
                   </Link>
                 )}
                 {isAdmin && (
                   <Link
                     href="/settings"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
                   >
-                    <Settings size={15} className="text-gray-400" />
+                    <Settings size={15} className="text-gray-400 dark:text-white/30" />
                     Settings
                   </Link>
                 )}
-                <form action={signOutAction} className="border-t border-milestone-line mt-1 pt-1">
+                <form action={signOutAction} className="border-t border-milestone-line dark:border-white/[0.08] mt-1 pt-1">
                   <button
                     type="submit"
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-milestone-red rounded-lg hover:bg-milestone-red-dim transition-colors"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-sm font-medium text-milestone-red rounded-lg hover:bg-milestone-red-dim dark:hover:bg-milestone-red/10 transition-colors"
                   >
                     <LogOut size={15} />
                     Sign out
@@ -199,7 +201,7 @@ export default function TopNav({
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
+            className="md:hidden p-2 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
             aria-label="Menu"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -209,7 +211,7 @@ export default function TopNav({
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <nav className="md:hidden border-t border-milestone-line px-3 py-2 space-y-0.5">
+        <nav className="md:hidden border-t border-milestone-line dark:border-white/[0.07] px-3 py-2 space-y-0.5 bg-white dark:bg-[#0B1929]">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href);
             return (
@@ -218,8 +220,8 @@ export default function TopNav({
                 href={item.href}
                 className={`block px-3 py-2.5 text-sm font-semibold rounded-lg transition-colors ${
                   active
-                    ? "bg-milestone-blue-dim text-milestone-blue"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-milestone-blue-dim dark:bg-milestone-blue/15 text-milestone-blue"
+                    : "text-gray-600 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                 }`}
               >
                 {item.label}

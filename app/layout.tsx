@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
@@ -23,8 +23,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-milestone-bg text-gray-900 antialiased font-sans">{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-milestone-bg dark:bg-[#07111F] text-gray-900 dark:text-white antialiased font-sans">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
