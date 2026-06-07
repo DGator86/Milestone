@@ -1,11 +1,11 @@
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from "./tools";
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const MAX_STEPS = 6;
 
 export function agentConfigured() {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!process.env.GEMINI_API_KEY;
 }
 
 const SYSTEM_PROMPT = `You are Milestone's built-in assistant — a sharp, no-nonsense operator embedded in a goal-centric CRM.
@@ -31,14 +31,15 @@ interface ClientMessage {
   content: string;
 }
 
-type Block =
-  | { type: "text"; text: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
+interface GeminiPart {
+  text?: string;
+  functionCall?: { name: string; args: Record<string, unknown> };
+  functionResponse?: { name: string; response: Record<string, unknown> };
+}
 
-interface AnthropicMessage {
-  role: "user" | "assistant";
-  content: string | Block[];
+interface GeminiContent {
+  role: "user" | "model";
+  parts: GeminiPart[];
 }
 
 export interface AgentResponse {
@@ -47,92 +48,110 @@ export interface AgentResponse {
   mutated: boolean;
 }
 
-const anthropicTools = TOOLS.map((t, i) => ({
-  name: t.name,
-  description: t.description,
-  input_schema: t.input_schema,
-  // Cache the (static) tool list so repeat turns are cheap.
-  ...(i === TOOLS.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
-}));
+// Gemini function declarations, converted from our tool registry.
+const geminiTools = [
+  {
+    functionDeclarations: TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    })),
+  },
+];
 
-async function callAnthropic(messages: AnthropicMessage[]) {
-  const res = await fetch(ANTHROPIC_URL, {
+async function callGemini(contents: GeminiContent[]) {
+  const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+  const res = await fetch(url, {
     method: "POST",
     signal: AbortSignal.timeout(45000),
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY as string,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1500,
-      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      tools: anthropicTools,
-      messages,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents,
+      tools: geminiTools,
+      generationConfig: { maxOutputTokens: 1500 },
     }),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Anthropic ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
   }
   return res.json();
 }
 
 /**
- * Run the agent loop: feed history + today's date, let Claude call tools against
- * the user's data, and loop until it produces a final text reply.
+ * Run the agent loop: feed history + today's date, let Gemini call tools
+ * against the user's data, and loop until it produces a final text reply.
  */
 export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Promise<AgentResponse> {
   const today = new Date().toISOString().slice(0, 10);
-  const messages: AnthropicMessage[] = history.map((m, i) => {
-    if (i === 0 && m.role === "user") {
-      return { role: "user", content: `(Today is ${today}.)\n\n${m.content}` };
-    }
-    return { role: m.role, content: m.content };
-  });
+
+  // Convert client history to Gemini's content format.
+  // Gemini uses "model" where Anthropic used "assistant".
+  const contents: GeminiContent[] = history.map((m, i) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [
+      {
+        text: i === 0 && m.role === "user" ? `(Today is ${today}.)\n\n${m.content}` : m.content,
+      },
+    ],
+  }));
 
   const actions: string[] = [];
   let mutated = false;
 
   for (let step = 0; step < MAX_STEPS; step++) {
-    const data = await callAnthropic(messages);
-    const blocks: Block[] = data.content ?? [];
-    messages.push({ role: "assistant", content: blocks });
+    const data = await callGemini(contents);
 
-    const toolUses = blocks.filter((b): b is Extract<Block, { type: "tool_use" }> => b.type === "tool_use");
+    const candidate = data.candidates?.[0];
+    if (!candidate) throw new Error("No candidate in Gemini response");
 
-    if (data.stop_reason !== "tool_use" || toolUses.length === 0) {
-      const reply = blocks
-        .filter((b): b is Extract<Block, { type: "text" }> => b.type === "text")
-        .map((b) => b.text)
+    const parts: GeminiPart[] = candidate.content?.parts ?? [];
+    const finishReason: string = candidate.finishReason ?? "STOP";
+
+    // Append model turn to history.
+    contents.push({ role: "model", parts });
+
+    const functionCalls = parts.filter((p) => p.functionCall);
+
+    if (finishReason !== "FUNCTION_CALL" && functionCalls.length === 0) {
+      const reply = parts
+        .filter((p) => p.text)
+        .map((p) => p.text!)
         .join("\n")
         .trim();
       return { reply: reply || "Done.", actions, mutated };
     }
 
-    const results: Block[] = [];
-    for (const use of toolUses) {
-      const tool = TOOLS_BY_NAME.get(use.name);
+    // Execute each function call and collect results.
+    const responseParts: GeminiPart[] = [];
+    for (const part of functionCalls) {
+      const { name, args } = part.functionCall!;
+      const tool = TOOLS_BY_NAME.get(name);
       if (!tool) {
-        results.push({ type: "tool_result", tool_use_id: use.id, content: `Unknown tool: ${use.name}`, is_error: true });
+        responseParts.push({
+          functionResponse: { name, response: { error: `Unknown tool: ${name}` } },
+        });
         continue;
       }
       try {
-        const result = await tool.handler(ctx, use.input ?? {});
+        const result = await tool.handler(ctx, args ?? {});
         if (result.error) {
-          results.push({ type: "tool_result", tool_use_id: use.id, content: result.error, is_error: true });
+          responseParts.push({ functionResponse: { name, response: { error: result.error } } });
         } else {
           if (tool.mutates) mutated = true;
           if (result.summary) actions.push(result.summary);
-          results.push({ type: "tool_result", tool_use_id: use.id, content: JSON.stringify({ ok: true, ...result }) });
+          responseParts.push({
+            functionResponse: { name, response: { ok: true, ...result } },
+          });
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Tool failed";
-        results.push({ type: "tool_result", tool_use_id: use.id, content: msg, is_error: true });
+        responseParts.push({ functionResponse: { name, response: { error: msg } } });
       }
     }
-    messages.push({ role: "user", content: results });
+
+    contents.push({ role: "user", parts: responseParts });
   }
 
   return {
