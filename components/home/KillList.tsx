@@ -236,6 +236,9 @@ export default function KillList({ tasks, customers, goals }: Props) {
       const inProgress = goal.milestones?.find((m) => m.status === "in_progress");
       if (!inProgress) continue;
       const { health, daysUntil } = getMilestoneHealth(inProgress.due_date);
+      // Only surface in kill list if overdue or due within 14 days — far-future
+      // and no-date milestones live in FocusToday / Agenda instead.
+      if (health === "none" || health === "on_track") continue;
       items.push({ milestone: inProgress, goalId: goal.id, goalTitle: goal.title, health, daysUntil });
     }
     items.sort((a, b) => HEALTH_ORDER[a.health] - HEALTH_ORDER[b.health]);
@@ -270,7 +273,7 @@ export default function KillList({ tasks, customers, goals }: Props) {
       <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line dark:border-white/[0.08]">
         <div>
           <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Kill List</h2>
-          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{openCount} prioritized actions</p>
+          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{openCount + goalMilestones.length} prioritized actions</p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
