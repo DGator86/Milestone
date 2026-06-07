@@ -14,6 +14,7 @@ import {
   Users,
   Menu,
   X,
+  Upload,
 } from "lucide-react";
 import type { AppUser } from "@/lib/types";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
@@ -166,6 +167,13 @@ export default function TopNav({
                 >
                   <Bot size={15} className="text-gray-400 dark:text-white/30" />
                   AI Assistant
+                </Link>
+                <Link
+                  href="/import"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
+                >
+                  <Upload size={15} className="text-gray-400 dark:text-white/30" />
+                  Import CSV
                 </Link>
                 {isAdmin && (
                   <Link
