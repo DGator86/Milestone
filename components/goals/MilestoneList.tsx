@@ -78,19 +78,19 @@ function MilestoneRow({
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3.5 border-b border-milestone-line last:border-0 hover:bg-gray-50/40 transition-colors ${
+      className={`flex items-center gap-3 px-4 py-3.5 border-b border-milestone-line dark:border-white/[0.06] last:border-0 hover:bg-gray-50/40 dark:hover:bg-white/[0.03] transition-colors ${
         pending || deleting ? "opacity-50 pointer-events-none" : ""
       }`}
     >
       {/* Position badge */}
-      <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-        <span className="text-[11px] font-bold text-gray-400 tabular-nums">{index + 1}</span>
+      <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center shrink-0">
+        <span className="text-[11px] font-bold text-gray-400 dark:text-white/40 tabular-nums">{index + 1}</span>
       </div>
 
       {/* Title */}
       <p
         className={`flex-1 text-sm font-medium leading-snug ${
-          ms.status === "completed" ? "text-gray-400 line-through" : "text-gray-800"
+          ms.status === "completed" ? "text-gray-400 dark:text-white/30 line-through" : "text-gray-800 dark:text-white"
         }`}
       >
         {ms.title}
@@ -202,7 +202,7 @@ export default function MilestoneList({ goal }: { goal: GoalWithDetails }) {
         Milestones
         <span className="ml-2 font-semibold text-gray-300">{milestones.length}</span>
       </p>
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] overflow-hidden">
         {milestones.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-sm text-gray-400">No milestones yet.</p>

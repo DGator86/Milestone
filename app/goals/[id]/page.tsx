@@ -114,13 +114,13 @@ export default async function GoalDetailPage({
       <div className="p-6 max-w-3xl">
         <Link
           href="/goals"
-          className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-5 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 mb-5 transition-colors"
         >
           <ArrowLeft size={14} />
           All Goals
         </Link>
 
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6 mb-6">
+        <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-6 mb-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -143,7 +143,7 @@ export default async function GoalDetailPage({
                   </span>
                 )}
               </div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">{goal.title}</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{goal.title}</h1>
               {goal.due_date && (
                 <p
                   className={`text-xs mt-1.5 font-medium ${
@@ -166,14 +166,14 @@ export default async function GoalDetailPage({
             </div>
           </div>
 
-          <div className="mt-5 pt-5 border-t border-milestone-line">
+          <div className="mt-5 pt-5 border-t border-milestone-line dark:border-white/[0.08]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+              <span className="text-xs font-bold text-gray-400 dark:text-white/40 uppercase tracking-wide">
                 Progress
               </span>
-              <span className="text-sm font-bold text-gray-700 tabular-nums">{progress}%</span>
+              <span className="text-sm font-bold text-gray-700 dark:text-white tabular-nums">{progress}%</span>
             </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 dark:bg-white/[0.08] rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -183,14 +183,14 @@ export default async function GoalDetailPage({
                 }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-gray-400 dark:text-white/40 mt-1.5">
               {completedCount} of {goal.milestones.length} milestones completed
             </p>
           </div>
         </div>
 
         {(goalRaw.crm_customers || goalRaw.crm_opportunities) && (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-4 mb-6 flex flex-wrap items-center gap-2">
+          <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-4 mb-6 flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mr-1">Connected</span>
             {goalRaw.crm_customers && (
               <Link
@@ -217,17 +217,17 @@ export default async function GoalDetailPage({
 
         {activity.length > 0 && (
           <div className="mt-6">
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-white/30 mb-3">
               Recent Activity
             </p>
-            <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden divide-y divide-milestone-line">
+            <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] overflow-hidden divide-y divide-milestone-line dark:divide-white/[0.06]">
               {activity.map((log) => (
                 <div key={log.id} className="px-4 py-3 flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
-                  <p className="text-xs text-gray-600 flex-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/20 shrink-0" />
+                  <p className="text-xs text-gray-600 dark:text-white/60 flex-1">
                     {formatActivityAction(log.action, log.metadata)}
                   </p>
-                  <span className="text-[11px] text-gray-400 shrink-0 tabular-nums">
+                  <span className="text-[11px] text-gray-400 dark:text-white/30 shrink-0 tabular-nums">
                     {formatRelativeTime(log.created_at)}
                   </span>
                 </div>
