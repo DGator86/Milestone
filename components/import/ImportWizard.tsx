@@ -279,7 +279,7 @@ export default function ImportWizard() {
             ))}
           </div>
           <p className="text-[11px] text-gray-300 dark:text-white/20 mt-3">
-            * Required. Column names don't need to match exactly — you'll map them in the next step.
+            * Required. Column names don&apos;t need to match exactly — you&apos;ll map them in the next step.
           </p>
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function ImportWizard() {
           <div className="px-5 py-4 border-b border-milestone-line dark:border-white/[0.08]">
             <p className="text-sm font-bold text-gray-900 dark:text-white">Map your columns</p>
             <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">
-              {rows.length} rows found · Match your CSV headers to Milestone's fields
+              {rows.length} rows found · Match your CSV headers to Milestone&apos;s fields
             </p>
           </div>
           <div className="divide-y divide-milestone-line dark:divide-white/[0.06]">
