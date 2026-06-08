@@ -4,9 +4,9 @@ const GROQ_BASE = "https://api.groq.com/openai/v1/chat/completions";
 const MAX_STEPS = 6;
 
 // Waterfall: tried in order, falls back automatically on 429.
+// llama-3.1-70b-versatile was decommissioned Jan 2025 — omitted intentionally.
 const MODEL_WATERFALL = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-70b-versatile",
   "llama-3.1-8b-instant",
   "gemma2-9b-it",
 ];
@@ -100,7 +100,10 @@ async function callGroq(
     if (res.status === 429) return null; // caller falls back to next model
     if (res.status === 503 && attempt < 2) continue;
     if (res.status === 503) throw new Error("The AI is busy right now — please try again in a moment.");
-    throw new Error(`AI error (${res.status}) — please try again.`);
+    // Surface Groq's error detail when available (helps diagnose bad requests).
+    const errBody = await res.json().catch(() => null) as { error?: { message?: string } } | null;
+    const detail = errBody?.error?.message;
+    throw new Error(detail ? `AI error: ${detail}` : `AI error (${res.status}) — please try again.`);
   }
   return null;
 }
