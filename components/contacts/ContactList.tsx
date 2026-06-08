@@ -117,10 +117,14 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
                       <span className="text-gray-200 text-xs">·</span>
                     )}
                     {contact.email && (
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <a
+                        href={`mailto:${contact.email}`}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-milestone-blue transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Mail size={10} />
                         {contact.email}
-                      </span>
+                      </a>
                     )}
                     {!contact.email && contact.phone && (
                       <span className="flex items-center gap-1 text-xs text-gray-400">
