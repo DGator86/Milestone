@@ -4,11 +4,11 @@ const GROQ_BASE = "https://api.groq.com/openai/v1/chat/completions";
 const MAX_STEPS = 6;
 
 // Waterfall: tried in order, falls back automatically on 429.
-// llama-3.1-70b-versatile was decommissioned Jan 2025 — omitted intentionally.
+// llama-3.1-70b-versatile decommissioned Jan 2025 — omitted intentionally.
+// gemma2-9b-it decommissioned Aug 2025 — omitted intentionally.
 const MODEL_WATERFALL = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
-  "gemma2-9b-it",
 ];
 
 export function agentConfigured() {
@@ -35,7 +35,7 @@ Rules of engagement:
 - Milestones must be concrete next actions (3-7 words each), ordered, and small enough to finish in days not months.
 - When your proposed milestones include any step that involves communicating with someone (e.g. "Schedule meeting", "Send follow-up", "Reach out", "Contact", "Email", "Call"), BEFORE asking "Want me to create this?", ask in a single message: (1) what communication channel to use for each such step (email, phone call, text, LinkedIn, in-person, etc.) and (2) who the specific recipient is if not already clear. Then revise those milestone titles to embed both the channel and person — e.g. "Email Sarah @ Monroe Concrete re: site visit", "Call CEO to schedule Q2 review". Only after getting those answers should you ask for final confirmation.
 - Today's date is provided in the first user turn context. Use it for due dates and overdue logic.
-- Never invent data you didn't retrieve via a tool.`;
+- Never invent data you didn't retrieve via a tool. This includes in proposals and suggestions — do NOT make up names, job titles, or contact details for people. If a person's name or role isn't known, use a generic placeholder like "[contact]" or ask the user who to reach out to.`;
 
 interface ClientMessage {
   role: "user" | "assistant";
