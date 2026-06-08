@@ -64,22 +64,29 @@ const geminiTools = [
 
 async function callGemini(contents: GeminiContent[]) {
   const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-  const res = await fetch(url, {
-    method: "POST",
-    signal: AbortSignal.timeout(45000),
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents,
-      tools: geminiTools,
-      generationConfig: { maxOutputTokens: 1500 },
-    }),
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents,
+    tools: geminiTools,
+    generationConfig: { maxOutputTokens: 1500 },
   });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+
+  // Retry on 503 (overloaded) up to 2 extra attempts with short backoff.
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 1500));
+    const res = await fetch(url, {
+      method: "POST",
+      signal: AbortSignal.timeout(45000),
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    if (res.ok) return res.json();
+    const text = await res.text().catch(() => "");
+    if (res.status === 503 && attempt < 2) continue;
+    if (res.status === 503) throw new Error("The AI is busy right now — please try again in a moment.");
+    if (res.status === 429) throw new Error("Rate limit reached — please wait a moment and try again.");
+    throw new Error(`AI error (${res.status}) — please try again.`);
   }
-  return res.json();
 }
 
 /**
