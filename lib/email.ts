@@ -1,13 +1,19 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@milestone.app";
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  return new Resend(key);
+}
+
+const FROM = () => process.env.RESEND_FROM_EMAIL ?? "noreply@milestone.app";
 
 export async function sendInviteEmail(to: string, tempPassword: string, workspaceName: string) {
-  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  if (!resend) return;
   try {
     await resend.emails.send({
-      from: FROM,
+      from: FROM(),
       to,
       subject: `You've been invited to ${workspaceName} on Milestone`,
       html: `
@@ -27,10 +33,11 @@ export async function sendInviteEmail(to: string, tempPassword: string, workspac
 }
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  if (!process.env.RESEND_API_KEY) return;
+  const resend = getResend();
+  if (!resend) return;
   try {
     await resend.emails.send({
-      from: FROM,
+      from: FROM(),
       to,
       subject: "Reset your Milestone password",
       html: `
