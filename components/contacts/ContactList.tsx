@@ -98,7 +98,7 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
             return (
               <Link
                 key={contact.id}
-                href={`/contacts/${contact.id}`}
+                href={`/follow-ups/${contact.id}`}
                 className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors group"
               >
                 {/* Avatar */}

@@ -1,26 +1,24 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Building2,
   Plus,
   Search,
-  Trash2,
   X,
   Target,
   ChevronUp,
   ChevronDown,
-  Mail,
-  Phone,
-  Globe,
-  UserRound,
-  TrendingUp,
+  ChevronRight,
+  Pencil,
 } from "lucide-react";
 import type { CrmCustomer, CustomerStatus } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
-import { createCustomer, updateCustomer, deleteCustomer } from "@/app/customers/actions";
+import { createCustomer } from "@/app/customers/actions";
 import SlideOver from "./SlideOver";
+import CustomerEditForm from "./CustomerEditForm";
 import CustomFieldInput from "./CustomFieldInput";
 
 const STATUS_STYLES: Record<CustomerStatus, string> = {
@@ -62,14 +60,15 @@ export default function CustomersView({
   contactLabelPlural?: string;
   oppLabelPlural?: string;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("created");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [isPending, startTransition] = useTransition();
 
-  const selected = customers.find((c) => c.id === selectedId) ?? null;
+  const editing = customers.find((c) => c.id === editId) ?? null;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -112,31 +111,16 @@ export default function CustomersView({
     }
   }
 
+  function openDetail(id: string) {
+    router.push(`/customers/${id}`);
+  }
+
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       await createCustomer(formData);
       setShowForm(false);
-    });
-  }
-
-  function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!selected) return;
-    const formData = new FormData(e.currentTarget);
-    const id = selected.id;
-    startTransition(async () => {
-      await updateCustomer(id, formData);
-      setSelectedId(null);
-    });
-  }
-
-  function handleDelete(id: string) {
-    if (!window.confirm(`Delete this ${labelSingular.toLowerCase()}? This cannot be undone.`)) return;
-    startTransition(async () => {
-      await deleteCustomer(id);
-      setSelectedId(null);
     });
   }
 
@@ -159,8 +143,7 @@ export default function CustomersView({
   }
 
   return (
-    <div className="p-6 max-w-6xl" style={{ opacity: isPending ? 0.7 : 1 }}>
-      {/* Header */}
+    <div className="p-4 md:p-6 max-w-6xl" style={{ opacity: isPending ? 0.7 : 1 }}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
@@ -180,7 +163,6 @@ export default function CustomersView({
         </button>
       </div>
 
-      {/* Add form */}
       {showForm && (
         <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 mb-5 animate-fade-up">
           <p className="text-sm font-bold text-gray-900 mb-4">New {labelSingular}</p>
@@ -255,18 +237,16 @@ export default function CustomersView({
         </div>
       )}
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search ${labelPlural.toLowerCase()}…`}
-          className="w-full pl-9 pr-4 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white"
+          className="w-full pl-9 pr-4 py-2.5 text-sm border border-milestone-line rounded-xl focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white"
         />
       </div>
 
-      {/* Table */}
       {filtered.length === 0 ? (
         <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
           <Building2 size={36} className="mx-auto mb-3 text-gray-200" />
@@ -278,43 +258,32 @@ export default function CustomersView({
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-milestone-line bg-gray-50/60">
-                <SortHeader label={labelSingular} k="name" className="pl-5" />
-                <SortHeader label="Type" k="customer_type" className="hidden sm:table-cell" />
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                  Email
-                </th>
-                <SortHeader label="Status" k="status" />
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((customer) => (
-                <tr
-                  key={customer.id}
-                  onClick={() => setSelectedId(customer.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedId(customer.id);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Open ${customer.name}`}
-                  className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/40 transition-colors cursor-pointer"
-                >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center shrink-0">
-                        <Building2 size={14} className="text-milestone-blue" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-gray-900">{customer.name}</p>
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => openDetail(customer.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openDetail(customer.id);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                className="bg-white rounded-xl shadow-card border border-milestone-line p-4 hover:border-milestone-blue/30 transition-colors cursor-pointer"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-milestone-blue-dim flex items-center justify-center shrink-0">
+                    <Building2 size={18} className="text-milestone-blue" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-gray-900 leading-tight">{customer.name}</p>
                           {goalCounts[customer.id] > 0 && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-milestone-blue-dim text-milestone-blue">
                               <Target size={10} />
@@ -322,210 +291,217 @@ export default function CustomersView({
                             </span>
                           )}
                         </div>
-                        {customer.website && (
-                          <p className="text-xs text-gray-400 truncate max-w-[180px]">
-                            {customer.website.replace(/^https?:\/\//, "")}
-                          </p>
+                        {customer.industry && (
+                          <p className="text-xs text-gray-500 mt-0.5">{customer.industry}</p>
                         )}
                       </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditId(customer.id);
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-milestone-blue hover:bg-milestone-blue-dim transition-colors"
+                          aria-label={`Edit ${labelSingular.toLowerCase()}`}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5 hidden sm:table-cell">
-                    {customer.customer_type ? (
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-milestone-blue-dim text-milestone-blue">
-                        {customer.customer_type}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[customer.status]}`}
+                      >
+                        {customer.status[0].toUpperCase() + customer.status.slice(1)}
                       </span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">
-                    {customer.email
-                      ? <a href={`mailto:${customer.email}`} className="hover:text-milestone-blue transition-colors" onClick={(e) => e.stopPropagation()}>{customer.email}</a>
-                      : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_STYLES[customer.status]}`}
-                    >
-                      {customer.status[0].toUpperCase() + customer.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-right text-gray-300">
-                    <ChevronDown size={15} className="-rotate-90 inline" />
-                  </td>
+                      {customer.customer_type && (
+                        <span className="text-[10px] font-medium text-milestone-blue bg-milestone-blue-dim px-2 py-0.5 rounded-full">
+                          {customer.customer_type}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-gray-300 shrink-0 mt-3" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-milestone-line bg-gray-50/60">
+                  <SortHeader label={labelSingular} k="name" className="pl-5" />
+                  <SortHeader label="Type" k="customer_type" className="hidden sm:table-cell" />
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">
+                    Email
+                  </th>
+                  <SortHeader label="Status" k="status" />
+                  <th className="px-4 py-3 w-20" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((customer) => (
+                  <tr
+                    key={customer.id}
+                    onClick={() => openDetail(customer.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openDetail(customer.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/30 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-milestone-blue-dim flex items-center justify-center shrink-0">
+                          <Building2 size={14} className="text-milestone-blue" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-gray-900 group-hover:text-milestone-blue transition-colors">
+                              {customer.name}
+                            </p>
+                            {goalCounts[customer.id] > 0 && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-milestone-blue-dim text-milestone-blue">
+                                <Target size={10} />
+                                {goalCounts[customer.id]}
+                              </span>
+                            )}
+                          </div>
+                          {customer.website && (
+                            <p className="text-xs text-gray-400 truncate max-w-[180px]">
+                              {customer.website.replace(/^https?:\/\//, "")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 hidden sm:table-cell">
+                      {customer.customer_type ? (
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                          {customer.customer_type}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-gray-500 hidden lg:table-cell">
+                      {customer.email
+                        ? (
+                          <a
+                            href={`mailto:${customer.email}`}
+                            className="hover:text-milestone-blue transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {customer.email}
+                          </a>
+                        )
+                        : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_STYLES[customer.status]}`}
+                      >
+                        {customer.status[0].toUpperCase() + customer.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditId(customer.id);
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-milestone-blue hover:bg-milestone-blue-dim transition-colors"
+                        aria-label={`Edit ${labelSingular.toLowerCase()}`}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
-      {/* Detail / edit portal */}
       <SlideOver
-        open={!!selected}
-        onClose={() => setSelectedId(null)}
-        title={selected?.name ?? ""}
-        subtitle={`Edit ${labelSingular.toLowerCase()} · view related records`}
+        open={!!editing}
+        onClose={() => setEditId(null)}
+        title={editing?.name ?? ""}
+        subtitle={`Edit ${labelSingular.toLowerCase()}`}
       >
-        {selected && (
+        {editing && (
           <div className="space-y-6">
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <CustomerEditForm
+              customer={editing}
+              customerTypes={customerTypes}
+              customFields={customFields}
+              labelSingular={labelSingular}
+              onSaved={() => setEditId(null)}
+              onDeleted={() => setEditId(null)}
+            />
+
+            <div className="border-t border-milestone-line pt-4 space-y-4">
               <div>
-                <label className={LABEL}>{labelSingular} Name *</label>
-                <input name="name" required defaultValue={selected.name} className={INPUT} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={LABEL}>Type</label>
-                  <select name="customer_type" className={INPUT} defaultValue={selected.customer_type ?? ""}>
-                    <option value="">—</option>
-                    {customerTypes.map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {contactLabelPlural} ({(contactsByCustomer[editing.id] ?? []).length})
+                </p>
+                {(contactsByCustomer[editing.id] ?? []).length === 0 ? (
+                  <p className="text-xs text-gray-300">No related {contactLabelPlural.toLowerCase()}.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(contactsByCustomer[editing.id] ?? []).map((ct) => (
+                      <Link
+                        key={ct.id}
+                        href={`/contacts/${ct.id}`}
+                        className="flex items-center justify-between rounded-lg border border-milestone-line px-3 py-2 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-gray-800">
+                          {ct.first_name} {ct.last_name}
+                        </span>
+                        {ct.title && <span className="text-xs text-gray-400">{ct.title}</span>}
+                      </Link>
                     ))}
-                    {/* Preserve a legacy value no longer in the configured list */}
-                    {selected.customer_type && !customerTypes.includes(selected.customer_type) && (
-                      <option value={selected.customer_type}>{selected.customer_type}</option>
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label className={LABEL}>Status</label>
-                  <select name="status" className={INPUT} defaultValue={selected.status}>
-                    <option value="prospect">Prospect</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className={LABEL}>Industry</label>
-                <input name="industry" defaultValue={selected.industry ?? ""} className={INPUT} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={LABEL}>Email</label>
-                  <input name="email" type="email" defaultValue={selected.email ?? ""} className={INPUT} />
-                </div>
-                <div>
-                  <label className={LABEL}>Phone</label>
-                  <input name="phone" defaultValue={selected.phone ?? ""} className={INPUT} />
-                </div>
-              </div>
-              <div>
-                <label className={LABEL}>Website</label>
-                <input name="website" defaultValue={selected.website ?? ""} className={INPUT} />
-              </div>
-              <div>
-                <label className={LABEL}>Notes</label>
-                <textarea name="notes" rows={3} defaultValue={selected.notes ?? ""} className={INPUT} />
-              </div>
-              {customFields.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 border-t border-milestone-line pt-4">
-                  {customFields.map((f) => (
-                    <CustomFieldInput key={f.id} field={f} value={selected.custom?.[f.id]} />
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  Save changes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(selected.id)}
-                  className="text-sm text-gray-400 hover:text-milestone-red transition-colors flex items-center gap-1"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              </div>
-            </form>
 
-            {/* Quick contact links */}
-            <div className="flex flex-wrap gap-3 text-xs text-gray-400 border-t border-milestone-line pt-4">
-              {selected.email && (
-                <a href={`mailto:${selected.email}`} className="flex items-center gap-1 hover:text-milestone-blue">
-                  <Mail size={12} /> {selected.email}
-                </a>
-              )}
-              {selected.phone && (
-                <a href={`tel:${selected.phone}`} className="flex items-center gap-1 hover:text-milestone-blue">
-                  <Phone size={12} /> {selected.phone}
-                </a>
-              )}
-              {selected.website && (
-                <a
-                  href={selected.website.startsWith("http") ? selected.website : `https://${selected.website}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 hover:text-milestone-blue"
-                >
-                  <Globe size={12} /> Website
-                </a>
-              )}
-            </div>
-
-            {/* Related contacts */}
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <UserRound size={13} /> {contactLabelPlural}
-                <span className="text-gray-300">({(contactsByCustomer[selected.id] ?? []).length})</span>
-              </p>
-              {(contactsByCustomer[selected.id] ?? []).length === 0 ? (
-                <p className="text-xs text-gray-300">No related {contactLabelPlural.toLowerCase()}.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(contactsByCustomer[selected.id] ?? []).map((ct) => (
-                    <Link
-                      key={ct.id}
-                      href="/contacts"
-                      className="flex items-center justify-between rounded-lg border border-milestone-line px-3 py-2 hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-800">
-                        {ct.first_name} {ct.last_name}
-                      </span>
-                      {ct.title && <span className="text-xs text-gray-400">{ct.title}</span>}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Related opportunities */}
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <TrendingUp size={13} /> {oppLabelPlural}
-                <span className="text-gray-300">({(oppsByCustomer[selected.id] ?? []).length})</span>
-              </p>
-              {(oppsByCustomer[selected.id] ?? []).length === 0 ? (
-                <p className="text-xs text-gray-300">No related {oppLabelPlural.toLowerCase()}.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {(oppsByCustomer[selected.id] ?? []).map((op) => (
-                    <Link
-                      key={op.id}
-                      href="/opportunities"
-                      className="flex items-center justify-between rounded-lg border border-milestone-line px-3 py-2 hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-800 truncate">{op.title}</span>
-                      <span className="flex items-center gap-2 shrink-0">
-                        {op.value != null && (
-                          <span className="text-xs font-bold text-milestone-blue">
-                            ${op.value.toLocaleString()}
-                          </span>
-                        )}
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {oppLabelPlural} ({(oppsByCustomer[editing.id] ?? []).length})
+                </p>
+                {(oppsByCustomer[editing.id] ?? []).length === 0 ? (
+                  <p className="text-xs text-gray-300">No related {oppLabelPlural.toLowerCase()}.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(oppsByCustomer[editing.id] ?? []).map((op) => (
+                      <Link
+                        key={op.id}
+                        href={`/opportunities?highlight=${op.id}`}
+                        className="flex items-center justify-between rounded-lg border border-milestone-line px-3 py-2 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-gray-800 truncate">{op.title}</span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
                           {op.stage}
                         </span>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link
+                href={`/customers/${editing.id}`}
+                className="block text-center text-xs font-semibold text-milestone-blue hover:underline pt-2"
+              >
+                View full profile →
+              </Link>
             </div>
           </div>
         )}

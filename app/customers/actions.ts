@@ -84,6 +84,8 @@ export async function updateCustomer(id: string, formData: FormData) {
     .where(and(eq(crm_customers.id, id), eq(crm_customers.user_id, userId)));
 
   revalidatePath("/customers");
+  revalidatePath(`/customers/${id}`);
+  revalidatePath("/contacts");
 }
 
 export async function deleteCustomer(id: string) {
@@ -95,6 +97,8 @@ export async function deleteCustomer(id: string) {
     .where(and(eq(crm_customers.id, id), eq(crm_customers.user_id, userId)));
 
   revalidatePath("/customers");
+  revalidatePath(`/customers/${id}`);
+  revalidatePath("/contacts");
 }
 
 export async function updateCustomerStatus(id: string, status: string) {
