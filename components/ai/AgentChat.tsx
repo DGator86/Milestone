@@ -59,6 +59,28 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
     [messages, pending, router]
   );
 
+  const retrySend = useCallback(async () => {
+    if (pending) return;
+    setError(null);
+    setPending(true);
+    try {
+      const res = await fetch("/api/ai/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: messages.map(({ role, content }) => ({ role, content })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
+      if (data.mutated) router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Assistant error");
+    } finally {
+      setPending(false);
+      inputRef.current?.focus();
+    }
+  }, [messages, pending, router]);
+
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -141,8 +163,15 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
         )}
 
         {error && (
-          <div className="mx-1 text-xs text-milestone-red bg-milestone-red-dim border border-milestone-red/20 rounded-lg px-3 py-2">
-            {error}
+          <div className="mx-1 text-xs text-milestone-red bg-milestone-red-dim border border-milestone-red/20 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+            <span>{error}</span>
+            <button
+              onClick={retrySend}
+              className="flex items-center gap-1 text-milestone-blue hover:underline shrink-0 font-medium"
+            >
+              <RotateCcw size={11} />
+              Retry
+            </button>
           </div>
         )}
       </div>

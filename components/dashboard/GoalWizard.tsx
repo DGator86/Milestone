@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, ChevronRight, ChevronLeft, Target, Zap, Calendar, RefreshCw,
-  Flag, Plus, Trash2, CalendarDays, Repeat, Sparkles, Send, Bot,
+  Flag, Plus, Trash2, CalendarDays, Repeat, Sparkles, Send, Bot, RotateCcw,
 } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
@@ -130,6 +130,31 @@ export default function GoalWizard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setAiMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
+      if (data.mutated) {
+        router.refresh();
+        setTimeout(onClose, 800);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Assistant error");
+    } finally {
+      setAiPending(false);
+      aiInputRef.current?.focus();
+    }
+  }, [aiMessages, aiPending, router, onClose]);
+
+  const retrySendAi = useCallback(async () => {
+    if (aiPending) return;
+    setAiError(null);
+    setAiPending(true);
+    try {
+      const res = await fetch("/api/ai/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: aiMessages.map(({ role, content }) => ({ role, content })) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
@@ -306,7 +331,16 @@ export default function GoalWizard({
                 </div>
               )}
               {aiError && (
-                <p className="text-xs text-milestone-red text-center py-1">{aiError}</p>
+                <div className="flex items-center justify-between gap-2 text-xs text-milestone-red bg-red-50 border border-milestone-red/20 rounded-xl px-3 py-2">
+                  <span>{aiError}</span>
+                  <button
+                    onClick={retrySendAi}
+                    className="flex items-center gap-1 text-milestone-blue hover:underline shrink-0 font-medium"
+                  >
+                    <RotateCcw size={11} />
+                    Retry
+                  </button>
+                </div>
               )}
             </div>
 
