@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { goals, milestones, activity_log } from "@/db/schema";
 import { eq, and, ne, asc, desc } from "drizzle-orm";
 import { UpdateGoalSchema } from "@/lib/schemas";
+import { resolveGoalCrmLinks } from "@/lib/crm/linkGoals";
 import type { GoalStatus, MilestoneStatus } from "@/lib/types";
 
 export async function updateMilestoneStatus(
@@ -132,15 +133,29 @@ export async function updateGoal(
   }
 
   const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
+  const crmLinks = await resolveGoalCrmLinks(userId, formData);
 
   await db.update(goals)
-    .set({ title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate })
+    .set({
+      title,
+      group_id: groupId,
+      goal_type: goalType,
+      importance,
+      due_date: dueDate,
+      customer_id: crmLinks.customer_id,
+      crm_contact_id: crmLinks.crm_contact_id,
+      opportunity_id: crmLinks.opportunity_id,
+    })
     .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
+  if (crmLinks.customer_id) revalidatePath(`/customers/${crmLinks.customer_id}`);
+  if (crmLinks.crm_contact_id) revalidatePath(`/contacts/${crmLinks.crm_contact_id}`);
   return { success: true };
 }
 

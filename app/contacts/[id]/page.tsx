@@ -7,13 +7,17 @@ import { crm_contacts, crm_customers } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import ContactDetailActions from "@/components/crm/ContactDetailActions";
+import CrmQuickActions from "@/components/crm/CrmQuickActions";
+import ActivityTimeline from "@/components/crm/ActivityTimeline";
+import AddNoteForm from "@/components/crm/AddNoteForm";
+import EmptyCta from "@/components/crm/EmptyCta";
+import TaskListInteractive from "@/components/crm/TaskListInteractive";
 import {
   DetailSection,
   EntityChip,
   KillListItems,
   GoalListItems,
   OpportunityListItems,
-  TaskListItems,
 } from "@/components/crm/CrmDetailSections";
 import { getSettings } from "@/lib/settings";
 import {
@@ -21,17 +25,18 @@ import {
   getOpenOpportunitiesForContact,
   getOpenTasksForContact,
 } from "@/lib/crm/related";
+import { getTimelineForContact } from "@/lib/crm/timeline";
 import {
   ArrowLeft,
   Mail,
   Phone,
   Building2,
-  UserRound,
   Zap,
   Target,
   Handshake,
   CheckSquare,
   StickyNote,
+  Clock,
 } from "lucide-react";
 import type { CrmContact, AppUser } from "@/lib/types";
 
@@ -69,6 +74,9 @@ export default async function CrmContactDetailPage({
     getRelatedGoalsForContact(userId, id, contact.customer_id),
   ]);
 
+  const goalIds = goals.map((g) => g.id);
+  const timeline = await getTimelineForContact(userId, id, contact.customer_id, goalIds);
+
   const fullName = `${contact.first_name} ${contact.last_name}`;
   const initials = `${contact.first_name[0]}${contact.last_name[0]}`.toUpperCase();
   const contactTyped = contact as CrmContact;
@@ -84,7 +92,7 @@ export default async function CrmContactDetailPage({
           All {terms.contacts}
         </Link>
 
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 md:p-6">
+        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 md:p-6 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-milestone-blue flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
@@ -132,10 +140,18 @@ export default async function CrmContactDetailPage({
             />
           </div>
 
+          <CrmQuickActions
+            contactId={id}
+            customerId={contact.customer_id ?? undefined}
+            contactName={fullName}
+            customerName={contact.crm_customers?.name}
+            email={contact.email}
+          />
+
           {contact.notes && (
-            <div className="mt-5 pt-5 border-t border-milestone-line">
+            <div className="pt-4 border-t border-milestone-line">
               <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
-                <StickyNote size={12} /> Notes
+                <StickyNote size={12} /> Profile notes
               </p>
               <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{contact.notes}</p>
             </div>
@@ -143,11 +159,29 @@ export default async function CrmContactDetailPage({
         </div>
 
         <DetailSection title="Milestones to Kill" count={killList.length} icon={Zap}>
-          <KillListItems items={killList} />
+          {killList.length ? (
+            <KillListItems items={killList} />
+          ) : (
+            <EmptyCta
+              message={`No active milestones for ${fullName} yet.`}
+              goalTitle={`Follow up with ${fullName}`}
+              customerId={contact.customer_id ?? undefined}
+              crmContactId={id}
+            />
+          )}
         </DetailSection>
 
         <DetailSection title="Active Goals" count={goals.length} icon={Target}>
-          <GoalListItems goals={goals} />
+          {goals.length ? (
+            <GoalListItems goals={goals} />
+          ) : (
+            <EmptyCta
+              message={`No goals linked to ${fullName} yet.`}
+              goalTitle={`Work with ${fullName}`}
+              customerId={contact.customer_id ?? undefined}
+              crmContactId={id}
+            />
+          )}
         </DetailSection>
 
         <DetailSection title="Open Opportunities" count={opportunities.length} icon={Handshake}>
@@ -155,17 +189,15 @@ export default async function CrmContactDetailPage({
         </DetailSection>
 
         <DetailSection title="Open Tasks" count={tasks.length} icon={CheckSquare}>
-          <TaskListItems tasks={tasks} />
+          <TaskListInteractive tasks={tasks} />
         </DetailSection>
 
-        {!contact.crm_customers && !goals.length && !opportunities.length && (
-          <div className="text-center py-6">
-            <UserRound size={28} className="mx-auto text-gray-200 mb-2" />
-            <p className="text-sm text-gray-400">
-              Link this {terms.contact.toLowerCase()} to a {terms.customer.toLowerCase()} or opportunity to see connected goals.
-            </p>
+        <DetailSection title="Activity" count={timeline.length} icon={Clock}>
+          <AddNoteForm contactId={id} customerId={contact.customer_id ?? undefined} />
+          <div className="mt-4">
+            <ActivityTimeline entries={timeline} />
           </div>
-        )}
+        </DetailSection>
       </div>
     </AppShell>
   );

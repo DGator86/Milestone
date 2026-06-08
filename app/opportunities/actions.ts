@@ -71,6 +71,8 @@ export async function createOpportunity(formData: FormData) {
   });
 
   revalidatePath("/opportunities");
+  if (customerId) revalidatePath(`/customers/${customerId}`);
+  if (contactId) revalidatePath(`/contacts/${contactId}`);
 }
 
 export async function deleteOpportunity(id: string) {
@@ -97,4 +99,5 @@ export async function moveOpportunity(id: string, stage: string) {
     .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
 
   revalidatePath("/opportunities");
+  revalidatePath(`/opportunities/${id}`);
 }

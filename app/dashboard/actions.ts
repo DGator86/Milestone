@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { goals, milestones, activity_log, groups } from "@/db/schema";
 import { eq, and, ne, asc, max } from "drizzle-orm";
 import { CreateGoalSchema } from "@/lib/schemas";
+import { resolveGoalCrmLinks } from "@/lib/crm/linkGoals";
 
 export async function createGoal(formData: FormData) {
   const session = await auth();
@@ -50,6 +51,7 @@ export async function createGoal(formData: FormData) {
   }
 
   const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
+  const crmLinks = await resolveGoalCrmLinks(userId, formData);
 
   const [goal] = await db.insert(goals).values({
     user_id: userId,
@@ -59,6 +61,9 @@ export async function createGoal(formData: FormData) {
     importance,
     status: "active",
     due_date: dueDate || null,
+    customer_id: crmLinks.customer_id,
+    crm_contact_id: crmLinks.crm_contact_id,
+    opportunity_id: crmLinks.opportunity_id,
   }).returning();
 
   if (!goal) redirect("/dashboard?error=Failed+to+create+goal");
@@ -83,6 +88,11 @@ export async function createGoal(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
+  revalidatePath("/goals");
+  if (crmLinks.customer_id) revalidatePath(`/customers/${crmLinks.customer_id}`);
+  if (crmLinks.crm_contact_id) revalidatePath(`/contacts/${crmLinks.crm_contact_id}`);
   redirect("/dashboard?created=1");
 }
 

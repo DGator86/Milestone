@@ -46,6 +46,8 @@ export async function toggleTaskDone(id: string, done: boolean) {
     .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
 
   revalidatePath("/dashboard");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function deleteTask(id: string) {

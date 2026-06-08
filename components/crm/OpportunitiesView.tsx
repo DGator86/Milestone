@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign } from "lucide-react";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
@@ -46,12 +47,14 @@ function OppCard({
   opp,
   stages,
   isMismatched,
+  highlighted,
   onMove,
   onDelete,
 }: {
   opp: CrmOpportunity;
   stages: string[];
   isMismatched: boolean;
+  highlighted?: boolean;
   onMove: (id: string, stage: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -71,9 +74,19 @@ function OppCard({
   }, [open]);
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-3.5 group">
+    <div
+      id={`opp-${opp.id}`}
+      className={`bg-white rounded-xl shadow-card border p-3.5 group transition-colors ${
+        highlighted ? "border-milestone-blue ring-2 ring-milestone-blue/30" : "border-milestone-line"
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-gray-900 text-[13px] leading-snug flex-1">{opp.title}</p>
+        <Link
+          href={`/opportunities/${opp.id}`}
+          className="font-semibold text-gray-900 text-[13px] leading-snug flex-1 hover:text-milestone-blue transition-colors"
+        >
+          {opp.title}
+        </Link>
         <button
           onClick={() => onDelete(opp.id)}
           className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
@@ -83,7 +96,9 @@ function OppCard({
       </div>
 
       {opp.crm_customers && (
-        <p className="text-xs text-gray-400 mt-1">{opp.crm_customers.name}</p>
+        <Link href={`/customers/${opp.crm_customers.id}`} className="text-xs text-milestone-blue hover:underline mt-1 inline-block">
+          {opp.crm_customers.name}
+        </Link>
       )}
       {isMismatched && (
         <p className="text-[10px] text-milestone-amber bg-milestone-amber-dim px-1.5 py-0.5 rounded mt-1 inline-block">
@@ -140,6 +155,8 @@ function OppCard({
   );
 }
 
+type OppPrefill = { customer_id?: string; contact_id?: string; title?: string };
+
 export default function OpportunitiesView({
   opportunities,
   customers,
@@ -148,11 +165,40 @@ export default function OpportunitiesView({
   customFields = [],
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
-}: Props & { customFields?: CustomFieldDef[]; labelPlural?: string; labelSingular?: string }) {
+  highlightId,
+}: Props & {
+  customFields?: CustomFieldDef[];
+  labelPlural?: string;
+  labelSingular?: string;
+  highlightId?: string;
+}) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
   const [formCustomerId, setFormCustomerId] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formContactId, setFormContactId] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("opp_prefill");
+      if (!raw) return;
+      const data = JSON.parse(raw) as OppPrefill;
+      sessionStorage.removeItem("opp_prefill");
+      if (data.customer_id) setFormCustomerId(data.customer_id);
+      if (data.contact_id) setFormContactId(data.contact_id);
+      if (data.title) setFormTitle(data.title);
+      setShowForm(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = document.getElementById(`opp-${highlightId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
 
   // Contacts shown in the add form are limited to the chosen company (when one is set).
   const formContacts = useMemo(
@@ -256,7 +302,14 @@ export default function OpportunitiesView({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="sm:col-span-2 lg:col-span-1">
                 <label className={LABEL}>Title *</label>
-                <input name="title" required placeholder="Enterprise deal with Acme" className={INPUT} />
+                <input
+                  name="title"
+                  required
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  placeholder="Enterprise deal with Acme"
+                  className={INPUT}
+                />
               </div>
               <div>
                 <label className={LABEL}>Value ($)</label>
@@ -290,7 +343,12 @@ export default function OpportunitiesView({
               </div>
               <div>
                 <label className={LABEL}>Contact</label>
-                <select name="contact_id" className={INPUT} defaultValue="" key={formCustomerId}>
+                <select
+                  name="contact_id"
+                  className={INPUT}
+                  value={formContactId}
+                  onChange={(e) => setFormContactId(e.target.value)}
+                >
                   <option value="">No contact</option>
                   {formContacts.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -380,6 +438,7 @@ export default function OpportunitiesView({
                       opp={opp}
                       stages={activeStages}
                       isMismatched={mismatchedIds.has(opp.id)}
+                      highlighted={highlightId === opp.id}
                       onMove={handleMove}
                       onDelete={handleDelete}
                     />

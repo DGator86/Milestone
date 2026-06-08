@@ -483,7 +483,7 @@ export default function CustomersView({
                     {(oppsByCustomer[editing.id] ?? []).map((op) => (
                       <Link
                         key={op.id}
-                        href={`/opportunities?highlight=${op.id}`}
+                        href={`/opportunities/${op.id}`}
                         className="flex items-center justify-between rounded-lg border border-milestone-line px-3 py-2 hover:bg-gray-50 transition-colors"
                       >
                         <span className="text-sm font-medium text-gray-800 truncate">{op.title}</span>

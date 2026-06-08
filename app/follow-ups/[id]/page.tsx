@@ -1,43 +1,68 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
+import { redirect, notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
-import { crm_contacts, crm_customers } from "@/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { contacts, touches } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
-import ContactDetailActions from "@/components/crm/ContactDetailActions";
-import {
-  DetailSection,
-  EntityChip,
-  KillListItems,
-  GoalListItems,
-  OpportunityListItems,
-  TaskListItems,
-} from "@/components/crm/CrmDetailSections";
-import { getSettings } from "@/lib/settings";
-import {
-  getRelatedGoalsForContact,
-  getOpenOpportunitiesForContact,
-  getOpenTasksForContact,
-} from "@/lib/crm/related";
-import {
-  ArrowLeft,
-  Mail,
-  Phone,
-  Building2,
-  UserRound,
-  Zap,
-  Target,
-  Handshake,
-  CheckSquare,
-  StickyNote,
-} from "lucide-react";
-import type { CrmContact, AppUser } from "@/lib/types";
+import LogTouchForm from "@/components/contacts/LogTouchForm";
+import { Phone, Mail, Building2, User, Clock, ArrowLeft, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import type { Touch, TouchType, AppUser } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function CrmContactDetailPage({
+const TOUCH_ICONS: Record<TouchType, string> = {
+  call: "📞",
+  email: "✉️",
+  meeting: "🤝",
+  note: "📝",
+};
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatRelative(date: string) {
+  const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)} years ago`;
+}
+
+function TouchHealthBanner({ lastTouchedAt, frequencyDays }: { lastTouchedAt: string | null; frequencyDays: number | null }) {
+  if (!frequencyDays) return null;
+
+  const daysSince = lastTouchedAt
+    ? Math.floor((Date.now() - new Date(lastTouchedAt).getTime()) / 86400000)
+    : null;
+
+  const isOverdue = daysSince === null || daysSince >= frequencyDays;
+  const isDueSoon = !isOverdue && daysSince >= frequencyDays * 0.75;
+
+  if (!isOverdue && !isDueSoon) return null;
+
+  return (
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-4 ${isOverdue ? "bg-milestone-red-dim" : "bg-milestone-amber-dim"}`}>
+      <AlertCircle size={16} className={isOverdue ? "text-milestone-red shrink-0" : "text-milestone-amber shrink-0"} />
+      <p className={`text-sm font-semibold ${isOverdue ? "text-milestone-red" : "text-milestone-amber"}`}>
+        {isOverdue
+          ? daysSince === null
+            ? "Never touched — time to reach out"
+            : `${daysSince - frequencyDays} days overdue for a touch`
+          : `Due for a touch in ${frequencyDays - daysSince!} days`}
+      </p>
+    </div>
+  );
+}
+
+export default async function ContactDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -48,124 +73,137 @@ export default async function CrmContactDetailPage({
   const userId = await getDataOwnerId();
   const user: AppUser = { id: session.user.id, email: session.user.email };
 
-  const [contact, customersRaw, { terms, customFields }] = await Promise.all([
-    db.query.crm_contacts.findFirst({
-      where: and(eq(crm_contacts.id, id), eq(crm_contacts.user_id, userId)),
-      with: { crm_customers: true },
+  const [contact, touchesRaw] = await Promise.all([
+    db.query.contacts.findFirst({
+      where: and(eq(contacts.id, id), eq(contacts.user_id, userId)),
+      with: { groups: true },
     }),
-    db
-      .select({ id: crm_customers.id, name: crm_customers.name })
-      .from(crm_customers)
-      .where(eq(crm_customers.user_id, userId))
-      .orderBy(asc(crm_customers.name)),
-    getSettings(userId),
+    db.query.touches.findMany({
+      where: and(eq(touches.contact_id, id), eq(touches.user_id, userId)),
+      orderBy: [desc(touches.touched_at)],
+    }),
   ]);
 
   if (!contact) notFound();
 
-  const [opportunities, tasks, { goals, killList }] = await Promise.all([
-    getOpenOpportunitiesForContact(userId, id),
-    getOpenTasksForContact(userId, id),
-    getRelatedGoalsForContact(userId, id, contact.customer_id),
-  ]);
+  const touchList: Touch[] = touchesRaw.slice(0, 50) as unknown as Touch[];
 
-  const fullName = `${contact.first_name} ${contact.last_name}`;
-  const initials = `${contact.first_name[0]}${contact.last_name[0]}`.toUpperCase();
-  const contactTyped = contact as CrmContact;
+  const avatarColors = [
+    "from-blue-500 to-blue-600", "from-purple-500 to-purple-600",
+    "from-green-500 to-green-600", "from-orange-500 to-orange-600",
+  ];
+  const gradientColor = avatarColors[contact.name.charCodeAt(0) % avatarColors.length];
+  const initials = contact.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <AppShell user={user}>
-      <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
+      <div className="p-4 md:p-6 max-w-2xl">
         <Link
-          href="/contacts"
-          className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          href="/follow-ups"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors mb-4"
         >
-          <ArrowLeft size={14} />
-          All {terms.contacts}
+          <ArrowLeft size={13} />
+          Follow-ups
         </Link>
 
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 md:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4 min-w-0">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-milestone-blue flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
-                <span className="text-white text-lg font-bold">{initials}</span>
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900 leading-tight">{fullName}</h1>
-                {contact.title && (
-                  <p className="text-sm text-gray-500 mt-0.5">{contact.title}</p>
+        <div className="bg-white rounded-xl border border-milestone-line shadow-card p-6 mb-4">
+          <div className="flex items-start gap-4">
+            <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${gradientColor} flex items-center justify-center shrink-0`}>
+              <span className="text-white text-lg font-bold">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">{contact.name}</h1>
+              {(contact.role || contact.company) && (
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {[contact.role, contact.company].filter(Boolean).join(" · ")}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-3 mt-3">
+                {contact.email && (
+                  <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-milestone-blue hover:underline">
+                    <Mail size={12} />
+                    {contact.email}
+                  </a>
                 )}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {contact.crm_customers && (
-                    <EntityChip
-                      href={`/customers/${contact.crm_customers.id}`}
-                      label={contact.crm_customers.name}
-                      icon={Building2}
-                    />
-                  )}
-                  {contact.email && (
-                    <a
-                      href={`mailto:${contact.email}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-milestone-blue transition-colors"
-                    >
-                      <Mail size={12} />
-                      {contact.email}
-                    </a>
-                  )}
-                  {contact.phone && (
-                    <a
-                      href={`tel:${contact.phone}`}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-milestone-blue transition-colors"
-                    >
-                      <Phone size={12} />
-                      {contact.phone}
-                    </a>
-                  )}
-                </div>
+                {contact.phone && (
+                  <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700">
+                    <Phone size={12} />
+                    {contact.phone}
+                  </a>
+                )}
+                {contact.groups && (
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <Building2 size={12} />
+                    {contact.groups.name}
+                  </span>
+                )}
               </div>
             </div>
-            <ContactDetailActions
-              contact={contactTyped}
-              customers={customersRaw}
-              customFields={customFields.contact}
-              labelSingular={terms.contact}
-            />
           </div>
 
+          {contact.touch_frequency_days && (
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-milestone-line">
+              <Clock size={13} className="text-gray-400 shrink-0" />
+              <span className="text-xs text-gray-500">
+                Touch every <strong>{contact.touch_frequency_days} days</strong>
+                {contact.last_touched_at && (
+                  <> · Last: {formatRelative(contact.last_touched_at)}</>
+                )}
+              </span>
+            </div>
+          )}
+
           {contact.notes && (
-            <div className="mt-5 pt-5 border-t border-milestone-line">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
-                <StickyNote size={12} /> Notes
+            <div className="mt-4 pt-4 border-t border-milestone-line">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                <User size={11} /> Notes
               </p>
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{contact.notes}</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{contact.notes}</p>
             </div>
           )}
         </div>
 
-        <DetailSection title="Milestones to Kill" count={killList.length} icon={Zap}>
-          <KillListItems items={killList} />
-        </DetailSection>
+        <TouchHealthBanner
+          lastTouchedAt={contact.last_touched_at ?? null}
+          frequencyDays={contact.touch_frequency_days ?? null}
+        />
 
-        <DetailSection title="Active Goals" count={goals.length} icon={Target}>
-          <GoalListItems goals={goals} />
-        </DetailSection>
+        <div className="mb-4">
+          <LogTouchForm contactId={id} />
+        </div>
 
-        <DetailSection title="Open Opportunities" count={opportunities.length} icon={Handshake}>
-          <OpportunityListItems opportunities={opportunities} showCompany />
-        </DetailSection>
-
-        <DetailSection title="Open Tasks" count={tasks.length} icon={CheckSquare}>
-          <TaskListItems tasks={tasks} />
-        </DetailSection>
-
-        {!contact.crm_customers && !goals.length && !opportunities.length && (
-          <div className="text-center py-6">
-            <UserRound size={28} className="mx-auto text-gray-200 mb-2" />
-            <p className="text-sm text-gray-400">
-              Link this {terms.contact.toLowerCase()} to a {terms.customer.toLowerCase()} or opportunity to see connected goals.
-            </p>
-          </div>
-        )}
+        <div>
+          <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+            Touch History
+          </h2>
+          {touchList.length === 0 ? (
+            <div className="bg-white rounded-xl border border-milestone-line p-10 text-center">
+              <p className="text-sm text-gray-400">No touches logged yet.</p>
+              <p className="text-xs text-gray-300 mt-1">Log your first interaction above.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
+              {touchList.map((touch) => (
+                <div
+                  key={touch.id}
+                  className="flex items-start gap-3 px-5 py-4 border-b border-milestone-line last:border-0"
+                >
+                  <span className="text-xl shrink-0 mt-0.5">{TOUCH_ICONS[touch.type]}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-700 capitalize">{touch.type}</span>
+                      <span className="text-gray-200 text-xs">·</span>
+                      <span className="text-xs text-gray-400">{formatDate(touch.touched_at)}</span>
+                    </div>
+                    {touch.notes && (
+                      <p className="text-sm text-gray-600 mt-1 leading-relaxed">{touch.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </AppShell>
   );

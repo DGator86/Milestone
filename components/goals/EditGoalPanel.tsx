@@ -5,12 +5,20 @@ import { Pencil, ChevronDown, X } from "lucide-react";
 import { updateGoal } from "@/app/goals/actions";
 import type { GoalWithDetails, Group } from "@/lib/types";
 
+type CrmLinkOptions = {
+  customers: { id: string; name: string }[];
+  contacts: { id: string; first_name: string; last_name: string; customer_id: string | null }[];
+  opportunities: { id: string; title: string; customer_id: string | null }[];
+};
+
 export default function EditGoalPanel({
   goal,
   groups,
+  crmLinks,
 }: {
   goal: GoalWithDetails;
   groups: Group[];
+  crmLinks?: CrmLinkOptions;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -158,6 +166,55 @@ export default function EditGoalPanel({
               />
             </div>
           </div>
+
+          {crmLinks && (
+            <div className="border-t border-milestone-line dark:border-white/[0.08] pt-4 space-y-3">
+              <p className="text-xs font-bold text-gray-500 dark:text-white/40 uppercase tracking-wide">
+                Connected CRM
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-white/40 mb-1">Company</label>
+                <select
+                  name="customer_id"
+                  defaultValue={goal.customer_id ?? ""}
+                  className="w-full px-3.5 py-2.5 border border-milestone-line dark:border-white/[0.12] rounded-lg text-sm bg-white dark:bg-[#0f2032] text-gray-900 dark:text-white"
+                >
+                  <option value="">None</option>
+                  {crmLinks.customers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-white/40 mb-1">Contact</label>
+                <select
+                  name="crm_contact_id"
+                  defaultValue={goal.crm_contact_id ?? ""}
+                  className="w-full px-3.5 py-2.5 border border-milestone-line dark:border-white/[0.12] rounded-lg text-sm bg-white dark:bg-[#0f2032] text-gray-900 dark:text-white"
+                >
+                  <option value="">None</option>
+                  {crmLinks.contacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.first_name} {c.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-white/40 mb-1">Opportunity</label>
+                <select
+                  name="opportunity_id"
+                  defaultValue={goal.opportunity_id ?? ""}
+                  className="w-full px-3.5 py-2.5 border border-milestone-line dark:border-white/[0.12] rounded-lg text-sm bg-white dark:bg-[#0f2032] text-gray-900 dark:text-white"
+                >
+                  <option value="">None</option>
+                  {crmLinks.opportunities.map((o) => (
+                    <option key={o.id} value={o.id}>{o.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2.5 pt-1">
             <button

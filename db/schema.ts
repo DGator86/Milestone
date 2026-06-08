@@ -60,6 +60,7 @@ export const goals = pgTable("goals", {
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   group_id: uuid("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
   contact_id: uuid("contact_id"),
+  crm_contact_id: uuid("crm_contact_id"),
   customer_id: uuid("customer_id"),
   opportunity_id: uuid("opportunity_id"),
   title: text("title").notNull(),
@@ -190,6 +191,18 @@ export const crm_opportunities = pgTable("crm_opportunities", {
   updated_at: ts("updated_at"),
 });
 
+// ─── CRM Notes (timeline entries across entities) ──────────────────────────────
+export const crm_notes = pgTable("crm_notes", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  contact_id: uuid("contact_id").references(() => crm_contacts.id, { onDelete: "cascade" }),
+  customer_id: uuid("customer_id").references(() => crm_customers.id, { onDelete: "cascade" }),
+  goal_id: uuid("goal_id").references(() => goals.id, { onDelete: "cascade" }),
+  opportunity_id: uuid("opportunity_id").references(() => crm_opportunities.id, { onDelete: "cascade" }),
+  created_at: ts("created_at"),
+});
+
 // ─── CRM Tasks ─────────────────────────────────────────────────────────────────
 export const crm_tasks = pgTable("crm_tasks", {
   id,
@@ -248,6 +261,7 @@ export const groupsRelations = relations(groups, ({ one, many }) => ({
 export const goalsRelations = relations(goals, ({ one, many }) => ({
   groups: one(groups, { fields: [goals.group_id], references: [groups.id] }),
   contacts: one(contacts, { fields: [goals.contact_id], references: [contacts.id] }),
+  crm_contacts: one(crm_contacts, { fields: [goals.crm_contact_id], references: [crm_contacts.id] }),
   crm_customers: one(crm_customers, { fields: [goals.customer_id], references: [crm_customers.id] }),
   crm_opportunities: one(crm_opportunities, { fields: [goals.opportunity_id], references: [crm_opportunities.id] }),
   milestones: many(milestones),
@@ -280,8 +294,18 @@ export const crmCustomersRelations = relations(crm_customers, ({ one, many }) =>
   goals: many(goals),
 }));
 
-export const crmContactsRelations = relations(crm_contacts, ({ one }) => ({
+export const crmContactsRelations = relations(crm_contacts, ({ one, many }) => ({
   crm_customers: one(crm_customers, { fields: [crm_contacts.customer_id], references: [crm_customers.id] }),
+  goals: many(goals),
+  crm_notes: many(crm_notes),
+}));
+
+export const crmNotesRelations = relations(crm_notes, ({ one }) => ({
+  user: one(users, { fields: [crm_notes.user_id], references: [users.id] }),
+  crm_contacts: one(crm_contacts, { fields: [crm_notes.contact_id], references: [crm_contacts.id] }),
+  crm_customers: one(crm_customers, { fields: [crm_notes.customer_id], references: [crm_customers.id] }),
+  goals: one(goals, { fields: [crm_notes.goal_id], references: [goals.id] }),
+  crm_opportunities: one(crm_opportunities, { fields: [crm_notes.opportunity_id], references: [crm_opportunities.id] }),
 }));
 
 export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one, many }) => ({

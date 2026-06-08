@@ -65,7 +65,14 @@ export default function GoalWizard({
   groups: Group[];
   open: boolean;
   onClose: () => void;
-  prefill?: { title?: string; goal_type?: string; milestones?: string[] } | null;
+  prefill?: {
+    title?: string;
+    goal_type?: string;
+    milestones?: string[];
+    customer_id?: string;
+    crm_contact_id?: string;
+    opportunity_id?: string;
+  } | null;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<"ai" | "manual">("ai");
@@ -87,6 +94,11 @@ export default function GoalWizard({
   const aiInputRef = useRef<HTMLTextAreaElement>(null);
 
   const groupId = groups[0]?.id ?? "";
+  const [crmPrefill, setCrmPrefill] = useState<{
+    customer_id?: string;
+    crm_contact_id?: string;
+    opportunity_id?: string;
+  }>({});
 
   useEffect(() => {
     if (!open) return;
@@ -101,6 +113,11 @@ export default function GoalWizard({
       setTitle(p.title ?? "");
       const type = p.goal_type ?? "concrete";
       setGoalType(type);
+      setCrmPrefill({
+        customer_id: p.customer_id,
+        crm_contact_id: p.crm_contact_id,
+        opportunity_id: p.opportunity_id,
+      });
       setItems(
         p.milestones?.length
           ? p.milestones.map((t) => ({ ...newItem(type), title: t }))
@@ -109,6 +126,7 @@ export default function GoalWizard({
     } else {
       setTitle("");
       setGoalType("concrete");
+      setCrmPrefill({});
       setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
     }
   }, [open]);
@@ -211,6 +229,9 @@ export default function GoalWizard({
     formData.set("goal_type", goalType);
     formData.set("importance", "normal");
     if (endDate) formData.set("due_date", endDate);
+    if (crmPrefill.customer_id) formData.set("customer_id", crmPrefill.customer_id);
+    if (crmPrefill.crm_contact_id) formData.set("crm_contact_id", crmPrefill.crm_contact_id);
+    if (crmPrefill.opportunity_id) formData.set("opportunity_id", crmPrefill.opportunity_id);
 
     filled.forEach((it, i) => {
       formData.set(`milestone_${i + 1}`, it.title.trim());

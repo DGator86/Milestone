@@ -47,16 +47,14 @@ export async function getRelatedGoalsForContact(
     .where(and(eq(crm_opportunities.user_id, userId), eq(crm_opportunities.contact_id, contactId)));
 
   const oppIds = oppRows.map((o) => o.id);
-  const linkFilter =
-    customerId && oppIds.length
-      ? or(eq(goals.customer_id, customerId), inArray(goals.opportunity_id, oppIds))
-      : customerId
-        ? eq(goals.customer_id, customerId)
-        : oppIds.length
-          ? inArray(goals.opportunity_id, oppIds)
-          : null;
+  const parts = [
+    eq(goals.crm_contact_id, contactId),
+    customerId ? eq(goals.customer_id, customerId) : null,
+    oppIds.length ? inArray(goals.opportunity_id, oppIds) : null,
+  ].filter(Boolean) as [ReturnType<typeof eq> | ReturnType<typeof inArray>];
 
-  if (!linkFilter) return { goals: [] as GoalWithDetails[], killList: [] };
+  if (!parts.length) return { goals: [] as GoalWithDetails[], killList: [] };
+  const linkFilter = parts.length === 1 ? parts[0] : or(...parts);
 
   const rows = await fetchGoalsWithMilestones(userId, linkFilter);
   const goalList = asGoalWithDetails(rows);
@@ -92,6 +90,23 @@ export async function getOpenTasksForContact(userId: string, contactId: string) 
     where: and(
       eq(crm_tasks.user_id, userId),
       eq(crm_tasks.contact_id, contactId),
+      eq(crm_tasks.done, false)
+    ),
+    orderBy: [desc(crm_tasks.created_at)],
+  });
+}
+
+export async function getRelatedGoalsForOpportunity(userId: string, opportunityId: string) {
+  const rows = await fetchGoalsWithMilestones(userId, eq(goals.opportunity_id, opportunityId));
+  const goalList = asGoalWithDetails(rows);
+  return { goals: goalList, killList: getKillList(goalList) };
+}
+
+export async function getOpenTasksForOpportunity(userId: string, opportunityId: string) {
+  return db.query.crm_tasks.findMany({
+    where: and(
+      eq(crm_tasks.user_id, userId),
+      eq(crm_tasks.opportunity_id, opportunityId),
       eq(crm_tasks.done, false)
     ),
     orderBy: [desc(crm_tasks.created_at)],

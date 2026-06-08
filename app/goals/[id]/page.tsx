@@ -6,7 +6,8 @@ import { goals, groups, activity_log } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
-import { ArrowLeft, Target, Briefcase, Home, Heart, Building2, Handshake } from "lucide-react";
+import { ArrowLeft, Target, Briefcase, Home, Heart, Building2, Handshake, UserRound } from "lucide-react";
+import { getCrmLinkOptions } from "@/lib/crm/linkGoals";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, ActivityLog, AppUser } from "@/lib/types";
 import MilestoneList from "@/components/goals/MilestoneList";
@@ -70,13 +71,14 @@ export default async function GoalDetailPage({
   const userId = await getDataOwnerId();
   const user: AppUser = { id: session.user.id, email: session.user.email };
 
-  const [goalRaw, groupsRaw, activityRaw] = await Promise.all([
+  const [goalRaw, groupsRaw, activityRaw, crmLinkOptions] = await Promise.all([
     db.query.goals.findFirst({
       where: and(eq(goals.id, id), eq(goals.user_id, userId)),
       with: {
         groups: true,
         milestones: true,
         crm_customers: { columns: { id: true, name: true } },
+        crm_contacts: { columns: { id: true, first_name: true, last_name: true } },
         crm_opportunities: { columns: { id: true, title: true } },
       },
     }),
@@ -88,6 +90,7 @@ export default async function GoalDetailPage({
       where: eq(activity_log.goal_id, id),
       orderBy: [desc(activity_log.created_at)],
     }),
+    getCrmLinkOptions(userId),
   ]);
 
   if (!goalRaw) notFound();
@@ -161,7 +164,7 @@ export default async function GoalDetailPage({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <EditGoalPanel goal={goal} groups={safeGroups} />
+              <EditGoalPanel goal={goal} groups={safeGroups} crmLinks={crmLinkOptions} />
               <GoalStatusControls goalId={goal.id} status={goal.status} />
             </div>
           </div>
@@ -189,9 +192,18 @@ export default async function GoalDetailPage({
           </div>
         </div>
 
-        {(goalRaw.crm_customers || goalRaw.crm_opportunities) && (
+        {(goalRaw.crm_customers || goalRaw.crm_contacts || goalRaw.crm_opportunities) && (
           <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-4 mb-6 flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mr-1">Connected</span>
+            {goalRaw.crm_contacts && (
+              <Link
+                href={`/contacts/${goalRaw.crm_contacts.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg px-2.5 py-1.5 transition-colors"
+              >
+                <UserRound size={13} />
+                {goalRaw.crm_contacts.first_name} {goalRaw.crm_contacts.last_name}
+              </Link>
+            )}
             {goalRaw.crm_customers && (
               <Link
                 href={`/customers/${goalRaw.crm_customers.id}`}
@@ -203,7 +215,7 @@ export default async function GoalDetailPage({
             )}
             {goalRaw.crm_opportunities && (
               <Link
-                href={`/opportunities?highlight=${goalRaw.crm_opportunities.id}`}
+                href={`/opportunities/${goalRaw.crm_opportunities.id}`}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-milestone-green bg-milestone-green-dim hover:bg-green-100 rounded-lg px-2.5 py-1.5 transition-colors"
               >
                 <Handshake size={13} />

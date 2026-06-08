@@ -405,13 +405,14 @@ export const TOOLS: AgentTool[] = [
   {
     name: "link_goal_to_crm",
     description:
-      "Connect a goal to a CRM company and/or deal so progress is tracked against the account. Identify the goal by id or title, and the company/deal by name.",
+      "Connect a goal to a CRM company, contact, and/or deal. Identify the goal by id or title; company, contact, and deal by name.",
     input_schema: {
       type: "object",
       properties: {
         goal_id: { type: "string" },
         goal_title: { type: "string" },
         company_name: { type: "string" },
+        contact_name: { type: "string" },
         opportunity_title: { type: "string" },
       },
     },
@@ -420,6 +421,20 @@ export const TOOLS: AgentTool[] = [
       const goal = await findGoal(userId, str(input.goal_id), str(input.goal_title));
       if (!goal) return { error: "Goal not found" };
       const customer = await findCustomer(userId, str(input.company_name));
+      let contact;
+      const contactName = str(input.contact_name);
+      if (contactName) {
+        const parts = contactName.trim().split(/\s+/);
+        const matches = await db.query.crm_contacts.findMany({
+          where: and(
+            eq(crm_contacts.user_id, userId),
+            parts.length >= 2
+              ? and(ilike(crm_contacts.first_name, `%${parts[0]}%`), ilike(crm_contacts.last_name, `%${parts.slice(1).join(" ")}%`))
+              : ilike(crm_contacts.first_name, `%${contactName}%`)
+          ),
+        });
+        contact = matches[0];
+      }
       let opp;
       const oppTitle = str(input.opportunity_title);
       if (oppTitle) {
@@ -428,12 +443,20 @@ export const TOOLS: AgentTool[] = [
         });
         opp = matches[0];
       }
-      if (!customer && !opp) return { error: "No matching company or deal found to link" };
+      if (!customer && !contact && !opp) return { error: "No matching company, contact, or deal found to link" };
       await db
         .update(goals)
-        .set({ ...(customer ? { customer_id: customer.id } : {}), ...(opp ? { opportunity_id: opp.id } : {}) })
+        .set({
+          ...(customer ? { customer_id: customer.id } : {}),
+          ...(contact ? { crm_contact_id: contact.id } : {}),
+          ...(opp ? { opportunity_id: opp.id } : {}),
+        })
         .where(and(eq(goals.id, goal.id), eq(goals.user_id, userId)));
-      const parts = [customer ? `company ${customer.name}` : null, opp ? `deal ${opp.title}` : null].filter(Boolean);
+      const parts = [
+        customer ? `company ${customer.name}` : null,
+        contact ? `contact ${contact.first_name} ${contact.last_name}` : null,
+        opp ? `deal ${opp.title}` : null,
+      ].filter(Boolean);
       return { summary: `Linked “${goal.title}” to ${parts.join(" and ")}`, data: { goal_id: goal.id } };
     },
   },

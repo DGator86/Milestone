@@ -12,7 +12,14 @@ import type { GoalWithDetails, Group, CrmTask, CrmCustomer } from "@/lib/types";
 const WIZARD_KEY = "wizard_dismissed";
 
 type ViewTab = "focus" | "agenda" | "calendar";
-type GoalPrefill = { title?: string; goal_type?: string; milestones?: string[] };
+type GoalPrefill = {
+  title?: string;
+  goal_type?: string;
+  milestones?: string[];
+  customer_id?: string;
+  crm_contact_id?: string;
+  opportunity_id?: string;
+};
 
 function isGoalPrefill(v: unknown): v is GoalPrefill {
   if (!v || typeof v !== "object") return false;
@@ -21,7 +28,10 @@ function isGoalPrefill(v: unknown): v is GoalPrefill {
     (o.title === undefined || typeof o.title === "string") &&
     (o.goal_type === undefined || typeof o.goal_type === "string") &&
     (o.milestones === undefined ||
-      (Array.isArray(o.milestones) && o.milestones.every((m) => typeof m === "string")))
+      (Array.isArray(o.milestones) && o.milestones.every((m) => typeof m === "string"))) &&
+    (o.customer_id === undefined || typeof o.customer_id === "string") &&
+    (o.crm_contact_id === undefined || typeof o.crm_contact_id === "string") &&
+    (o.opportunity_id === undefined || typeof o.opportunity_id === "string")
   );
 }
 

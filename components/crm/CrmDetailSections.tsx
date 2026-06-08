@@ -157,7 +157,7 @@ export function OpportunityListItems({
       {opportunities.map((opp) => (
         <Link
           key={opp.id}
-          href={`/opportunities?highlight=${opp.id}`}
+          href={`/opportunities/${opp.id}`}
           className="flex items-center justify-between gap-3 rounded-xl border border-milestone-line px-3.5 py-3 hover:bg-gray-50 transition-colors group"
         >
           <div className="flex items-center gap-3 min-w-0">

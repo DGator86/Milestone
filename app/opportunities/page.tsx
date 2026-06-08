@@ -11,7 +11,12 @@ import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, AppUser } from "
 
 export const dynamic = "force-dynamic";
 
-export default async function OpportunitiesPage() {
+export default async function OpportunitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>;
+}) {
+  const { highlight } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = await getDataOwnerId();
@@ -57,6 +62,7 @@ export default async function OpportunitiesPage() {
         customFields={customFields.opportunity}
         labelPlural={terms.opportunities}
         labelSingular={terms.opportunity}
+        highlightId={highlight}
       />
     </AppShell>
   );
