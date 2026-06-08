@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   X, ChevronRight, ChevronLeft, Target, Zap, Calendar, RefreshCw,
-  Flag, Plus, Trash2, CalendarDays, Repeat,
+  Flag, Plus, Trash2, CalendarDays, Repeat, Sparkles, Send, Bot,
 } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
@@ -49,6 +50,12 @@ function newItem(goalType: string): MilestoneItem {
   };
 }
 
+interface AiMessage {
+  role: "user" | "assistant";
+  content: string;
+  actions?: string[];
+}
+
 export default function GoalWizard({
   groups,
   open,
@@ -60,6 +67,8 @@ export default function GoalWizard({
   onClose: () => void;
   prefill?: { title?: string; goal_type?: string; milestones?: string[] } | null;
 }) {
+  const router = useRouter();
+  const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -69,11 +78,23 @@ export default function GoalWizard({
   const prefillRef = useRef(prefill);
   prefillRef.current = prefill;
 
+  // AI chat state
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiPending, setAiPending] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const aiScrollRef = useRef<HTMLDivElement>(null);
+  const aiInputRef = useRef<HTMLTextAreaElement>(null);
+
   const groupId = groups[0]?.id ?? "";
 
   useEffect(() => {
     if (!open) return;
     const p = prefillRef.current;
+    setMode("ai");
+    setAiMessages([]);
+    setAiInput("");
+    setAiError(null);
     setStep(1);
     setEndDate("");
     if (p) {
@@ -91,6 +112,39 @@ export default function GoalWizard({
       setItems([newItem("concrete"), newItem("concrete"), newItem("concrete")]);
     }
   }, [open]);
+
+  useEffect(() => {
+    aiScrollRef.current?.scrollTo({ top: aiScrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [aiMessages, aiPending]);
+
+  const sendAi = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || aiPending) return;
+    setAiError(null);
+    const next: AiMessage[] = [...aiMessages, { role: "user", content: trimmed }];
+    setAiMessages(next);
+    setAiInput("");
+    setAiPending(true);
+    try {
+      const res = await fetch("/api/ai/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setAiMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
+      if (data.mutated) {
+        router.refresh();
+        setTimeout(onClose, 800);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "Assistant error");
+    } finally {
+      setAiPending(false);
+      aiInputRef.current?.focus();
+    }
+  }, [aiMessages, aiPending, router, onClose]);
 
   function dismiss() {
     onClose();
@@ -162,11 +216,11 @@ export default function GoalWizard({
               <div className="flex items-center gap-2 mb-1">
                 <Flag size={15} className="text-blue-200" />
                 <span className="text-blue-200 text-xs font-semibold uppercase tracking-widest">
-                  New Work Goal
+                  New Goal
                 </span>
               </div>
               <p className="text-white text-lg font-bold leading-tight">
-                {step === 1 ? "What do you want to achieve?" : "Break it into steps"}
+                {mode === "ai" ? "Describe it. I'll plan the steps." : step === 1 ? "What do you want to achieve?" : "Break it into steps"}
               </p>
             </div>
             <button
@@ -179,24 +233,118 @@ export default function GoalWizard({
           </div>
 
           <div className="flex items-center gap-2 mt-4">
-            {[1, 2].map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
-                    s === step ? "bg-white text-milestone-blue"
-                      : s < step ? "bg-white/30 text-white"
-                      : "bg-white/15 text-white/50"
-                  }`}
-                >
-                  {s}
-                </div>
-                {s < 2 && <div className={`w-8 h-px ${s < step ? "bg-white/60" : "bg-white/20"}`} />}
+            {mode === "ai" ? (
+              <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
+                <Sparkles size={11} className="text-blue-200" />
+                <span className="text-blue-100 text-xs font-semibold">AI</span>
               </div>
-            ))}
-            <span className="ml-1 text-blue-200 text-xs">Step {step} of 2</span>
+            ) : (
+              <>
+                {[1, 2].map((s) => (
+                  <div key={s} className="flex items-center gap-2">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
+                        s === step ? "bg-white text-milestone-blue"
+                          : s < step ? "bg-white/30 text-white"
+                          : "bg-white/15 text-white/50"
+                      }`}
+                    >
+                      {s}
+                    </div>
+                    {s < 2 && <div className={`w-8 h-px ${s < step ? "bg-white/60" : "bg-white/20"}`} />}
+                  </div>
+                ))}
+                <span className="ml-1 text-blue-200 text-xs">Step {step} of 2</span>
+              </>
+            )}
           </div>
         </div>
 
+        {/* ── AI MODE ───────────────────────────────────────────────── */}
+        {mode === "ai" && (
+          <>
+            <div ref={aiScrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[220px]">
+              {aiMessages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full pt-6 pb-2 text-center">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center mb-3 shadow-sm shadow-blue-200">
+                    <Bot size={20} className="text-white" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700">Tell me the goal</p>
+                  <p className="text-xs text-gray-400 mt-1 max-w-[220px]">
+                    I&apos;ll break it into concrete milestones and ask before creating anything.
+                  </p>
+                </div>
+              )}
+              {aiMessages.map((m, i) => (
+                <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                  {m.role === "assistant" && (
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot size={13} className="text-white" />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                      m.role === "user"
+                        ? "bg-milestone-blue text-white rounded-tr-sm"
+                        : "bg-gray-100 text-gray-800 rounded-tl-sm"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {aiPending && (
+                <div className="flex gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0">
+                    <Bot size={13} className="text-white" />
+                  </div>
+                  <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1">
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: `${d * 0.15}s` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {aiError && (
+                <p className="text-xs text-milestone-red text-center py-1">{aiError}</p>
+              )}
+            </div>
+
+            <div className="px-4 pb-3 pt-2 border-t border-gray-100 shrink-0 space-y-2">
+              <div className="flex gap-2 items-end">
+                <textarea
+                  ref={aiInputRef}
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAi(aiInput); }
+                  }}
+                  placeholder="e.g. Launch the new pricing page by end of Q3…"
+                  rows={2}
+                  autoFocus
+                  className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-milestone-blue placeholder:text-gray-300"
+                />
+                <button
+                  onClick={() => sendAi(aiInput)}
+                  disabled={!aiInput.trim() || aiPending}
+                  className="p-2.5 bg-milestone-blue text-white rounded-xl hover:bg-blue-600 disabled:opacity-40 transition-colors shrink-0"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+              <button
+                onClick={() => setMode("manual")}
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Create manually instead →
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── MANUAL MODE ───────────────────────────────────────────── */}
+        {mode === "manual" && (
+          <>
         <div className="overflow-y-auto flex-1 px-6 py-5">
           {step === 1 && (
             <div className="space-y-4">
@@ -295,10 +443,11 @@ export default function GoalWizard({
             </button>
           ) : (
             <button
-              onClick={dismiss}
-              className="text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => setMode("ai")}
+              className="flex items-center gap-1 text-sm font-semibold text-gray-400 hover:text-milestone-blue transition-colors"
             >
-              Skip
+              <Sparkles size={14} />
+              Use AI
             </button>
           )}
           <div className="flex-1" />
@@ -322,6 +471,8 @@ export default function GoalWizard({
             </button>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
