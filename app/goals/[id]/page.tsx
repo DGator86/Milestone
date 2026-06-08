@@ -194,7 +194,7 @@ export default async function GoalDetailPage({
             <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mr-1">Connected</span>
             {goalRaw.crm_customers && (
               <Link
-                href="/customers"
+                href={`/customers/${goalRaw.crm_customers.id}`}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-milestone-blue bg-milestone-blue-dim hover:bg-blue-100 rounded-lg px-2.5 py-1.5 transition-colors"
               >
                 <Building2 size={13} />
@@ -203,7 +203,7 @@ export default async function GoalDetailPage({
             )}
             {goalRaw.crm_opportunities && (
               <Link
-                href="/opportunities"
+                href={`/opportunities?highlight=${goalRaw.crm_opportunities.id}`}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-milestone-green bg-milestone-green-dim hover:bg-green-100 rounded-lg px-2.5 py-1.5 transition-colors"
               >
                 <Handshake size={13} />

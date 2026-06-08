@@ -37,7 +37,7 @@ export async function logTouch(formData: FormData) {
     touched_at: parsed.data.touched_at ?? new Date().toISOString(),
   });
 
-  revalidatePath(`/contacts/${parsed.data.contact_id}`);
+  revalidatePath(`/follow-ups/${parsed.data.contact_id}`);
   revalidatePath("/follow-ups");
   revalidatePath("/dashboard");
 }

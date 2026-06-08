@@ -96,7 +96,7 @@ export default async function FollowUpsPage() {
               return (
                 <Link
                   key={contact.id}
-                  href={`/contacts/${contact.id}`}
+                  href={`/follow-ups/${contact.id}`}
                   className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors group"
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
