@@ -95,7 +95,8 @@ async function callGroq(
         messages,
         tools: groqTools,
         tool_choice: "auto",
-        max_tokens: 2000,
+        max_tokens: 4096,
+        parallel_tool_calls: false,
       }),
     });
     if (res.ok) return res.json() as Promise<Record<string, unknown>>;
