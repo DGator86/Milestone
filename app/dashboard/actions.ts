@@ -140,12 +140,12 @@ export async function ensureDefaults() {
   if (!session?.user?.id) return;
   const userId = await getDataOwnerId();
 
-  const existing = await db.query.groups.findFirst({
-    where: eq(groups.user_id, userId),
-  });
-  if (existing) return;
+  const existing = await db.query.groups.findMany({ where: eq(groups.user_id, userId) });
+  if (existing.length > 0) return;
 
   await db.insert(groups).values([
     { user_id: userId, name: "Work", color: "#1769FF", sort_order: 0 },
+    { user_id: userId, name: "Home", color: "#36A852", sort_order: 1 },
+    { user_id: userId, name: "Health", color: "#F8B400", sort_order: 2 },
   ]);
 }

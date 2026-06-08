@@ -3,9 +3,10 @@ import { Suspense } from "react";
 import { auth, signOut } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
-import { goals, groups, crm_tasks, crm_customers, users } from "@/db/schema";
+import { goals, groups, crm_tasks, crm_customers, users, user_settings } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { ensureDefaults } from "./actions";
+import { getIsAdmin } from "@/lib/admin";
 import AppShell from "@/components/layout/AppShell";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import RealtimeDashboard from "@/components/dashboard/RealtimeDashboard";
@@ -22,6 +23,15 @@ export default async function DashboardPage() {
   const dbUser = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   if (!dbUser) {
     await signOut({ redirectTo: "/login" });
+  }
+
+  // Redirect new admin users through onboarding before their first dashboard load.
+  const isAdmin = await getIsAdmin(session.user.id);
+  if (isAdmin) {
+    const settingsRow = await db.query.user_settings.findFirst({
+      where: eq(user_settings.user_id, session.user.id),
+    });
+    if (!settingsRow?.onboarding_completed_at) redirect("/onboarding");
   }
 
   const userId = await getDataOwnerId();

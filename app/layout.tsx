@@ -6,13 +6,26 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: "Milestone – Track the path. Kill the next step.",
-  description: "A no-bullshit goal CRM that tracks goals as milestone paths.",
+  description: "A no-bullshit goal CRM that turns vague goals into concrete milestones. Plan, track, and kill the next step — every day.",
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/favicon.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Milestone" },
+  openGraph: {
+    type: "website",
+    siteName: "Milestone",
+    title: "Milestone – Track the path. Kill the next step.",
+    description: "A no-bullshit goal CRM that turns vague goals into concrete milestones.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Milestone" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Milestone – Track the path. Kill the next step.",
+    description: "A no-bullshit goal CRM that turns vague goals into concrete milestones.",
+    images: ["/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {

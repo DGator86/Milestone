@@ -20,6 +20,7 @@ const protectedRoutes = [
   "/follow-ups",
   "/pipeline",
   "/reports",
+  "/onboarding",
 ];
 
 const authRoutes = ["/login", "/signup"];
