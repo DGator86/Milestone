@@ -62,7 +62,7 @@ const geminiTools = [
       parameters: t.input_schema,
     })),
   },
-  { googleSearch: {} },
+  { google_search: {} },
 ];
 
 async function callGemini(contents: GeminiContent[]) {
