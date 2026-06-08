@@ -12,7 +12,7 @@ const MODEL_WATERFALL = [
 ];
 
 export function agentConfigured() {
-  return !!process.env.GROQ_API_KEY;
+  return !!process.env.Groq_API_2;
 }
 
 const SYSTEM_PROMPT = `You are Milestone's built-in assistant — a sharp, no-nonsense operator embedded in a goal-centric CRM.
@@ -86,7 +86,7 @@ async function callGroq(
       signal: AbortSignal.timeout(45000),
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${process.env.Groq_API_2}`,
       },
       body: JSON.stringify({
         model,
