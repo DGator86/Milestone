@@ -6,9 +6,11 @@ const MAX_STEPS = 6;
 // Waterfall: tried in order, falls back automatically on 429.
 // llama-3.1-70b-versatile decommissioned Jan 2025 — omitted intentionally.
 // gemma2-9b-it decommissioned Aug 2025 — omitted intentionally.
+// llama-3.3-70b-specdec: 8K context, tool use supported — last resort fallback.
 const MODEL_WATERFALL = [
   "llama-3.3-70b-versatile",
   "llama-3.1-8b-instant",
+  "llama-3.3-70b-specdec",
 ];
 
 export function agentConfigured() {
