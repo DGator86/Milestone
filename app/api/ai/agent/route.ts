@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   if (!agentConfigured()) {
     return NextResponse.json(
-      { error: "The AI assistant isn't configured yet. Add an ANTHROPIC_API_KEY environment variable to enable it." },
+      { error: "The AI assistant isn't configured yet. Add a GROQ_API_KEY environment variable to enable it." },
       { status: 503 }
     );
   }
