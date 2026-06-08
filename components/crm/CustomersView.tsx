@@ -340,7 +340,9 @@ export default function CustomersView({
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">
-                    {customer.email ?? <span className="text-gray-300">—</span>}
+                    {customer.email
+                      ? <a href={`mailto:${customer.email}`} className="hover:text-milestone-blue transition-colors" onClick={(e) => e.stopPropagation()}>{customer.email}</a>
+                      : <span className="text-gray-300">—</span>}
                   </td>
                   <td className="px-4 py-3.5">
                     <span

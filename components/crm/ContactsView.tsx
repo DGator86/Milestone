@@ -241,7 +241,9 @@ export default function ContactsView({
                       {contact.title ?? <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3.5 text-gray-500 hidden md:table-cell">
-                      {contact.email ?? <span className="text-gray-300">—</span>}
+                      {contact.email
+                        ? <a href={`mailto:${contact.email}`} className="hover:text-milestone-blue transition-colors" onClick={(e) => e.stopPropagation()}>{contact.email}</a>
+                        : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-4 py-3.5 text-gray-500 hidden lg:table-cell">
                       {contact.phone ?? <span className="text-gray-300">—</span>}
