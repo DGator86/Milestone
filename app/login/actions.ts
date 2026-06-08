@@ -4,6 +4,10 @@ import { signIn as authSignIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
+export async function signInWithGoogle() {
+  await authSignIn("google", { redirectTo: "/dashboard" });
+}
+
 export async function signIn_action(formData: FormData) {
   const emailRaw = formData.get("email");
   const passwordRaw = formData.get("password");

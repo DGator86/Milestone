@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { users, workspaces } from "@/db/schema";
 import { requireAdmin, countAdmins } from "@/lib/admin";
 import { getWorkspace } from "@/lib/workspace";
+import { sendInviteEmail } from "@/lib/email";
 
 function back(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
@@ -54,6 +55,7 @@ export async function inviteMember(formData: FormData): Promise<void> {
 
   const password_hash = await bcrypt.hash(password, 10);
   await db.insert(users).values({ email, password_hash, is_admin: isAdmin, workspace_id: ws.id });
+  void sendInviteEmail(email, password, ws.name);
 
   revalidatePath("/team");
   back({ ok: `Invited ${email}` });

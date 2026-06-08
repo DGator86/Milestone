@@ -8,12 +8,12 @@ const ts = (col: string) => timestamp(col, { withTimezone: true, mode: "string" 
 export const users = pgTable("users", {
   id,
   email: text("email").notNull().unique(),
-  password_hash: text("password_hash").notNull(),
+  password_hash: text("password_hash"), // nullable — OAuth users have no password
   name: text("name"),
   is_admin: boolean("is_admin").notNull().default(true),
-  // The workspace this user belongs to. Members of the same workspace share all
-  // data (CRM, goals, contacts, flows, settings). Lazily assigned on first use.
   workspace_id: uuid("workspace_id").references((): AnyPgColumn => workspaces.id, { onDelete: "set null" }),
+  stripe_customer_id: text("stripe_customer_id"),
+  subscription_status: text("subscription_status").notNull().default("free"),
   created_at: ts("created_at"),
 }, (t) => [index("users_workspace_id_idx").on(t.workspace_id)]);
 
@@ -40,8 +40,19 @@ export const user_settings = pgTable("user_settings", {
   preferences: jsonb("preferences").$type<Record<string, boolean>>().notNull().default({}),
   custom_fields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
   customer_types: jsonb("customer_types").$type<string[]>().notNull().default([]),
+  onboarding_completed_at: timestamp("onboarding_completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
+});
+
+// ─── Password Reset Tokens ─────────────────────────────────────────────────────
+export const password_reset_tokens = pgTable("password_reset_tokens", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+  used_at: timestamp("used_at", { withTimezone: true, mode: "string" }),
+  created_at: ts("created_at"),
 });
 
 // ─── Groups ────────────────────────────────────────────────────────────────────
