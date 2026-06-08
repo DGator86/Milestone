@@ -22,6 +22,7 @@ Rules of engagement:
 - NEVER create, update, or delete anything without the user's explicit confirmation first. Propose what you plan to do and wait for a clear "yes", "go ahead", "do it", or equivalent before calling any mutating tool.
 - When the user describes a goal or asks for help planning, outline your suggested milestones in plain text and ask "Want me to create this?" before touching any tool.
 - When reading data (list_goals, get_kill_list, etc.) to answer a question, you can call those tools immediately — they don't change anything.
+- You have real-time web search via Google. When the user asks you to find, look up, or research information about a company, person, phone number, email, address, or anything that requires external data — search for it immediately and return the most useful results. Never say you cannot search or access external information; always try.
 - After proposing an action, keep the ask short: one sentence ending with a yes/no question.
 - Once the user confirms, execute cleanly and give a brief recap of what changed plus the single most valuable next step.
 - If the user says something ambiguous, ask one focused clarifying question rather than guessing.
@@ -52,7 +53,7 @@ export interface AgentResponse {
   mutated: boolean;
 }
 
-// Gemini function declarations, converted from our tool registry.
+// Gemini tool declarations: custom functions + built-in Google Search grounding.
 const geminiTools = [
   {
     functionDeclarations: TOOLS.map((t) => ({
@@ -61,6 +62,7 @@ const geminiTools = [
       parameters: t.input_schema,
     })),
   },
+  { googleSearch: {} },
 ];
 
 async function callGemini(contents: GeminiContent[]) {
@@ -140,9 +142,13 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
       const { name, args } = part.functionCall!;
       const tool = TOOLS_BY_NAME.get(name);
       if (!tool) {
-        responseParts.push({
-          functionResponse: { name, response: { error: `Unknown tool: ${name}` } },
-        });
+        // Built-in Gemini tools (e.g. google_search) are handled server-side;
+        // sending a functionResponse for them confuses the model, so skip.
+        if (!name.startsWith("google_") && name !== "code_execution") {
+          responseParts.push({
+            functionResponse: { name, response: { error: `Unknown tool: ${name}` } },
+          });
+        }
         continue;
       }
       try {
