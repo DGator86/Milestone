@@ -1,20 +1,19 @@
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from "./tools";
 
-const GROQ_BASE = "https://api.groq.com/openai/v1/chat/completions";
+// Google Gemini via its OpenAI-compatible endpoint.
+// Free tier: 60 RPM, 1M TPM — far more headroom than Groq's free plan.
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const MAX_STEPS = 6;
 
-// Waterfall: tried in order, falls back automatically on 429.
-// llama-3.1-70b-versatile decommissioned Jan 2025 — omitted intentionally.
-// gemma2-9b-it decommissioned Aug 2025 — omitted intentionally.
-// llama-3.3-70b-specdec: 8K context, tool use supported — last resort fallback.
+// Waterfall: tried in order, falls back automatically on 429/503.
 const MODEL_WATERFALL = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-specdec",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-2.0-flash-lite",
 ];
 
 export function agentConfigured() {
-  return !!process.env.Groq_API_2;
+  return !!process.env.GEMINI_API_KEY;
 }
 
 const SYSTEM_PROMPT = `You are Milestone's built-in assistant — a sharp, no-nonsense operator embedded in a goal-centric CRM.
@@ -73,22 +72,22 @@ const groqTools = TOOLS.map((t) => ({
 }));
 
 /**
- * Calls Groq with the given model.
- * Returns null on 429 (caller should fall back to next model).
+ * Calls Gemini (via its OpenAI-compatible endpoint) with the given model.
+ * Returns null on 429 so the caller falls back to the next model in the waterfall.
  * Retries up to 2 extra times on 503 before throwing.
  */
-async function callGroq(
+async function callGemini(
   model: string,
   messages: GroqMessage[]
 ): Promise<Record<string, unknown> | null> {
   for (let attempt = 0; attempt <= 2; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, attempt * 1500));
-    const res = await fetch(GROQ_BASE, {
+    const res = await fetch(GEMINI_BASE, {
       method: "POST",
       signal: AbortSignal.timeout(45000),
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.Groq_API_2}`,
+        Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
       },
       body: JSON.stringify({
         model,
@@ -96,14 +95,12 @@ async function callGroq(
         tools: groqTools,
         tool_choice: "auto",
         max_tokens: 4096,
-        parallel_tool_calls: false,
       }),
     });
     if (res.ok) return res.json() as Promise<Record<string, unknown>>;
     if (res.status === 429) return null; // caller falls back to next model
     if (res.status === 503 && attempt < 2) continue;
     if (res.status === 503) throw new Error("The AI is busy right now — please try again in a moment.");
-    // Surface Groq's error detail when available (helps diagnose bad requests).
     const errBody = await res.json().catch(() => null) as { error?: { message?: string } } | null;
     const detail = errBody?.error?.message;
     throw new Error(detail ? `AI error: ${detail}` : `AI error (${res.status}) — please try again.`);
@@ -138,7 +135,7 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
     // Walk the waterfall until a model responds (or all are exhausted).
     let data: Record<string, unknown> | null = null;
     while (data === null && modelIndex < MODEL_WATERFALL.length) {
-      data = await callGroq(MODEL_WATERFALL[modelIndex], messages);
+      data = await callGemini(MODEL_WATERFALL[modelIndex], messages);
       if (data === null) modelIndex++;
     }
     if (data === null) {
