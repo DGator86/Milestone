@@ -26,7 +26,8 @@ Do these **in order**:
    ```bash
    DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DB?sslmode=require
    AUTH_SECRET=...        # generate: openssl rand -base64 32
-   ANTHROPIC_API_KEY=...  # optional — enables the AI assistant
+   GEMINI_API_KEY=...     # optional — enables the AI goal wizard and chat assistant
+   ANTHROPIC_API_KEY=...  # optional — enables milestone suggestions in the manual goal form
    ```
 
 3. **Install, push the schema, verify**
@@ -66,8 +67,8 @@ Only **after** local setup works:
    |----------|----------|-------|
    | `DATABASE_URL` | ✅ | Neon pooled connection string |
    | `AUTH_SECRET` | ✅ | `openssl rand -base64 32` |
-   | `ANTHROPIC_API_KEY` | optional | Enables the AI assistant (`sk-ant-…`) |
-   | `ANTHROPIC_MODEL` | optional | Defaults to `claude-sonnet-4-6` |
+   | `GEMINI_API_KEY` | optional | Enables the AI goal wizard and chat assistant |
+   | `ANTHROPIC_API_KEY` | optional | Enables milestone suggestions in the manual goal form |
    | `NEXT_PUBLIC_SITE_URL` | optional | Canonical URL, e.g. `https://yourdomain.com` (falls back to `VERCEL_URL`) |
 
 4. **Run the schema against your production Neon DB** once:

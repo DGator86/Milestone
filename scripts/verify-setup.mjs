@@ -63,11 +63,17 @@ function main() {
     warnings.push("AUTH_SECRET is short — use at least 32 bytes (openssl rand -base64 32).");
   }
 
-  // ANTHROPIC_API_KEY — optional; gates the AI assistant.
-  const aiKey = (env.ANTHROPIC_API_KEY ?? "").trim();
-  if (!aiKey) {
-    warnings.push("ANTHROPIC_API_KEY is not set — the AI assistant will be disabled (everything else works).");
-  } else if (!aiKey.startsWith("sk-ant-")) {
+  // GEMINI_API_KEY — optional; gates the AI goal wizard and chat assistant.
+  const geminiKey = (env.GEMINI_API_KEY ?? "").trim();
+  if (!geminiKey) {
+    warnings.push("GEMINI_API_KEY is not set — the AI assistant will be disabled (everything else works).");
+  }
+
+  // ANTHROPIC_API_KEY — optional; gates milestone suggestions in the manual goal form.
+  const anthropicKey = (env.ANTHROPIC_API_KEY ?? "").trim();
+  if (!anthropicKey) {
+    warnings.push("ANTHROPIC_API_KEY is not set — milestone suggestions will use keyword fallbacks.");
+  } else if (!anthropicKey.startsWith("sk-ant-")) {
     warnings.push("ANTHROPIC_API_KEY does not start with sk-ant- — double-check the key.");
   }
 

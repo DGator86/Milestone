@@ -5,11 +5,11 @@ import { TOOLS, TOOLS_BY_NAME, type ToolContext } from "./tools";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const MAX_STEPS = 6;
 
-// Waterfall: tried in order, falls back automatically on 429/503.
+// Waterfall: tried in order, falls back automatically on 404/429.
 const MODEL_WATERFALL = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-2.0-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-3.5-flash",
+  "gemini-2.5-flash-lite",
 ];
 
 export function agentConfigured() {
@@ -73,7 +73,7 @@ const groqTools = TOOLS.map((t) => ({
 
 /**
  * Calls Gemini (via its OpenAI-compatible endpoint) with the given model.
- * Returns null on 429 so the caller falls back to the next model in the waterfall.
+ * Returns null on 404/429 so the caller falls back to the next model in the waterfall.
  * Retries up to 2 extra times on 503 before throwing.
  */
 async function callGemini(
@@ -98,7 +98,7 @@ async function callGemini(
       }),
     });
     if (res.ok) return res.json() as Promise<Record<string, unknown>>;
-    if (res.status === 429) return null; // caller falls back to next model
+    if (res.status === 404 || res.status === 429) return null; // model unavailable or rate limited
     if (res.status === 503 && attempt < 2) continue;
     if (res.status === 503) throw new Error("The AI is busy right now — please try again in a moment.");
     const errBody = await res.json().catch(() => null) as { error?: { message?: string } } | null;
@@ -125,7 +125,7 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
   ];
 
   // Start at the override model if set, otherwise index 0.
-  const overrideModel = process.env.GROQ_MODEL;
+  const overrideModel = process.env.GEMINI_MODEL ?? process.env.GROQ_MODEL;
   let modelIndex = overrideModel ? Math.max(0, MODEL_WATERFALL.indexOf(overrideModel)) : 0;
 
   const actions: string[] = [];
@@ -139,7 +139,7 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
       if (data === null) modelIndex++;
     }
     if (data === null) {
-      throw new Error("All models are rate limited — please try again in a moment.");
+      throw new Error("All AI models are unavailable right now — please try again in a moment.");
     }
 
     type Choice = {

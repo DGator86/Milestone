@@ -31,6 +31,7 @@ email/password auth.
 - The schema lives in `db/schema.ts`; generated SQL migrations are in `drizzle/`.
   Apply with `npm run db:push` (idempotent diff) or `drizzle-kit generate` for new
   migration files. `supabase/schema.sql` is a legacy artifact and is not used.
-- `ANTHROPIC_API_KEY` (optional) enables the in-app AI assistant; without it the
-  app runs fully and AI features show a "not connected" notice.
+- `GEMINI_API_KEY` (optional) enables the AI goal wizard and chat assistant; without it
+ those features show a "not connected" notice. `ANTHROPIC_API_KEY` (optional) enables
+ milestone suggestions in the manual goal form.
 - `.env.local` is gitignored — credentials stay local.
