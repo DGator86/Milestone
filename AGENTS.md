@@ -54,5 +54,10 @@ to rotate it**. Place it where it belongs:
 
    Redeploy production after adding vars that affect runtime.
 
-Common keys: `GEMINI_API_KEY`, `RESEND_API_KEY`, `DATABASE_URL`, `AUTH_SECRET`,
+Common keys: `DATABASE_URL`, `AUTH_SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`,
+`RESEND_FROM_EMAIL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `STRIPE_SECRET_KEY`,
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRO_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`,
 `ANTHROPIC_API_KEY`. Never commit secret values to the repo.
+
+Do **not** send the user to Vercel/Stripe/Google dashboards to copy keys manually —
+when they paste values in Composer, add them directly.
