@@ -35,7 +35,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
     <div className="mt-5 flex items-start gap-1">
       {/* START */}
       <div className="flex flex-col items-center shrink-0 pt-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">
+        <span className="text-[10px] font-medium text-gray-400">
           Start
         </span>
         <div className="h-5 w-px" />
@@ -94,7 +94,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                   {ms.title}
                 </span>
                 {ms.due_date && (
-                  <span className="text-[10px] text-gray-300 mt-0.5">{fmtDate(ms.due_date)}</span>
+                  <span className="text-[10px] text-gray-400 mt-0.5">{fmtDate(ms.due_date)}</span>
                 )}
               </div>
             );
@@ -107,7 +107,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
         <div className="w-7 h-7 rounded-full bg-milestone-amber-dim flex items-center justify-center">
           <Trophy size={14} className="text-milestone-amber" />
         </div>
-        <span className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-300">
+        <span className="mt-1.5 text-[10px] font-medium text-gray-400">
           Goal
         </span>
       </div>

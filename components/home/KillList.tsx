@@ -285,7 +285,7 @@ export default function KillList({ tasks, customers, goals }: Props) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="p-4 space-y-3 border-b border-milestone-line dark:border-white/[0.08] bg-gray-50/50 dark:bg-white/[0.03] animate-fade-up">
+        <form onSubmit={handleCreate} className="p-4 space-y-3 border-b border-milestone-line bg-gray-50/50 animate-fade-up">
           <input name="title" required autoFocus placeholder="What needs doing?" className={INPUT} />
           <div className="grid grid-cols-2 gap-2">
             <select name="type" className={INPUT} defaultValue="call">

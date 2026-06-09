@@ -97,11 +97,23 @@ body {
 .brand-scope .hover\:bg-blue-700:hover {
   background-color: color-mix(in srgb, var(--brand) 84%, #000000);
 }
+.dark .brand-scope .bg-milestone-blue-dim {
+  background-color: color-mix(in srgb, var(--brand) 16%, transparent);
+}
+.dark .brand-scope .bg-milestone-green-dim {
+  background-color: color-mix(in srgb, #36a852 14%, transparent);
+}
+.dark .brand-scope .bg-milestone-amber-dim {
+  background-color: color-mix(in srgb, #f8b400 14%, transparent);
+}
+.dark .brand-scope .bg-milestone-red-dim {
+  background-color: color-mix(in srgb, #ea4335 14%, transparent);
+}
 
 /* ── Shared UI primitives (CRM-density layout) ─────────────────────────── */
 @layer components {
   .ms-surface {
-    @apply bg-white dark:bg-[#0B1929] rounded-lg border border-milestone-line dark:border-white/[0.08];
+    @apply bg-white rounded-lg border border-milestone-line;
   }
 
   .ms-page {
@@ -109,11 +121,11 @@ body {
   }
 
   .ms-page-title {
-    @apply text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight flex items-center gap-2;
+    @apply text-[15px] font-semibold text-gray-900 tracking-tight flex items-center gap-2;
   }
 
   .ms-page-subtitle {
-    @apply text-xs text-gray-500 dark:text-white/40 mt-0.5;
+    @apply text-xs text-gray-500 mt-0.5;
   }
 
   .ms-btn-primary {
@@ -121,27 +133,28 @@ body {
   }
 
   .ms-btn-ghost {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-600 dark:text-white/60 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors;
   }
 
+  /* Light by default — dark overrides scoped to app shell / surfaces only */
   .ms-input {
-    @apply w-full px-3 py-2 text-sm border border-milestone-line dark:border-white/10 rounded-md bg-white dark:bg-[#0B1929] focus:outline-none focus:ring-2 focus:ring-milestone-blue/15 focus:border-milestone-blue transition-colors;
+    @apply w-full px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 border border-milestone-line rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-milestone-blue/15 focus:border-milestone-blue transition-colors;
   }
 
   .ms-label {
-    @apply block text-xs font-medium text-gray-500 dark:text-white/40 mb-1;
+    @apply block text-xs font-medium text-gray-500 mb-1;
   }
 
   .ms-table-head {
-    @apply text-left px-4 py-2 text-[11px] font-medium text-gray-500 dark:text-white/40;
+    @apply text-left px-4 py-2 text-[11px] font-medium text-gray-500;
   }
 
   .ms-empty {
-    @apply bg-white dark:bg-[#0B1929] rounded-lg border border-milestone-line dark:border-white/[0.08] p-10 text-center;
+    @apply bg-white rounded-lg border border-milestone-line p-10 text-center text-gray-500;
   }
 
   .ms-segment {
-    @apply flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] border border-milestone-line/80 dark:border-white/[0.06];
+    @apply flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100/80 border border-milestone-line/80;
   }
 
   .ms-segment-btn {
@@ -149,10 +162,82 @@ body {
   }
 
   .ms-segment-btn-active {
-    @apply bg-white dark:bg-[#0B1929] text-gray-900 dark:text-white shadow-sm;
+    @apply bg-white text-gray-900 shadow-sm;
   }
 
   .ms-segment-btn-inactive {
-    @apply text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70;
+    @apply text-gray-500 hover:text-gray-700;
   }
+
+  /* Dark mode — only inside authenticated app shell */
+  .dark .brand-scope .ms-surface,
+  .dark .brand-scope .ms-empty {
+    @apply bg-[#0B1929] border-white/[0.08] text-white/70;
+  }
+
+  .dark .brand-scope .ms-page-title {
+    @apply text-white;
+  }
+
+  .dark .brand-scope .ms-page-subtitle {
+    @apply text-white/50;
+  }
+
+  .dark .brand-scope .ms-btn-ghost {
+    @apply text-white/70 hover:bg-white/[0.05];
+  }
+
+  .dark .brand-scope .ms-input {
+    @apply bg-[#0B1929] border-white/10 text-white placeholder:text-white/35;
+  }
+
+  .dark .brand-scope .ms-label {
+    @apply text-white/55;
+  }
+
+  .dark .brand-scope .ms-table-head {
+    @apply text-white/50;
+  }
+
+  .dark .brand-scope .ms-segment {
+    @apply bg-white/[0.04] border-white/[0.06];
+  }
+
+  .dark .brand-scope .ms-segment-btn-active {
+    @apply bg-[#0B1929] text-white;
+  }
+
+  .dark .brand-scope .ms-segment-btn-inactive {
+    @apply text-white/45 hover:text-white/75;
+  }
+}
+
+/* Dark mode: remap light-theme gray text inside the app shell */
+.dark .brand-scope .text-gray-900 { color: rgb(255 255 255 / 0.95); }
+.dark .brand-scope .text-gray-800 { color: rgb(255 255 255 / 0.9); }
+.dark .brand-scope .text-gray-700 { color: rgb(255 255 255 / 0.82); }
+.dark .brand-scope .text-gray-600 { color: rgb(255 255 255 / 0.68); }
+.dark .brand-scope .text-gray-500 { color: rgb(255 255 255 / 0.55); }
+.dark .brand-scope .text-gray-400 { color: rgb(255 255 255 / 0.45); }
+.dark .brand-scope .text-gray-300 { color: rgb(255 255 255 / 0.35); }
+
+.dark .brand-scope .hover\:bg-gray-50:hover,
+.dark .brand-scope .hover\:bg-gray-50\/60:hover,
+.dark .brand-scope .hover\:bg-gray-50\/80:hover {
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+.dark .brand-scope .bg-gray-50,
+.dark .brand-scope .bg-gray-50\/50,
+.dark .brand-scope .bg-gray-50\/60,
+.dark .brand-scope .bg-gray-100 {
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+.dark .brand-scope [class*="divide-"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(255 255 255 / 0.08);
+}
+
+.dark .brand-scope .hover\:bg-blue-100:hover {
+  background-color: color-mix(in srgb, var(--brand, #1769ff) 18%, transparent);
 }
