@@ -4,9 +4,9 @@ import { signUp } from "./actions";
 import { signInWithGoogle } from "@/app/login/actions";
 
 const perks = [
-  "Organize goals by Work, Home & Health",
-  "Visual milestone progress tracking",
-  "Daily momentum & streak logging",
+  "CRM for companies, contacts, and deals",
+  "Goal milestones linked to your pipeline",
+  "Kill list and follow-ups that stay current",
 ];
 
 export default function SignupPage({

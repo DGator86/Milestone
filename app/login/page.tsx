@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Zap, Briefcase, Home, Heart } from "lucide-react";
+import { Zap, Building2, Handshake, Target } from "lucide-react";
 import { signIn_action, signInWithGoogle } from "./actions";
 
 const features = [
-  { icon: Briefcase, label: "Work", desc: "Close deals, ship projects, hit targets" },
-  { icon: Home, label: "Home", desc: "Renovate, organize, and get things done" },
-  { icon: Heart, label: "Health", desc: "Fitness goals, habits, and self-care" },
+  { icon: Building2, label: "Companies", desc: "Accounts, contacts, and relationships" },
+  { icon: Handshake, label: "Deals", desc: "Pipeline, opportunities, and follow-ups" },
+  { icon: Target, label: "Goals", desc: "Milestones tied to what you're closing" },
 ];
 
 export default function LoginPage({
