@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, groups, crm_tasks, crm_customers, users, user_settings } from "@/db/schema";
@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   // scoped to the workspace owner.
   const dbUser = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   if (!dbUser) {
-    await signOut({ redirectTo: "/login" });
+    redirect("/login?error=" + encodeURIComponent("Session expired — please sign in again"));
   }
 
   // Redirect new admin users through onboarding before their first dashboard load.
