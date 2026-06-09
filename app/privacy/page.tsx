@@ -94,8 +94,8 @@ function LegalDocument({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-milestone-bg">
-      <header className="border-b border-milestone-line bg-white">
+    <div className="ms-marketing min-h-screen bg-milestone-bg">
+      <header className="border-b border-milestone-line bg-white ms-marketing-card">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-gray-900 font-bold">
             <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center">

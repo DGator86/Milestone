@@ -117,7 +117,7 @@ function OppCard({
             Move stage <ChevronRight size={11} />
           </button>
           {open && (
-            <div className="absolute top-full mt-1 left-0 bg-white rounded-lg shadow-card-lg border border-milestone-line p-1 z-20 min-w-[130px]">
+            <div className="absolute top-full mt-1 left-0 bg-white dark:bg-[#0B1929] rounded-lg shadow-card-lg border border-milestone-line dark:border-white/[0.08] p-1 z-20 min-w-[130px]">
               {otherStages.map((s) => (
                 <button
                   key={s}
@@ -125,7 +125,7 @@ function OppCard({
                     onMove(opp.id, s);
                     setOpen(false);
                   }}
-                  className="block w-full text-left text-[12px] px-2.5 py-1.5 rounded hover:bg-gray-50 text-gray-700 font-medium"
+                  className="block w-full text-left text-[12px] px-2.5 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-white/[0.05] text-gray-700 dark:text-white/80 font-medium"
                 >
                   {s}
                 </button>

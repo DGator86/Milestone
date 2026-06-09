@@ -10,8 +10,7 @@ import {
   type CustomFieldType,
 } from "@/lib/customFields";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
+const INPUT = "ms-input";
 
 function newId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -47,7 +46,7 @@ export default function CustomFieldsEditor({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+    <div className="ms-card">
       <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
         <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
           <Plus size={12} />

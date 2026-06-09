@@ -22,15 +22,15 @@ export function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
-      <div className="px-4 py-3 border-b border-milestone-line bg-gray-50/60 flex items-center gap-2">
+    <section className="ms-card">
+      <div className="ms-card-header">
         {Icon && <Icon size={14} className="text-milestone-blue shrink-0" />}
-        <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">{title}</h2>
+        <h2 className="text-xs font-semibold text-gray-500">{title}</h2>
         {count != null && (
           <span className="text-[10px] font-bold text-gray-300 tabular-nums">{count}</span>
         )}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="ms-card-body">{children}</div>
     </section>
   );
 }

@@ -48,7 +48,7 @@ export default async function BillingPage({
 
         <div className="space-y-4">
           {/* Current plan */}
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Current plan</p>
             </div>
@@ -95,7 +95,7 @@ export default async function BillingPage({
           </div>
 
           {!pro && (
-            <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+            <div className="ms-card">
               <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-400">What&apos;s included in Pro</p>
               </div>

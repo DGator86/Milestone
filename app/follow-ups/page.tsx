@@ -73,7 +73,7 @@ export default async function FollowUpsPage() {
         </div>
 
         {followUps.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-semibold text-gray-400">{"You're all caught up!"}</p>
             <p className="text-xs text-gray-300 mt-1">
@@ -87,7 +87,7 @@ export default async function FollowUpsPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             {followUps.map(({ contact, daysSince, daysOverdue }, index) => {
               const initials = contact.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               const color = avatarColor(contact.name);

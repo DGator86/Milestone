@@ -84,7 +84,7 @@ export default async function CrmContactDetailPage({
           All {terms.contacts}
         </Link>
 
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 md:p-6">
+        <div className="ms-card p-5 md:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-milestone-blue flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">

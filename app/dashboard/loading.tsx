@@ -4,7 +4,7 @@ function Skeleton({ className }: { className?: string }) {
 
 function CardShell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white rounded-xl border border-milestone-line p-6 ${className ?? ""}`}>
+    <div className={`ms-card p-6 ${className ?? ""}`}>
       {children}
     </div>
   );
@@ -14,7 +14,7 @@ export default function DashboardLoading() {
   return (
     <div className="flex flex-col">
       {/* TopBar skeleton */}
-      <div className="sticky top-0 bg-white border-b border-milestone-line px-6 py-3.5 flex items-center justify-between">
+      <div className="sticky top-0 bg-white dark:bg-[#0B1929] border-b border-milestone-line dark:border-white/[0.08] px-6 py-3.5 flex items-center justify-between">
         <div className="space-y-1">
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-3 w-44" />

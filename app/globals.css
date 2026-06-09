@@ -241,3 +241,88 @@ body {
 .dark .brand-scope .hover\:bg-blue-100:hover {
   background-color: color-mix(in srgb, var(--brand, #1769ff) 18%, transparent);
 }
+
+/* ── Dark mode: borders, surfaces, forms (app shell) ───────────────────── */
+.dark .brand-scope .border-milestone-line { border-color: rgb(255 255 255 / 0.08); }
+.dark .brand-scope .border-gray-100 { border-color: rgb(255 255 255 / 0.06); }
+.dark .brand-scope .border-gray-200 { border-color: rgb(255 255 255 / 0.08); }
+.dark .brand-scope .border-l-gray-200 { border-left-color: rgb(255 255 255 / 0.1); }
+
+.dark .brand-scope .rounded-xl.bg-white,
+.dark .brand-scope .rounded-2xl.bg-white,
+.dark .brand-scope .rounded-lg.bg-white.border,
+.dark .brand-scope .bg-white.border,
+.dark .brand-scope .bg-white.shadow-card,
+.dark .brand-scope .bg-white.shadow-card-lg,
+.dark .brand-scope .bg-white.shadow-2xl,
+.dark .brand-scope .bg-white[class*="border-t"],
+.dark .brand-scope .bg-white[class*="border-b"] {
+  background-color: #0b1929;
+}
+
+.dark .brand-scope .bg-red-50 { background-color: rgb(234 67 53 / 0.12); }
+.dark .brand-scope .bg-green-50 { background-color: rgb(54 168 82 / 0.12); }
+.dark .brand-scope .bg-blue-50 { background-color: rgb(23 105 255 / 0.12); }
+.dark .brand-scope .bg-purple-100 { background-color: rgb(147 51 234 / 0.15); }
+.dark .brand-scope .bg-\[\#EEF3FF\] { background-color: rgb(23 105 255 / 0.12); }
+.dark .brand-scope .hover\:bg-red-50:hover { background-color: rgb(234 67 53 / 0.12); }
+.dark .brand-scope .hover\:bg-green-50:hover { background-color: rgb(54 168 82 / 0.12); }
+.dark .brand-scope .hover\:bg-gray-200:hover { background-color: rgb(255 255 255 / 0.08); }
+.dark .brand-scope .hover\:bg-slate-50\/70:hover { background-color: rgb(255 255 255 / 0.04); }
+
+.dark .brand-scope .bg-milestone-bg,
+.dark .brand-scope .bg-milestone-bg\/80 {
+  background-color: rgb(7 17 31 / 0.92);
+}
+
+.dark .brand-scope input:not([type="checkbox"]):not([type="radio"]),
+.dark .brand-scope select,
+.dark .brand-scope textarea {
+  background-color: #0b1929;
+  border-color: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.92);
+}
+.dark .brand-scope input:not([type="checkbox"]):not([type="radio"])::placeholder,
+.dark .brand-scope textarea::placeholder {
+  color: rgb(255 255 255 / 0.35);
+}
+
+.dark .brand-scope .from-purple-100 { --tw-gradient-from: rgb(147 51 234 / 0.15); }
+.dark .brand-scope .to-blue-100 { --tw-gradient-to: rgb(23 105 255 / 0.12); }
+
+/* ── Shared card primitive ─────────────────────────────────────────────── */
+@layer components {
+  .ms-card {
+    @apply bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden;
+  }
+  .ms-card-header {
+    @apply px-4 py-3 border-b border-milestone-line bg-gray-50/60 flex items-center gap-2;
+  }
+  .ms-card-body {
+    @apply p-4;
+  }
+  .dark .brand-scope .ms-card {
+    @apply bg-[#0B1929] border-white/[0.08];
+  }
+  .dark .brand-scope .ms-card-header {
+    @apply border-white/[0.08] bg-white/[0.03];
+  }
+}
+
+/* ── Marketing / legal pages (outside brand-scope) ─────────────────────── */
+.dark .ms-marketing {
+  @apply bg-[#07111F] text-white/90;
+}
+.dark .ms-marketing .ms-marketing-card {
+  @apply bg-[#0B1929] border-white/[0.08] text-white/85;
+}
+.dark .ms-marketing .text-gray-900 { color: rgb(255 255 255 / 0.95); }
+.dark .ms-marketing .text-gray-800 { color: rgb(255 255 255 / 0.9); }
+.dark .ms-marketing .text-gray-700 { color: rgb(255 255 255 / 0.82); }
+.dark .ms-marketing .text-gray-600 { color: rgb(255 255 255 / 0.68); }
+.dark .ms-marketing .text-gray-500 { color: rgb(255 255 255 / 0.55); }
+.dark .ms-marketing .text-gray-400 { color: rgb(255 255 255 / 0.45); }
+.dark .ms-marketing .bg-white { background-color: #0b1929; }
+.dark .ms-marketing .bg-\[\#EEF2F7\],
+.dark .ms-marketing .bg-milestone-bg { background-color: #07111f; }
+.dark .ms-marketing .border-milestone-line { border-color: rgb(255 255 255 / 0.08); }

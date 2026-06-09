@@ -100,7 +100,7 @@ function MilestoneNode({
         }`}
         style={{
           borderColor: color,
-          backgroundColor: isCompleted ? color : "white",
+          backgroundColor: isCompleted ? color : "var(--ms-dot-bg)",
           boxShadow: isActive ? `0 0 0 3px ${color}20` : undefined,
         }}
       >
@@ -119,11 +119,13 @@ function MilestoneNode({
         )}
       </button>
       <span
-        className="text-[10px] mt-1.5 text-center leading-tight max-w-[68px]"
-        style={{
-          color: isActive ? "#1e293b" : isCompleted ? "#36A852" : "#94a3b8",
-          fontWeight: isActive ? 600 : 400,
-        }}
+        className={`text-[10px] mt-1.5 text-center leading-tight max-w-[68px] ${
+          isActive
+            ? "font-semibold text-gray-900 dark:text-white"
+            : isCompleted
+            ? "text-milestone-green"
+            : "text-gray-400 dark:text-white/40"
+        }`}
       >
         {ms.title}
       </span>
@@ -166,7 +168,7 @@ function GoalRow({ goal }: { goal: GoalWithDetails }) {
   const lineColor = (i: number) => {
     if (i >= optimisticMilestones.length - 1) return "transparent";
     const next = optimisticMilestones[i + 1];
-    return next.status === "completed" ? "#36A852" : "#e2e8f0";
+    return next.status === "completed" ? "#36A852" : "var(--ms-line)";
   };
 
   return (
@@ -305,7 +307,7 @@ export default function MilestoneCharts({ goals, groups }: { goals: GoalWithDeta
   ).length;
 
   return (
-    <div className="bg-white rounded-2xl shadow-card-lg border border-milestone-line p-6">
+    <div className="ms-card rounded-2xl shadow-card-lg p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">Goal Progress</h2>
