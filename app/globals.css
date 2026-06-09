@@ -97,3 +97,62 @@ body {
 .brand-scope .hover\:bg-blue-700:hover {
   background-color: color-mix(in srgb, var(--brand) 84%, #000000);
 }
+
+/* ── Shared UI primitives (CRM-density layout) ─────────────────────────── */
+@layer components {
+  .ms-surface {
+    @apply bg-white dark:bg-[#0B1929] rounded-lg border border-milestone-line dark:border-white/[0.08];
+  }
+
+  .ms-page {
+    @apply px-4 py-4 md:px-6 md:py-5 max-w-6xl;
+  }
+
+  .ms-page-title {
+    @apply text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight flex items-center gap-2;
+  }
+
+  .ms-page-subtitle {
+    @apply text-xs text-gray-500 dark:text-white/40 mt-0.5;
+  }
+
+  .ms-btn-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-milestone-blue text-white text-sm font-medium rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50;
+  }
+
+  .ms-btn-ghost {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-600 dark:text-white/60 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors;
+  }
+
+  .ms-input {
+    @apply w-full px-3 py-2 text-sm border border-milestone-line dark:border-white/10 rounded-md bg-white dark:bg-[#0B1929] focus:outline-none focus:ring-2 focus:ring-milestone-blue/15 focus:border-milestone-blue transition-colors;
+  }
+
+  .ms-label {
+    @apply block text-xs font-medium text-gray-500 dark:text-white/40 mb-1;
+  }
+
+  .ms-table-head {
+    @apply text-left px-4 py-2 text-[11px] font-medium text-gray-500 dark:text-white/40;
+  }
+
+  .ms-empty {
+    @apply bg-white dark:bg-[#0B1929] rounded-lg border border-milestone-line dark:border-white/[0.08] p-10 text-center;
+  }
+
+  .ms-segment {
+    @apply flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100/80 dark:bg-white/[0.04] border border-milestone-line/80 dark:border-white/[0.06];
+  }
+
+  .ms-segment-btn {
+    @apply px-3 py-1.5 text-sm font-medium rounded-[5px] transition-colors;
+  }
+
+  .ms-segment-btn-active {
+    @apply bg-white dark:bg-[#0B1929] text-gray-900 dark:text-white shadow-sm;
+  }
+
+  .ms-segment-btn-inactive {
+    @apply text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70;
+  }
+}

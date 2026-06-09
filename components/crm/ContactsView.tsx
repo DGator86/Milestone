@@ -11,9 +11,8 @@ import SlideOver from "./SlideOver";
 import ContactEditForm from "./ContactEditForm";
 import CustomFieldInput from "./CustomFieldInput";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const INPUT = "ms-input";
+const LABEL = "ms-label";
 
 interface Props {
   contacts: CrmContact[];
@@ -111,18 +110,18 @@ export default function ContactsView({
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-6xl" style={{ opacity: isPending ? 0.7 : 1 }}>
-      <div className="flex items-center justify-between mb-6">
+    <div className="ms-page" style={{ opacity: isPending ? 0.7 : 1 }}>
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <UserRound size={20} className="text-milestone-blue" />
+          <h1 className="ms-page-title">
+            <UserRound size={18} className="text-milestone-blue" />
             {labelPlural}
           </h1>
-          <p className="text-xs text-gray-400 mt-0.5">{contacts.length} total</p>
+          <p className="ms-page-subtitle">{contacts.length} total</p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          className="ms-btn-primary"
         >
           {showForm ? <X size={15} /> : <Plus size={15} />}
           {showForm ? "Cancel" : `Add ${labelSingular}`}
@@ -130,8 +129,8 @@ export default function ContactsView({
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 mb-5 animate-fade-up">
-          <p className="text-sm font-bold text-gray-900 mb-4">New Contact</p>
+        <div className="ms-surface p-4 mb-4 animate-fade-up">
+          <p className="text-sm font-semibold text-gray-900 mb-3">New contact</p>
           <form onSubmit={handleCreate}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
@@ -181,7 +180,7 @@ export default function ContactsView({
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="ms-btn-primary disabled:opacity-50"
               >
                 Save Contact
               </button>
@@ -203,13 +202,13 @@ export default function ContactsView({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search contacts…"
-          className="w-full pl-9 pr-4 py-2.5 text-sm border border-milestone-line rounded-xl focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white"
+          className="ms-input pl-9"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
-          <UserRound size={36} className="mx-auto mb-3 text-gray-200" />
+        <div className="ms-empty">
+          <UserRound size={28} className="mx-auto mb-2 text-gray-200" />
           <p className="text-sm font-medium text-gray-400">
             {search ? "No contacts match your search." : "No contacts yet."}
           </p>
@@ -235,7 +234,7 @@ export default function ContactsView({
                   }}
                   tabIndex={0}
                   role="button"
-                  className="bg-white rounded-xl shadow-card border border-milestone-line p-4 hover:border-milestone-blue/30 transition-colors cursor-pointer"
+                  className="ms-surface p-3.5 hover:border-milestone-blue/30 transition-colors cursor-pointer"
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 to-milestone-blue flex items-center justify-center shrink-0">
@@ -281,23 +280,23 @@ export default function ContactsView({
           </div>
 
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="hidden md:block ms-surface overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-milestone-line bg-gray-50/60">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <tr className="border-b border-milestone-line bg-gray-50/50 dark:bg-white/[0.02]">
+                  <th className="ms-table-head">
                     Name
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">
+                  <th className="ms-table-head hidden lg:table-cell">
                     Title
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden xl:table-cell">
+                  <th className="ms-table-head hidden xl:table-cell">
                     Email
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <th className="ms-table-head">
                     Company
                   </th>
-                  <th className="px-4 py-3 w-24" />
+                  <th className="px-4 py-2 w-24" />
                 </tr>
               </thead>
               <tbody>
@@ -317,7 +316,7 @@ export default function ContactsView({
                       role="button"
                       className="border-b border-milestone-line last:border-0 hover:bg-milestone-blue-dim/30 transition-colors cursor-pointer group"
                     >
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-milestone-blue flex items-center justify-center shrink-0">
                             <span className="text-white text-xs font-bold">{initials}</span>
@@ -327,7 +326,7 @@ export default function ContactsView({
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-gray-500 hidden lg:table-cell">
+                      <td className="px-4 py-2.5 text-gray-500 hidden lg:table-cell">
                         {contact.title ?? <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3.5 text-gray-500 hidden xl:table-cell">

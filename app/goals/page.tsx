@@ -43,14 +43,14 @@ export default async function GoalsPage() {
 
   return (
     <AppShell user={user}>
-      <div className="p-6 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="ms-page max-w-4xl">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <Target size={20} className="text-milestone-blue" />
-              All Goals
+            <h1 className="ms-page-title">
+              <Target size={18} className="text-milestone-blue" />
+              All goals
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="ms-page-subtitle">
               {active} active · {completed} completed
             </p>
           </div>
