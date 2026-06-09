@@ -200,8 +200,8 @@ function TaskGroup({
   return (
     <div>
       <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tone}`}>
+        <span className="text-[11px] font-medium text-gray-500">{label}</span>
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${tone}`}>
           {tasks.length}
         </span>
       </div>
@@ -269,15 +269,15 @@ export default function KillList({ tasks, customers, goals }: Props) {
   }
 
   return (
-    <section className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
-      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line dark:border-white/[0.08]">
+    <section className="ms-surface overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
+      <div className="flex items-start justify-between px-4 pt-3.5 pb-2.5 border-b border-milestone-line dark:border-white/[0.06]">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Kill List</h2>
-          <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{openCount + goalMilestones.length} prioritized actions</p>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Kill list</h2>
+          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">{openCount + goalMilestones.length} prioritized actions</p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-milestone-blue hover:bg-milestone-blue-dim px-2.5 py-1.5 rounded-lg transition-colors"
+          className="ms-btn-ghost text-milestone-blue hover:bg-milestone-blue-dim"
         >
           {showForm ? <X size={15} /> : <Plus size={15} />}
           {showForm ? "Cancel" : "Add"}
@@ -327,8 +327,8 @@ export default function KillList({ tasks, customers, goals }: Props) {
         {goalMilestones.length > 0 && (
           <div>
             <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Goal Steps</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
+              <span className="text-[11px] font-medium text-gray-500">Goal steps</span>
+              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-milestone-blue-dim text-milestone-blue">
                 {goalMilestones.length}
               </span>
             </div>
@@ -345,8 +345,8 @@ export default function KillList({ tasks, customers, goals }: Props) {
         )}
 
         {openCount === 0 && goalMilestones.length === 0 ? (
-          <div className="p-12 text-center">
-            <ListChecks size={34} className="mx-auto mb-3 text-gray-200" />
+          <div className="p-8 text-center">
+            <ListChecks size={28} className="mx-auto mb-2 text-gray-200" />
             <p className="text-sm font-medium text-gray-400 dark:text-white/30">Nothing on the list.</p>
             <p className="text-xs text-gray-300 dark:text-white/20 mt-1">You&apos;re all caught up.</p>
           </div>

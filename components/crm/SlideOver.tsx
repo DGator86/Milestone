@@ -29,11 +29,11 @@ export default function SlideOver({
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white h-full shadow-card-lg overflow-y-auto animate-fade-up">
-        <div className="sticky top-0 z-10 bg-white border-b border-milestone-line px-5 py-4 flex items-start justify-between gap-3">
+      <div className="relative w-full max-w-md bg-white dark:bg-[#0B1929] h-full shadow-card-lg overflow-y-auto animate-fade-up">
+        <div className="sticky top-0 z-10 bg-white dark:bg-[#0B1929] border-b border-milestone-line dark:border-white/[0.06] px-4 py-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-bold text-gray-900 leading-tight">{title}</h2>
-            {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+            <h2 className="font-semibold text-sm text-gray-900 dark:text-white leading-tight">{title}</h2>
+            {subtitle && <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
@@ -43,7 +43,7 @@ export default function SlideOver({
             <X size={18} />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4">{children}</div>
       </div>
     </div>
   );
