@@ -123,20 +123,73 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
   return { headers, rows };
 }
 
+const CUSTOM_BLOCK_PREFIX = "__new__:";
+
+function fieldSynonyms(field: FieldDef): string[] {
+  return SYNONYMS[field.key] ?? [field.key.replace(/_/g, " "), field.key];
+}
+
+function inferCustomType(fieldKey: string): CustomFieldDef["type"] {
+  if (fieldKey === "value") return "number";
+  if (fieldKey === "close_date") return "date";
+  return "text";
+}
+
+function isCustomBlockMapping(value: string): boolean {
+  return value.startsWith(CUSTOM_BLOCK_PREFIX);
+}
+
+function csvHeaderFromMapping(value: string): string | null {
+  if (value === "__skip__") return null;
+  if (isCustomBlockMapping(value)) return value.slice(CUSTOM_BLOCK_PREFIX.length);
+  return value;
+}
+
 function autoMap(headers: string[], fields: FieldDef[]): Record<string, string> {
+  const used = new Set<string>();
   const map: Record<string, string> = {};
+
   for (const field of fields) {
-    const synonyms = SYNONYMS[field.key] ?? [field.key];
-    const match = headers.find((h) =>
-      synonyms.some((s) => h.toLowerCase().trim() === s.toLowerCase())
+    const synonyms = fieldSynonyms(field);
+    const match = headers.find(
+      (h) => !used.has(h) && synonyms.some((s) => h.toLowerCase().trim() === s.toLowerCase())
     );
-    map[field.key] = match ?? "__skip__";
+    if (match) {
+      map[field.key] = match;
+      used.add(match);
+    } else {
+      map[field.key] = "__skip__";
+    }
   }
+
+  // Optional fields with no standard match → save as custom data block when a close CSV column exists.
+  for (const field of fields) {
+    if (field.required || map[field.key] !== "__skip__") continue;
+    const synonyms = fieldSynonyms(field);
+    const fuzzy = headers.find((h) => {
+      if (used.has(h)) return false;
+      const lower = h.toLowerCase().trim();
+      return synonyms.some((s) => {
+        const needle = s.toLowerCase();
+        return lower.includes(needle) || needle.includes(lower);
+      });
+    });
+    if (fuzzy) {
+      map[field.key] = `${CUSTOM_BLOCK_PREFIX}${fuzzy}`;
+      used.add(fuzzy);
+    }
+  }
+
   return map;
 }
 
 function getUsedHeaders(columnMap: Record<string, string>): Set<string> {
-  return new Set(Object.values(columnMap).filter((h) => h !== "__skip__"));
+  const used = new Set<string>();
+  for (const value of Object.values(columnMap)) {
+    const header = csvHeaderFromMapping(value);
+    if (header) used.add(header);
+  }
+  return used;
 }
 
 function initExtraColumnMap(
@@ -171,7 +224,7 @@ export default function ImportWizard({ customFields }: Props) {
   const [rows, setRows] = useState<string[][]>([]);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [extraColumnMap, setExtraColumnMap] = useState<Record<string, string>>({});
-  const [newFieldIds, setNewFieldIds] = useState<Record<string, string>>({});
+  const [newFieldIds, setNewFieldIds] = useState<Record<string, string>>({}); // keys: csv:Header or base:fieldKey
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ created: number; errors: string[] } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -192,8 +245,14 @@ export default function ImportWizard({ customFields }: Props) {
       const baseMap = autoMap(parsed.headers, FIELDS[entityType]);
       const extra = initExtraColumnMap(parsed.headers, baseMap, customFields[cfObject]);
       const ids: Record<string, string> = {};
+      for (const field of FIELDS[entityType]) {
+        const mapping = baseMap[field.key];
+        if (isCustomBlockMapping(mapping)) {
+          ids[`base:${field.key}`] = makeImportFieldId(field.label);
+        }
+      }
       for (const [header, target] of Object.entries(extra)) {
-        if (target === "__new__") ids[header] = makeImportFieldId(header);
+        if (target === "__new__") ids[`csv:${header}`] = makeImportFieldId(header);
       }
       setHeaders(parsed.headers);
       setRows(parsed.rows);
@@ -213,7 +272,7 @@ export default function ImportWizard({ customFields }: Props) {
 
   function resolveCustomFieldId(csvHeader: string, target: string): string | null {
     if (target === "__skip__") return null;
-    if (target === "__new__") return newFieldIds[csvHeader] ?? null;
+    if (target === "__new__") return newFieldIds[`csv:${csvHeader}`] ?? null;
     if (target.startsWith("cf:")) return target.slice(3);
     return null;
   }
@@ -230,10 +289,26 @@ export default function ImportWizard({ customFields }: Props) {
 
   function getNewFieldDefs(): CustomFieldDef[] {
     const defs: CustomFieldDef[] = [];
+    const seenIds = new Set<string>();
+
+    for (const field of FIELDS[entityType]) {
+      const mapping = columnMap[field.key];
+      if (!isCustomBlockMapping(mapping)) continue;
+      const id = newFieldIds[`base:${field.key}`];
+      if (!id || seenIds.has(id)) continue;
+      seenIds.add(id);
+      defs.push({
+        id,
+        label: field.label.slice(0, 40),
+        type: inferCustomType(field.key),
+      });
+    }
+
     for (const h of getUnmappedHeaders()) {
       if (extraColumnMap[h] !== "__new__") continue;
-      const id = newFieldIds[h];
-      if (!id) continue;
+      const id = newFieldIds[`csv:${h}`];
+      if (!id || seenIds.has(id)) continue;
+      seenIds.add(id);
       defs.push({
         id,
         label: h.trim().slice(0, 40),
@@ -257,11 +332,22 @@ export default function ImportWizard({ customFields }: Props) {
     const mapped = rows.map((row) => {
       const out = { custom: {} as Record<string, string> } as ImportRow;
       for (const field of fields) {
-        const h = columnMap[field.key];
-        if (h && h !== "__skip__") {
-          const idx = headers.indexOf(h);
-          out[field.key] = idx >= 0 ? (row[idx] ?? "").trim() : "";
+        const mapping = columnMap[field.key];
+        if (!mapping || mapping === "__skip__") continue;
+
+        if (isCustomBlockMapping(mapping)) {
+          const csvHeader = mapping.slice(CUSTOM_BLOCK_PREFIX.length);
+          const fieldId = newFieldIds[`base:${field.key}`];
+          if (fieldId) {
+            const idx = headers.indexOf(csvHeader);
+            const val = idx >= 0 ? (row[idx] ?? "").trim() : "";
+            if (val) out.custom![fieldId] = val;
+          }
+          continue;
         }
+
+        const idx = headers.indexOf(mapping);
+        out[field.key] = idx >= 0 ? (row[idx] ?? "").trim() : "";
       }
       for (const [csvHeader, fieldId] of Object.entries(customHeaderMap)) {
         const idx = headers.indexOf(csvHeader);
@@ -303,18 +389,33 @@ export default function ImportWizard({ customFields }: Props) {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function setBaseMapping(fieldKey: string, value: string) {
+    if (isCustomBlockMapping(value)) {
+      const field = FIELDS[entityType].find((f) => f.key === fieldKey);
+      if (field && !newFieldIds[`base:${fieldKey}`]) {
+        setNewFieldIds((prev) => ({ ...prev, [`base:${fieldKey}`]: makeImportFieldId(field.label) }));
+      }
+    }
+    setColumnMap((m) => ({ ...m, [fieldKey]: value }));
+  }
+
   function setExtraMapping(csvHeader: string, value: string) {
-    if (value === "__new__" && !newFieldIds[csvHeader]) {
-      setNewFieldIds((prev) => ({ ...prev, [csvHeader]: makeImportFieldId(csvHeader) }));
+    if (value === "__new__" && !newFieldIds[`csv:${csvHeader}`]) {
+      setNewFieldIds((prev) => ({ ...prev, [`csv:${csvHeader}`]: makeImportFieldId(csvHeader) }));
     }
     setExtraColumnMap((m) => ({ ...m, [csvHeader]: value }));
   }
 
+  function availableHeadersForField(fieldKey: string): string[] {
+    const used = getUsedHeaders(columnMap);
+    const current = csvHeaderFromMapping(columnMap[fieldKey] ?? "__skip__");
+    return headers.filter((h) => h === current || !used.has(h));
+  }
+
   const validRows = step !== "upload" ? getMappedRows() : [];
   const unmappedHeaders = step !== "upload" ? getUnmappedHeaders() : [];
-  const activeCustomMappings = step !== "upload" ? getCustomHeaderMap() : {};
   const customFieldLabels = step !== "upload" ? getCustomFieldLabels() : new Map();
-  const previewCustomFieldIds = [...new Set(Object.values(activeCustomMappings))];
+  const previewCustomFieldIds = step !== "upload" ? getNewFieldDefs().map((d) => d.id) : [];
 
   // ── Step: Upload ───────────────────────────────────────────────────────────
   if (step === "upload") {
@@ -436,7 +537,7 @@ export default function ImportWizard({ customFields }: Props) {
             </div>
           )}
           <p className="text-[11px] text-gray-300 dark:text-white/20 mt-3">
-            * Required. Extra CSV columns can be added as new data blocks in the next step.
+            * Required. Any field can be saved as a custom data block on your records during import.
           </p>
         </div>
       </div>
@@ -446,49 +547,87 @@ export default function ImportWizard({ customFields }: Props) {
   // ── Step: Map ──────────────────────────────────────────────────────────────
   if (step === "map") {
     const fields = FIELDS[entityType];
-    const newBlockCount = unmappedHeaders.filter((h) => extraColumnMap[h] === "__new__").length;
+    const baseCustomCount = fields.filter((f) => isCustomBlockMapping(columnMap[f.key] ?? "")).length;
+    const extraNewCount = unmappedHeaders.filter((h) => extraColumnMap[h] === "__new__").length;
+    const newBlockCount = baseCustomCount + extraNewCount;
+    const skippedOptional = fields.filter(
+      (f) => !f.required && (columnMap[f.key] ?? "__skip__") === "__skip__"
+    );
 
     return (
       <div className="space-y-4">
         <div className="bg-white dark:bg-[#0B1929] rounded-xl border border-milestone-line dark:border-white/[0.08] overflow-hidden">
           <div className="px-5 py-4 border-b border-milestone-line dark:border-white/[0.08]">
-            <p className="text-sm font-bold text-gray-900 dark:text-white">Map base fields</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-white">Map your data</p>
             <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">
-              {rows.length} rows found · Match CSV headers to standard {ENTITY_CONFIG[entityType].label.toLowerCase()}{" "}
-              fields
+              {rows.length} rows found · Map to standard fields or save as custom data blocks on each{" "}
+              {ENTITY_CONFIG[entityType].label.toLowerCase().replace(/s$/, "")}
             </p>
           </div>
           <div className="divide-y divide-milestone-line dark:divide-white/[0.06]">
-            {fields.map((field) => (
-              <div key={field.key} className="flex items-center gap-4 px-5 py-3">
-                <div className="w-40 shrink-0">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-white">
-                    {field.label}
-                    {field.required && <span className="text-milestone-red ml-0.5">*</span>}
-                  </p>
-                  {field.hint && (
-                    <p className="text-[10px] text-gray-300 dark:text-white/25 mt-0.5">{field.hint}</p>
-                  )}
+            {fields.map((field) => {
+              const available = availableHeadersForField(field.key);
+              const mapping = columnMap[field.key] ?? "__skip__";
+              const isCustom = isCustomBlockMapping(mapping);
+
+              return (
+                <div key={field.key} className="flex items-center gap-4 px-5 py-3">
+                  <div className="w-40 shrink-0">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-white">
+                      {field.label}
+                      {field.required && <span className="text-milestone-red ml-0.5">*</span>}
+                    </p>
+                    {field.hint && (
+                      <p className="text-[10px] text-gray-300 dark:text-white/25 mt-0.5">{field.hint}</p>
+                    )}
+                    {isCustom && (
+                      <p className="text-[10px] text-milestone-green mt-0.5">Custom data block</p>
+                    )}
+                  </div>
+                  <select
+                    value={mapping}
+                    onChange={(e) => setBaseMapping(field.key, e.target.value)}
+                    className={`flex-1 px-3 py-1.5 border rounded-lg text-xs bg-white dark:bg-[#0f2032] text-gray-800 dark:text-white focus:outline-none focus:ring-2 ${
+                      isCustom
+                        ? "border-milestone-green/40 focus:ring-milestone-green"
+                        : "border-milestone-line dark:border-white/[0.12] focus:ring-milestone-blue"
+                    }`}
+                  >
+                    <option value="__skip__">— skip —</option>
+                    {available.length > 0 && (
+                      <optgroup label="Standard field">
+                        {available.map((h) => (
+                          <option key={`std-${h}`} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {!field.required && available.length > 0 && (
+                      <optgroup label="Custom data block on record">
+                        {available.map((h) => (
+                          <option key={`new-${h}`} value={`${CUSTOM_BLOCK_PREFIX}${h}`}>
+                            {h} → add &quot;{field.label}&quot; block
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
                 </div>
-                <select
-                  value={columnMap[field.key] ?? "__skip__"}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setColumnMap((m) => ({ ...m, [field.key]: value }));
-                  }}
-                  className="flex-1 px-3 py-1.5 border border-milestone-line dark:border-white/[0.12] rounded-lg text-xs bg-white dark:bg-[#0f2032] text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-milestone-blue"
-                >
-                  <option value="__skip__">— skip —</option>
-                  {headers.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
+
+        {skippedOptional.length > 0 && (
+          <div className="rounded-xl border border-milestone-line/80 dark:border-white/[0.08] bg-milestone-green-dim/30 dark:bg-milestone-green/5 px-5 py-3">
+            <p className="text-xs text-gray-600 dark:text-white/60">
+              <span className="font-semibold text-milestone-green">{skippedOptional.length} field{skippedOptional.length !== 1 ? "s" : ""} skipped.</span>{" "}
+              Pick a CSV column above and choose <span className="font-medium">Custom data block on record</span> to
+              start customizing your {ENTITY_CONFIG[entityType].label.toLowerCase()} with your own data.
+            </p>
+          </div>
+        )}
 
         {unmappedHeaders.length > 0 && (
           <div className="bg-white dark:bg-[#0B1929] rounded-xl border border-milestone-line dark:border-white/[0.08] overflow-hidden">
@@ -498,11 +637,11 @@ export default function ImportWizard({ customFields }: Props) {
                 Additional data blocks
               </p>
               <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">
-                {unmappedHeaders.length} extra column{unmappedHeaders.length !== 1 ? "s" : ""} in your file
+                {unmappedHeaders.length} extra column{unmappedHeaders.length !== 1 ? "s" : ""} not mapped above
                 {newBlockCount > 0 && (
                   <span className="text-milestone-green">
                     {" "}
-                    · {newBlockCount} new data block{newBlockCount !== 1 ? "s" : ""} will be created
+                    · {newBlockCount} new data block{newBlockCount !== 1 ? "s" : ""} will be added
                   </span>
                 )}
               </p>
@@ -562,7 +701,10 @@ export default function ImportWizard({ customFields }: Props) {
   // ── Step: Preview ──────────────────────────────────────────────────────────
   const previewRows = validRows.slice(0, 5);
   const fields = FIELDS[entityType];
-  const mappedFields = fields.filter((f) => columnMap[f.key] && columnMap[f.key] !== "__skip__");
+  const mappedFields = fields.filter((f) => {
+    const m = columnMap[f.key];
+    return m && m !== "__skip__" && !isCustomBlockMapping(m);
+  });
 
   return (
     <div className="space-y-4">
