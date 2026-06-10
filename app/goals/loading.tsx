@@ -13,7 +13,7 @@ export default function GoalsLoading() {
         {["Active", "Completed"].map((section) => (
           <div key={section}>
             <Skeleton className="h-3 w-16 mb-2" />
-            <div className="bg-white rounded-xl border border-milestone-line overflow-hidden">
+            <div className="ms-card">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}

@@ -8,7 +8,7 @@ export default function AILoading() {
         <div className="h-4 w-64 bg-gray-100 rounded mb-6" />
         <div className="space-y-4">
           {[120, 80, 200, 100].map((h, i) => (
-            <div key={i} className="bg-white rounded-xl border border-milestone-line p-5" style={{ height: h }} />
+            <div key={i} className="ms-card p-5" style={{ height: h }} />
           ))}
         </div>
       </div>

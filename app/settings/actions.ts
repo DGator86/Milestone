@@ -3,11 +3,47 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts, goals, groups, milestones, user_settings } from "@/db/schema";
 import { EDITABLE_TERMS, singularize } from "@/lib/terms";
+import { sanitizeCustomFieldDefs } from "@/lib/customFields";
+
+function parseCustomFieldDefs(raw: string | null) {
+  if (!raw) return undefined;
+  try {
+    return sanitizeCustomFieldDefs(JSON.parse(raw));
+  } catch {
+    return undefined;
+  }
+}
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
+
+// Parse the JSON array of customer types submitted by the Settings form,
+// trimming, de-duplicating (case-insensitively) and capping length/count.
+function parseCustomerTypes(raw: string | null): string[] {
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of parsed) {
+    const value = String(item).trim().slice(0, 40);
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+    if (out.length >= 30) break;
+  }
+  return out;
+}
 
 export async function updateWorkspaceSettings(
   _prev: unknown,
@@ -15,7 +51,7 @@ export async function updateWorkspaceSettings(
 ): Promise<{ error?: string; success?: boolean }> {
   const session = await auth();
   if (!session?.user?.id) return { error: "Not authenticated" };
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const companyName = ((formData.get("company_name") as string) ?? "").trim().slice(0, 80) || null;
   const brandRaw = ((formData.get("brand_color") as string) ?? "").trim();
@@ -35,13 +71,19 @@ export async function updateWorkspaceSettings(
     weekly_digest: formData.get("pref_weekly_digest") === "on",
   };
 
+  const customerTypes = parseCustomerTypes(formData.get("customer_types") as string | null);
+  const customFields = parseCustomFieldDefs(formData.get("custom_fields") as string | null);
+
+  // Only overwrite custom_fields when the form submitted a valid payload.
+  const customFieldsPatch = customFields ? { custom_fields: customFields } : {};
+
   try {
     await db
       .insert(user_settings)
-      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences })
+      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch })
       .onConflictDoUpdate({
         target: user_settings.user_id,
-        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, updated_at: new Date().toISOString() },
+        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch, updated_at: new Date().toISOString() },
       });
   } catch {
     return { error: "Could not save — the settings table may not be migrated yet (run npm run db:push)." };
@@ -54,7 +96,7 @@ export async function updateWorkspaceSettings(
 export async function seedDemoData() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
   const [workGroup, personalGroup] = await db
     .insert(groups)

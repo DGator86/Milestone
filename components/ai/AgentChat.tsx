@@ -59,6 +59,28 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
     [messages, pending, router]
   );
 
+  const retrySend = useCallback(async () => {
+    if (pending) return;
+    setError(null);
+    setPending(true);
+    try {
+      const res = await fetch("/api/ai/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: messages.map(({ role, content }) => ({ role, content })) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Something went wrong");
+      setMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
+      if (data.mutated) router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Assistant error");
+    } finally {
+      setPending(false);
+      inputRef.current?.focus();
+    }
+  }, [messages, pending, router]);
+
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -78,8 +100,8 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
                 <Sparkles size={18} className="text-milestone-blue" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Milestone Assistant</p>
-                <p className="text-xs text-gray-400">I can create goals, plan milestones, work your kill list, and manage your CRM.</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Milestone Assistant</p>
+                <p className="text-xs text-gray-500 dark:text-white/50">I can create goals, plan milestones, work your kill list, and manage your CRM.</p>
               </div>
             </div>
             <div className="mt-4 space-y-1.5">
@@ -108,7 +130,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
             <div className={`min-w-0 max-w-[85%] ${m.role === "user" ? "items-end" : ""}`}>
               <div
                 className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
-                  m.role === "user" ? "bg-milestone-blue text-white" : "bg-white border border-milestone-line text-gray-700"
+                  m.role === "user" ? "bg-milestone-blue text-white" : "bg-white dark:bg-[#0f2032] border border-milestone-line dark:border-white/[0.08] text-gray-700 dark:text-white/85"
                 }`}
               >
                 {m.content}
@@ -132,7 +154,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center shrink-0">
               <Bot size={14} className="text-milestone-blue" />
             </div>
-            <div className="bg-white border border-milestone-line rounded-2xl px-3.5 py-3 flex items-center gap-1.5">
+            <div className="bg-white dark:bg-[#0f2032] border border-milestone-line dark:border-white/[0.08] rounded-2xl px-3.5 py-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.3s]" />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.15s]" />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" />
@@ -141,13 +163,20 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
         )}
 
         {error && (
-          <div className="mx-1 text-xs text-milestone-red bg-milestone-red-dim border border-milestone-red/20 rounded-lg px-3 py-2">
-            {error}
+          <div className="mx-1 text-xs text-milestone-red bg-milestone-red-dim border border-milestone-red/20 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+            <span>{error}</span>
+            <button
+              onClick={retrySend}
+              className="flex items-center gap-1 text-milestone-blue hover:underline shrink-0 font-medium"
+            >
+              <RotateCcw size={11} />
+              Retry
+            </button>
           </div>
         )}
       </div>
 
-      <div className="border-t border-milestone-line bg-white px-2 py-2.5">
+      <div className="border-t border-milestone-line dark:border-white/[0.08] bg-white dark:bg-[#0B1929] px-2 py-2.5">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}

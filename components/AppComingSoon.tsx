@@ -23,7 +23,7 @@ export default function AppComingSoon({
           </h1>
           <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-12 text-center">
+        <div className="ms-card p-12 text-center">
           <p className="text-sm font-medium text-gray-500">Coming soon</p>
           <p className="text-xs text-gray-400 mt-2 max-w-sm mx-auto">
             This area is on the roadmap. Use Dashboard, Kill List, and Goals for now.

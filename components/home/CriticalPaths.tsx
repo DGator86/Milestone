@@ -35,7 +35,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
     <div className="mt-5 flex items-start gap-1">
       {/* START */}
       <div className="flex flex-col items-center shrink-0 pt-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-300">
+        <span className="text-[10px] font-medium text-gray-400">
           Start
         </span>
         <div className="h-5 w-px" />
@@ -62,7 +62,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                     className="absolute top-[14px] left-1/2 h-0.5"
                     style={{
                       width: "100%",
-                      backgroundColor: nextDone ? "#36A852" : "#E2E8F0",
+                      backgroundColor: nextDone ? "#36A852" : "var(--ms-line)",
                       zIndex: 0,
                     }}
                   />
@@ -76,7 +76,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                       ? "bg-milestone-blue border-milestone-blue text-white ring-4 ring-milestone-blue/15"
                       : state === "stuck"
                       ? "bg-milestone-red border-milestone-red text-white"
-                      : "bg-white border-gray-200 text-gray-300"
+                      : "bg-white dark:bg-[#0f2032] border-gray-200 dark:border-white/15 text-gray-300 dark:text-white/30"
                   }`}
                 >
                   {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
@@ -85,16 +85,16 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                 <span
                   className={`mt-1.5 text-[11px] leading-tight px-0.5 line-clamp-2 ${
                     state === "current"
-                      ? "font-semibold text-gray-900"
+                      ? "font-semibold text-gray-900 dark:text-white"
                       : state === "done"
-                      ? "text-gray-500"
-                      : "text-gray-400"
+                      ? "text-gray-500 dark:text-white/40"
+                      : "text-gray-400 dark:text-white/30"
                   }`}
                 >
                   {ms.title}
                 </span>
                 {ms.due_date && (
-                  <span className="text-[10px] text-gray-300 mt-0.5">{fmtDate(ms.due_date)}</span>
+                  <span className="text-[10px] text-gray-400 mt-0.5">{fmtDate(ms.due_date)}</span>
                 )}
               </div>
             );
@@ -107,7 +107,7 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
         <div className="w-7 h-7 rounded-full bg-milestone-amber-dim flex items-center justify-center">
           <Trophy size={14} className="text-milestone-amber" />
         </div>
-        <span className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-300">
+        <span className="mt-1.5 text-[10px] font-medium text-gray-400">
           Goal
         </span>
       </div>
@@ -129,22 +129,22 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
 
   return (
     <div
-      className="bg-white rounded-xl shadow-card border border-milestone-line p-5 border-l-[3px]"
+      className="ms-surface p-4 border-l-2"
       style={{ borderLeftColor: accent, opacity: isPending ? 0.6 : 1 }}
     >
       <div className="flex items-start gap-3">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+          className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
           style={{ backgroundColor: `${accent}1A` }}
         >
-          <Briefcase size={17} style={{ color: accent }} />
+          <Briefcase size={15} style={{ color: accent }} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <Link
               href={`/goals/${goal.id}`}
-              className="font-bold text-gray-900 hover:text-milestone-blue transition-colors truncate"
+              className="font-semibold text-gray-900 dark:text-white hover:text-milestone-blue transition-colors truncate text-sm"
             >
               {goal.title}
             </Link>
@@ -161,22 +161,22 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
             </button>
           </div>
           {goal.groups?.name && (
-            <p className="text-xs text-gray-400 mt-0.5">{goal.groups.name}</p>
+            <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{goal.groups.name}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-6 shrink-0 text-right">
+        <div className="flex items-center gap-5 shrink-0 text-right">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-300">
+            <p className="text-[10px] font-medium text-gray-400">
               Progress
             </p>
-            <p className="text-milestone-blue font-bold text-sm">{progress}%</p>
+            <p className="text-milestone-blue font-semibold text-sm">{progress}%</p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-300">
+            <p className="text-[10px] font-medium text-gray-400">
               Health
             </p>
-            <p className={`font-bold text-sm ${health.cls}`}>{health.label}</p>
+            <p className={`font-semibold text-sm ${health.cls}`}>{health.label}</p>
           </div>
         </div>
       </div>
@@ -195,34 +195,34 @@ export default function CriticalPaths({
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Active Goals</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Track progress on your work goals</p>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Active goals</h2>
+          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">Track progress on what you&apos;re closing</p>
         </div>
         <button
           onClick={onNewGoal}
-          className="flex items-center gap-1.5 bg-milestone-blue text-white px-3.5 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors shrink-0 shadow-sm shadow-blue-200"
+          className="ms-btn-primary shrink-0"
         >
-          <Plus size={15} strokeWidth={2.5} />
+          <Plus size={14} strokeWidth={2.5} />
           New
         </button>
       </div>
 
       {goals.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
-          <Trophy size={36} className="mx-auto mb-3 text-gray-200" />
-          <p className="text-sm font-medium text-gray-400">No active goals yet.</p>
-          <p className="text-xs text-gray-300 mt-1">Create a goal to map its path.</p>
+        <div className="ms-empty">
+          <Trophy size={28} className="mx-auto mb-2 text-gray-200" />
+          <p className="text-sm text-gray-500">No active goals yet.</p>
+          <p className="text-xs text-gray-400 mt-1">Create a goal to map its path.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {goals.map((goal) => (
             <GoalCard key={goal.id} goal={goal} />
           ))}
           <Link
             href="/goals"
-            className="block text-center text-sm font-semibold text-milestone-blue hover:underline pt-1"
+            className="block text-center text-sm font-medium text-milestone-blue hover:underline pt-1"
           >
             View all goals →
           </Link>

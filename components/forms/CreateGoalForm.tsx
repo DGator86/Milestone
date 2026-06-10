@@ -123,7 +123,7 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
 
   return (
     <div
-      className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden animate-fade-up"
+      className="ms-card animate-fade-up"
       id="create-goal"
     >
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">

@@ -80,7 +80,7 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-milestone-line p-12 text-center">
+        <div className="ms-card p-12 text-center">
           <p className="text-sm font-medium text-gray-400">
             {search ? "No contacts match your search." : "No contacts yet."}
           </p>
@@ -89,7 +89,7 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
+        <div className="ms-card">
           {filtered.map((contact) => {
             const health = touchHealthInfo(contact);
             const initials = contact.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -98,7 +98,7 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
             return (
               <Link
                 key={contact.id}
-                href={`/contacts/${contact.id}`}
+                href={`/follow-ups/${contact.id}`}
                 className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors group"
               >
                 {/* Avatar */}
@@ -117,10 +117,14 @@ export default function ContactList({ contacts }: { contacts: Contact[] }) {
                       <span className="text-gray-200 text-xs">·</span>
                     )}
                     {contact.email && (
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <a
+                        href={`mailto:${contact.email}`}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-milestone-blue transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Mail size={10} />
                         {contact.email}
-                      </span>
+                      </a>
                     )}
                     {!contact.email && contact.phone && (
                       <span className="flex items-center gap-1 text-xs text-gray-400">

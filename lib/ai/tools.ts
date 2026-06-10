@@ -447,6 +447,87 @@ export const TOOLS: AgentTool[] = [
     },
   },
   {
+    name: "update_goal",
+    description: "Edit an existing goal's title, importance, due date, or type. Identify it by id or fuzzy title match. Only set the fields you want to change.",
+    input_schema: {
+      type: "object",
+      properties: {
+        goal_id: { type: "string" },
+        goal_title: { type: "string", description: "Fuzzy title to find the goal if id is unknown" },
+        new_title: { type: "string", description: "New title for the goal" },
+        importance: { type: "string", enum: ["normal", "important", "critical"] },
+        due_date: { type: "string", description: "ISO date YYYY-MM-DD, or empty string to clear" },
+        goal_type: { type: "string", enum: ["concrete", "deadline", "maintenance", "touches"] },
+      },
+    },
+    mutates: true,
+    handler: async ({ userId }, input) => {
+      const goal = await findGoal(userId, str(input.goal_id), str(input.goal_title));
+      if (!goal) return { error: "Goal not found" };
+      const updates: Record<string, unknown> = {};
+      const newTitle = str(input.new_title);
+      if (newTitle) updates.title = newTitle;
+      const importance = str(input.importance);
+      if (importance) updates.importance = importance;
+      if (typeof input.due_date === "string") updates.due_date = input.due_date.trim() || null;
+      const goalType = str(input.goal_type);
+      if (goalType) updates.goal_type = goalType;
+      if (Object.keys(updates).length === 0) return { error: "No fields to update" };
+      await db.update(goals).set(updates).where(and(eq(goals.id, goal.id), eq(goals.user_id, userId)));
+      const displayTitle = newTitle ?? goal.title;
+      return { summary: `Updated goal "${displayTitle}"`, data: { goal_id: goal.id, updated: Object.keys(updates) } };
+    },
+  },
+  {
+    name: "update_milestone",
+    description: "Edit an existing milestone's title, status, or due date. Identify the goal by id or fuzzy title, then the milestone by id or fuzzy title within that goal.",
+    input_schema: {
+      type: "object",
+      properties: {
+        goal_id: { type: "string" },
+        goal_title: { type: "string", description: "Fuzzy goal title if id is unknown" },
+        milestone_id: { type: "string" },
+        milestone_title: { type: "string", description: "Fuzzy milestone title to find it within the goal" },
+        new_title: { type: "string", description: "New title for the milestone" },
+        status: { type: "string", enum: ["upcoming", "in_progress", "waiting", "stuck", "completed"] },
+        due_date: { type: "string", description: "ISO date YYYY-MM-DD, or empty string to clear" },
+      },
+    },
+    mutates: true,
+    handler: async ({ userId }, input) => {
+      const goal = await findGoal(userId, str(input.goal_id), str(input.goal_title));
+      if (!goal) return { error: "Goal not found" };
+      const msId = str(input.milestone_id);
+      const msTitle = str(input.milestone_title);
+      let milestone;
+      if (msId) {
+        milestone = await db.query.milestones.findFirst({ where: and(eq(milestones.id, msId), eq(milestones.goal_id, goal.id)) });
+      } else if (msTitle) {
+        const all = await db.query.milestones.findMany({ where: eq(milestones.goal_id, goal.id) });
+        milestone = all.find((m) => m.title.toLowerCase().includes(msTitle.toLowerCase()));
+      }
+      if (!milestone) return { error: "Milestone not found" };
+      const updates: Record<string, unknown> = {};
+      const newTitle = str(input.new_title);
+      if (newTitle) updates.title = newTitle;
+      const status = str(input.status);
+      if (status) {
+        updates.status = status;
+        if (status === "completed") updates.completed_at = new Date().toISOString();
+      }
+      if (typeof input.due_date === "string") updates.due_date = input.due_date.trim() || null;
+      if (Object.keys(updates).length === 0) return { error: "No fields to update" };
+      await db.update(milestones).set(updates).where(eq(milestones.id, milestone.id));
+      if (status === "completed") {
+        await db.insert(activity_log).values({ goal_id: goal.id, milestone_id: milestone.id, action: "milestone_completed", metadata: { via: "ai" } });
+      } else if (status) {
+        await db.insert(activity_log).values({ goal_id: goal.id, milestone_id: milestone.id, action: "milestone_status_changed", metadata: { status, via: "ai" } });
+      }
+      const displayTitle = newTitle ?? milestone.title;
+      return { summary: `Updated milestone "${displayTitle}" on goal "${goal.title}"`, data: { milestone_id: milestone.id, updated: Object.keys(updates) } };
+    },
+  },
+  {
     name: "create_task",
     description: "Create a CRM follow-up task (call, email, meeting, etc.), optionally linked to a company by name.",
     input_schema: {

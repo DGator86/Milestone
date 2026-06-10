@@ -3,7 +3,7 @@ function normalizeBaseUrl(url: string): string {
 }
 
 /**
- * Canonical public site URL (no trailing slash) for Supabase auth redirects and metadata.
+ * Canonical public site URL (no trailing slash) for metadata and absolute links.
  * Set NEXT_PUBLIC_SITE_URL in production (for example https://yourdomain.com).
  * On Vercel, https://VERCEL_URL is used when NEXT_PUBLIC_SITE_URL is unset.
  */

@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric, index, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 const id = uuid("id").primaryKey().default(sql`gen_random_uuid()`);
@@ -8,12 +8,30 @@ const ts = (col: string) => timestamp(col, { withTimezone: true, mode: "string" 
 export const users = pgTable("users", {
   id,
   email: text("email").notNull().unique(),
-  password_hash: text("password_hash").notNull(),
+  password_hash: text("password_hash"), // nullable — OAuth users have no password
   name: text("name"),
+  is_admin: boolean("is_admin").notNull().default(true),
+  workspace_id: uuid("workspace_id").references((): AnyPgColumn => workspaces.id, { onDelete: "set null" }),
+  stripe_customer_id: text("stripe_customer_id"),
+  subscription_status: text("subscription_status").notNull().default("free"),
   created_at: ts("created_at"),
+}, (t) => [index("users_workspace_id_idx").on(t.workspace_id)]);
+
+// ─── Workspaces ──────────────────────────────────────────────────────────────────
+// A shared container for a team. All of a workspace's data is stored under its
+// owner_id, so every member resolves to the same owner id and sees one shared
+// dataset. Each account starts in its own workspace; admins invite members in.
+// owner_id is unique (one workspace per owner) so bootstrap is race-safe, and
+// RESTRICT prevents deleting an owner out from under their members.
+export const workspaces = pgTable("workspaces", {
+  id,
+  name: text("name").notNull().default("My Workspace"),
+  owner_id: uuid("owner_id").notNull().unique().references(() => users.id, { onDelete: "restrict" }),
+  created_at: ts("created_at"),
+  updated_at: ts("updated_at"),
 });
 
-// ─── Workspace settings (per-user customization) ────────────────────────────────
+// ─── Workspace settings (per-workspace customization) ───────────────────────────
 export const user_settings = pgTable("user_settings", {
   user_id: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   company_name: text("company_name"),
@@ -21,8 +39,20 @@ export const user_settings = pgTable("user_settings", {
   terminology: jsonb("terminology").$type<Record<string, string>>().notNull().default({}),
   preferences: jsonb("preferences").$type<Record<string, boolean>>().notNull().default({}),
   custom_fields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
+  customer_types: jsonb("customer_types").$type<string[]>().notNull().default([]),
+  onboarding_completed_at: timestamp("onboarding_completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
+});
+
+// ─── Password Reset Tokens ─────────────────────────────────────────────────────
+export const password_reset_tokens = pgTable("password_reset_tokens", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+  used_at: timestamp("used_at", { withTimezone: true, mode: "string" }),
+  created_at: ts("created_at"),
 });
 
 // ─── Groups ────────────────────────────────────────────────────────────────────
@@ -61,6 +91,8 @@ export const milestones = pgTable("milestones", {
   position: integer("position").notNull().default(0),
   status: text("status").notNull().default("upcoming"),
   due_date: date("due_date"),
+  touch_target: integer("touch_target"),
+  touch_period: text("touch_period"),
   completed_at: timestamp("completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
@@ -111,12 +143,14 @@ export const crm_customers = pgTable("crm_customers", {
   id,
   user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  customer_type: text("customer_type"),
   industry: text("industry"),
   website: text("website"),
   phone: text("phone"),
   email: text("email"),
   status: text("status").notNull().default("prospect"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -132,6 +166,7 @@ export const crm_contacts = pgTable("crm_contacts", {
   phone: text("phone"),
   title: text("title"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -161,6 +196,7 @@ export const crm_opportunities = pgTable("crm_opportunities", {
   status: text("status").notNull().default("open"),
   close_date: date("close_date"),
   notes: text("notes"),
+  custom: jsonb("custom").$type<Record<string, unknown>>().notNull().default({}),
   created_at: ts("created_at"),
   updated_at: ts("updated_at"),
 });
@@ -183,12 +219,36 @@ export const crm_tasks = pgTable("crm_tasks", {
   updated_at: ts("updated_at"),
 });
 
+// ─── CRM Flow Instances ────────────────────────────────────────────────────────
+export const crm_flow_instances = pgTable("crm_flow_instances", {
+  id,
+  user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  flow_id: uuid("flow_id").notNull().references(() => crm_flows.id, { onDelete: "cascade" }),
+  customer_id: uuid("customer_id").references(() => crm_customers.id, { onDelete: "set null" }),
+  current_stage_idx: integer("current_stage_idx").notNull().default(0),
+  run_count: integer("run_count").notNull().default(1),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  created_at: ts("created_at"),
+  updated_at: ts("updated_at"),
+}, (t) => [
+  index("crm_flow_instances_user_id_idx").on(t.user_id),
+  index("crm_flow_instances_flow_id_idx").on(t.flow_id),
+  index("crm_flow_instances_customer_id_idx").on(t.customer_id),
+]);
+
 // ─── Relations ─────────────────────────────────────────────────────────────────
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  workspace: one(workspaces, { fields: [users.workspace_id], references: [workspaces.id], relationName: "membership" }),
   groups: many(groups),
   goals: many(goals),
   contacts: many(contacts),
   crm_customers: many(crm_customers),
+}));
+
+export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
+  owner: one(users, { fields: [workspaces.owner_id], references: [users.id] }),
+  members: many(users, { relationName: "membership" }),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
@@ -245,4 +305,14 @@ export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one, ma
 export const crmTasksRelations = relations(crm_tasks, ({ one }) => ({
   crm_customers: one(crm_customers, { fields: [crm_tasks.customer_id], references: [crm_customers.id] }),
   crm_contacts: one(crm_contacts, { fields: [crm_tasks.contact_id], references: [crm_contacts.id] }),
+}));
+
+export const crmFlowsRelations = relations(crm_flows, ({ one, many }) => ({
+  user: one(users, { fields: [crm_flows.user_id], references: [users.id] }),
+  instances: many(crm_flow_instances),
+}));
+
+export const crmFlowInstancesRelations = relations(crm_flow_instances, ({ one }) => ({
+  crm_flows: one(crm_flows, { fields: [crm_flow_instances.flow_id], references: [crm_flows.id] }),
+  crm_customers: one(crm_customers, { fields: [crm_flow_instances.customer_id], references: [crm_customers.id] }),
 }));
