@@ -17,7 +17,7 @@ export default async function Home() {
   if (session?.user?.id) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <div className="ms-marketing min-h-screen bg-white text-gray-900 overflow-x-hidden">
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-milestone-line bg-white/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-[60px] flex items-center justify-between">

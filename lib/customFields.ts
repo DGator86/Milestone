@@ -106,3 +106,77 @@ export function formatCustomValue(def: CustomFieldDef, value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   return String(value);
 }
+
+const TRUTHY = new Set(["true", "yes", "y", "1", "on", "checked"]);
+const FALSY = new Set(["false", "no", "n", "0", "off", "unchecked"]);
+
+function coerceSingleValue(def: CustomFieldDef, raw: string): unknown {
+  const trimmed = raw.trim();
+  if (def.type === "checkbox") {
+    const lower = trimmed.toLowerCase();
+    if (!trimmed) return false;
+    if (TRUTHY.has(lower)) return true;
+    if (FALSY.has(lower)) return false;
+    return Boolean(trimmed);
+  }
+  if (!trimmed) return null;
+  if (def.type === "number") {
+    const n = Number(trimmed.replace(/[$,\s]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  if (def.type === "select") {
+    const match = def.options?.find((o) => o.toLowerCase() === trimmed.toLowerCase());
+    return match ?? trimmed;
+  }
+  return trimmed;
+}
+
+/** Coerce CSV string values into typed custom field values (import path). */
+export function coerceCustomValuesFromStrings(
+  raw: Record<string, string>,
+  defs: CustomFieldDef[]
+): Record<string, unknown> {
+  const defById = new Map(defs.map((d) => [d.id, d]));
+  const out: Record<string, unknown> = {};
+  for (const [fieldId, value] of Object.entries(raw)) {
+    const def = defById.get(fieldId);
+    if (!def) continue;
+    out[fieldId] = coerceSingleValue(def, value ?? "");
+  }
+  return out;
+}
+
+/** Stable id for a custom field created during CSV import. */
+export function makeImportFieldId(label: string): string {
+  const slug =
+    label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 32) || "field";
+  return `imp_${slug}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Merge newly imported field defs into workspace settings without duplicates. */
+export function mergeCustomFieldDefs(
+  existing: CustomFieldDef[],
+  incoming: CustomFieldDef[]
+): CustomFieldDef[] {
+  const merged = [...existing];
+  const ids = new Set(existing.map((f) => f.id));
+  const labels = new Set(existing.map((f) => f.label.toLowerCase()));
+  for (const item of incoming) {
+    if (merged.length >= MAX_FIELDS_PER_OBJECT) break;
+    const cleaned = sanitizeFieldList([item])[0];
+    if (!cleaned || ids.has(cleaned.id)) continue;
+    let label = cleaned.label;
+    if (labels.has(label.toLowerCase())) {
+      label = `${label} (import)`;
+    }
+    const def = { ...cleaned, label };
+    merged.push(def);
+    ids.add(def.id);
+    labels.add(def.label.toLowerCase());
+  }
+  return merged;
+}

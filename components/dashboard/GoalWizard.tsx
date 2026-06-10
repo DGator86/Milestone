@@ -234,7 +234,7 @@ export default function GoalWizard({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md flex flex-col max-h-[92dvh]">
+      <div className="bg-white dark:bg-[#0B1929] rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md flex flex-col max-h-[92dvh] border border-transparent dark:border-white/[0.08]">
         <div className="relative px-6 pt-6 pb-5 bg-gradient-to-br from-[#1769FF] to-blue-600 rounded-t-3xl sm:rounded-t-2xl shrink-0">
           <div className="flex items-start justify-between">
             <div>
@@ -311,7 +311,7 @@ export default function GoalWizard({
                     className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                       m.role === "user"
                         ? "bg-milestone-blue text-white rounded-tr-sm"
-                        : "bg-gray-100 text-gray-800 rounded-tl-sm"
+                        : "bg-gray-100 dark:bg-white/[0.08] text-gray-800 dark:text-white/85 rounded-tl-sm"
                     }`}
                   >
                     {m.content}
@@ -344,7 +344,7 @@ export default function GoalWizard({
               )}
             </div>
 
-            <div className="px-4 pb-3 pt-2 border-t border-gray-100 shrink-0 space-y-2">
+            <div className="px-4 pb-3 pt-2 border-t border-milestone-line dark:border-white/[0.08] shrink-0 space-y-2">
               <div className="flex gap-2 items-end">
                 <textarea
                   ref={aiInputRef}
@@ -356,7 +356,7 @@ export default function GoalWizard({
                   placeholder="e.g. Launch the new pricing page by end of Q3…"
                   rows={2}
                   autoFocus
-                  className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-milestone-blue placeholder:text-gray-300"
+                  className="ms-input resize-none"
                 />
                 <button
                   onClick={() => sendAi(aiInput)}
@@ -388,7 +388,7 @@ export default function GoalWizard({
                 onChange={(e) => setTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && canAdvance && setStep(2)}
                 placeholder="e.g. Close the Acme deal"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-medium placeholder:text-gray-300 focus:outline-none focus:border-milestone-blue transition-colors"
+                className="ms-input py-3"
               />
 
               <div>

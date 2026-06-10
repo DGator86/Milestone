@@ -48,10 +48,10 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+    <div className="ms-card p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">
+          <h2 className="text-[13px] font-semibold text-gray-500 dark:text-white/50">
             Task Health
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">{total} active goals</p>
@@ -107,7 +107,7 @@ export default function TaskHealth({ goals }: { goals: GoalWithDetails[] }) {
               <ChevronRight
                 size={14}
                 className={`shrink-0 transition-colors ${
-                  count > 0 ? "text-gray-200 group-hover:text-gray-400" : "text-gray-100"
+                  count > 0 ? "text-gray-300 dark:text-white/20 group-hover:text-gray-400 dark:group-hover:text-white/40" : "text-gray-200 dark:text-white/10"
                 }`}
               />
             </>

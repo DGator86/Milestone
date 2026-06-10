@@ -9,7 +9,7 @@ export default function KillListLoading() {
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-3 w-56" />
       </div>
-      <div className="bg-white rounded-xl border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}

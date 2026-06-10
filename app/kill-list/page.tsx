@@ -102,7 +102,7 @@ export default async function KillListPage({
         </div>
 
         {killList.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <Crosshair size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">
               {meta ? `No ${meta.label.toLowerCase()} goals right now.` : "No pending milestones on active goals."}
@@ -114,7 +114,7 @@ export default async function KillListPage({
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             {killList.map(({ goal, milestone }, index) => {
               const overdueGoal = isOverdue(goal.due_date);
               const overdueMilestone = isOverdue(milestone.due_date);

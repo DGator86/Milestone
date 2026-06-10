@@ -40,7 +40,7 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
                 <User size={12} />
@@ -72,7 +72,7 @@ export default async function SettingsPage() {
             customFields={settings.customFields}
           />
 
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
                 <CreditCard size={12} />
@@ -93,7 +93,7 @@ export default async function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-red-50/60">
               <p className="text-xs font-bold uppercase tracking-widest text-milestone-red/70 flex items-center gap-1.5">
                 <LogOut size={12} />

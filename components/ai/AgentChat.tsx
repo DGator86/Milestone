@@ -100,8 +100,8 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
                 <Sparkles size={18} className="text-milestone-blue" />
               </div>
               <div>
-                <p className="text-sm font-bold text-gray-900">Milestone Assistant</p>
-                <p className="text-xs text-gray-400">I can create goals, plan milestones, work your kill list, and manage your CRM.</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Milestone Assistant</p>
+                <p className="text-xs text-gray-500 dark:text-white/50">I can create goals, plan milestones, work your kill list, and manage your CRM.</p>
               </div>
             </div>
             <div className="mt-4 space-y-1.5">
@@ -130,7 +130,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
             <div className={`min-w-0 max-w-[85%] ${m.role === "user" ? "items-end" : ""}`}>
               <div
                 className={`rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
-                  m.role === "user" ? "bg-milestone-blue text-white" : "bg-white border border-milestone-line text-gray-700"
+                  m.role === "user" ? "bg-milestone-blue text-white" : "bg-white dark:bg-[#0f2032] border border-milestone-line dark:border-white/[0.08] text-gray-700 dark:text-white/85"
                 }`}
               >
                 {m.content}
@@ -154,7 +154,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center shrink-0">
               <Bot size={14} className="text-milestone-blue" />
             </div>
-            <div className="bg-white border border-milestone-line rounded-2xl px-3.5 py-3 flex items-center gap-1.5">
+            <div className="bg-white dark:bg-[#0f2032] border border-milestone-line dark:border-white/[0.08] rounded-2xl px-3.5 py-3 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.3s]" />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce [animation-delay:-0.15s]" />
               <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce" />
@@ -176,7 +176,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
         )}
       </div>
 
-      <div className="border-t border-milestone-line bg-white px-2 py-2.5">
+      <div className="border-t border-milestone-line dark:border-white/[0.08] bg-white dark:bg-[#0B1929] px-2 py-2.5">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
