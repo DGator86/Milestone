@@ -52,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         typeof token.email === "string" ? token.email.trim().toLowerCase() : null;
       if (!email) return token;
 
+      // Google OAuth: look up or create the user by email (case-insensitive).
       if (account?.provider === "google") {
         let dbUser = await findUserByEmail(email);
         if (!dbUser) {
