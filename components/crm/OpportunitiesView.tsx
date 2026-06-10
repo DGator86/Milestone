@@ -10,6 +10,7 @@ import {
   moveOpportunity,
 } from "@/app/opportunities/actions";
 import CustomFieldInput from "./CustomFieldInput";
+import CompanySelect from "./CompanySelect";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -270,22 +271,13 @@ export default function OpportunitiesView({
                   ))}
                 </select>
               </div>
-              <div>
-                <label className={LABEL}>Customer</label>
-                <select
-                  name="customer_id"
-                  className={INPUT}
-                  value={formCustomerId}
-                  onChange={(e) => setFormCustomerId(e.target.value)}
-                >
-                  <option value="">No customer</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CompanySelect
+                customers={customers}
+                value={formCustomerId}
+                onValueChange={setFormCustomerId}
+                label="Customer"
+                noCompanyLabel="No customer"
+              />
               <div>
                 <label className={LABEL}>Contact</label>
                 <select name="contact_id" className={INPUT} defaultValue="" key={formCustomerId}>

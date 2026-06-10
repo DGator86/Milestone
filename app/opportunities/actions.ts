@@ -2,12 +2,13 @@
 import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
-import { crm_opportunities, crm_customers, crm_contacts } from "@/db/schema";
+import { crm_opportunities, crm_contacts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { OpportunityStatus } from "@/lib/types";
 import { getSettings } from "@/lib/settings";
 import { collectCustomValues } from "@/lib/customFields";
+import { resolveOrCreateCustomerId } from "@/lib/crm/resolveCustomer";
 
 function stageToStatus(stage: string): OpportunityStatus {
   if (stage === "Won") return "won";
@@ -30,17 +31,9 @@ export async function createOpportunity(formData: FormData) {
   // Validate relationships server-side: the customer must belong to the user,
   // and the contact must belong to the user and (when set) to that customer.
   // Client-side filtering in OpportunitiesView is convenience only and bypassable.
-  const submittedCustomerId = (formData.get("customer_id") as string) || null;
   const submittedContactId = (formData.get("contact_id") as string) || null;
 
-  let customerId: string | null = null;
-  if (submittedCustomerId) {
-    const ownedCustomer = await db.query.crm_customers.findFirst({
-      columns: { id: true },
-      where: and(eq(crm_customers.id, submittedCustomerId), eq(crm_customers.user_id, userId)),
-    });
-    customerId = ownedCustomer ? submittedCustomerId : null;
-  }
+  const customerId = await resolveOrCreateCustomerId(formData, userId);
 
   let contactId: string | null = null;
   if (submittedContactId) {

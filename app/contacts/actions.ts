@@ -2,26 +2,12 @@
 import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
-import { crm_contacts, crm_customers } from "@/db/schema";
+import { crm_contacts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getSettings } from "@/lib/settings";
 import { collectCustomValues } from "@/lib/customFields";
-
-// Returns the submitted customer_id only if it belongs to the current user,
-// otherwise null. Prevents linking a contact to another tenant's company.
-async function resolveOwnedCustomerId(
-  formData: FormData,
-  userId: string,
-): Promise<string | null> {
-  const customerId = (formData.get("customer_id") as string) || null;
-  if (!customerId) return null;
-  const owned = await db.query.crm_customers.findFirst({
-    columns: { id: true },
-    where: and(eq(crm_customers.id, customerId), eq(crm_customers.user_id, userId)),
-  });
-  return owned ? customerId : null;
-}
+import { resolveOrCreateCustomerId } from "@/lib/crm/resolveCustomer";
 
 export async function createContact(formData: FormData) {
   const session = await auth();
@@ -32,7 +18,7 @@ export async function createContact(formData: FormData) {
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) return;
 
-  const customerId = await resolveOwnedCustomerId(formData, userId);
+  const customerId = await resolveOrCreateCustomerId(formData, userId);
   const { customFields } = await getSettings(userId);
   const custom = collectCustomValues(formData, customFields.contact);
 
@@ -61,7 +47,7 @@ export async function updateContact(id: string, formData: FormData) {
   const lastName = (formData.get("last_name") as string)?.trim();
   if (!firstName || !lastName) return;
 
-  const customerId = await resolveOwnedCustomerId(formData, userId);
+  const customerId = await resolveOrCreateCustomerId(formData, userId);
   const { customFields } = await getSettings(userId);
   const custom = collectCustomValues(formData, customFields.contact);
 
