@@ -89,7 +89,7 @@ export default async function CustomerDetailPage({
           All {terms.customers}
         </Link>
 
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 md:p-6">
+        <div className="ms-card p-5 md:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
               <div className="w-14 h-14 rounded-2xl bg-milestone-blue-dim flex items-center justify-center shrink-0">

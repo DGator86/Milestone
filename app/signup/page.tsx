@@ -19,69 +19,61 @@ export default function SignupPage({
       className="min-h-screen flex items-center justify-center p-4"
       style={{ background: "radial-gradient(ellipse at 50% 0%, #0d2040 0%, #07111F 65%)" }}
     >
-      {/* Ambient glow */}
       <div
         className="pointer-events-none fixed inset-0 overflow-hidden"
         aria-hidden="true"
       >
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full opacity-20"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full opacity-15"
           style={{ background: "radial-gradient(ellipse, #1769FF 0%, transparent 70%)" }}
         />
       </div>
 
-      <div className="w-full max-w-sm relative">
-        {/* Brand */}
-        <div className="text-center mb-7">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-milestone-blue mb-4 shadow-lg shadow-blue-900/50">
-            <Zap size={22} className="text-white fill-white" />
+      <div className="w-full max-w-[360px] relative">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-milestone-blue mb-3 shadow-blue-glow">
+            <Zap size={20} className="text-white fill-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Milestone</h1>
-          <p className="text-white/40 text-sm mt-1">Track the path. Kill the next step.</p>
+          <h1 className="text-xl font-semibold text-white tracking-tight">Milestone</h1>
+          <p className="text-white/40 text-sm mt-0.5">CRM built for closing deals</p>
         </div>
 
-        {/* Perk list */}
-        <div className="space-y-2 mb-7">
+        <div className="space-y-1.5 mb-6">
           {perks.map((perk) => (
-            <div key={perk} className="flex items-center gap-2.5 text-white/60 text-xs">
-              <div className="w-4 h-4 rounded-full bg-milestone-green/20 flex items-center justify-center shrink-0">
-                <Check size={10} className="text-milestone-green" strokeWidth={3} />
+            <div key={perk} className="flex items-center gap-2 text-white/55 text-xs">
+              <div className="w-3.5 h-3.5 rounded-full bg-milestone-green/20 flex items-center justify-center shrink-0">
+                <Check size={9} className="text-milestone-green" strokeWidth={3} />
               </div>
               {perk}
             </div>
           ))}
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-[0_32px_64px_rgba(0,0,0,0.4)] p-7">
-          <h2 className="text-[18px] font-bold text-gray-900 mb-0.5">Create your account</h2>
-          <p className="text-sm text-gray-400 mb-5">Free to start · no credit card needed</p>
+        <div className="bg-white rounded-lg shadow-card-xl p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-0.5">Create your account</h2>
+          <p className="text-sm text-gray-500 mb-4">Free to start · no credit card</p>
 
-          <form action={signUp} className="space-y-4">
+          <form action={signUp} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                Email
-              </label>
+              <label className="ms-label">Email</label>
               <input
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
-                className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent text-sm transition-all"
+                className="ms-input"
                 placeholder="you@example.com"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                Password
-              </label>
+              <label className="ms-label">Password</label>
               <input
                 name="password"
                 type="password"
                 required
                 autoComplete="new-password"
                 minLength={6}
-                className="w-full px-3.5 py-2.5 border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue focus:border-transparent text-sm transition-all"
+                className="ms-input"
                 placeholder="Min 6 characters"
               />
             </div>
@@ -90,7 +82,7 @@ export default function SignupPage({
 
             <button
               type="submit"
-              className="w-full bg-milestone-blue text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600 active:bg-blue-700 transition-colors shadow-sm shadow-blue-200 mt-1"
+              className="w-full ms-btn-primary justify-center py-2 mt-0.5"
             >
               Get started
             </button>
@@ -98,15 +90,15 @@ export default function SignupPage({
 
           {process.env.GOOGLE_CLIENT_ID && (
             <>
-              <div className="flex items-center gap-3 my-4">
+              <div className="flex items-center gap-3 my-3.5">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400 font-medium">or</span>
+                <span className="text-xs text-gray-400">or</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
               <form action={signInWithGoogle}>
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2.5 border border-milestone-line rounded-lg py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 border border-milestone-line rounded-md py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
@@ -120,13 +112,13 @@ export default function SignupPage({
             </>
           )}
 
-          <p className="text-center text-sm text-gray-400 mt-5">
+          <p className="text-center text-sm text-gray-500 mt-4">
             Already have an account?{" "}
-            <Link href="/login" className="text-milestone-blue font-semibold hover:underline">
+            <Link href="/login" className="text-milestone-blue font-medium hover:underline">
               Sign in
             </Link>
           </p>
-          <p className="text-center text-[11px] text-gray-400 mt-4 leading-relaxed">
+          <p className="text-center text-[11px] text-gray-400 mt-3 leading-relaxed">
             By signing up you agree to our{" "}
             <Link href="/terms" className="text-milestone-blue hover:underline">
               Terms
@@ -139,7 +131,7 @@ export default function SignupPage({
           </p>
         </div>
 
-        <p className="text-center text-[11px] text-white/30 mt-4">
+        <p className="text-center text-[11px] text-white/30 mt-5">
           <Link href="/privacy" className="hover:text-white/50">
             Privacy
           </Link>
@@ -161,7 +153,7 @@ async function ErrorMessage({
   const params = await searchParams;
   if (!params.error) return null;
   return (
-    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3.5 py-2.5">
+    <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-3 py-2">
       {params.error}
     </div>
   );

@@ -29,7 +29,7 @@ export default function LogTouchForm({ contactId }: { contactId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-milestone-line shadow-card p-4 animate-fade-up">
+    <div className="ms-card p-4 animate-fade-up">
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Log a touch</p>
       <form
         action={async (fd) => {

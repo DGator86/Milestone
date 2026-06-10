@@ -77,18 +77,16 @@ export default function DashboardShell({
   return (
     <>
       <GoalWizard groups={groups} open={wizardOpen} onClose={closeWizard} prefill={prefill} />
-      <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
+      <div className="px-4 py-4 md:px-6 md:py-5 max-w-7xl mx-auto space-y-4">
 
         {/* ── View tab switcher ── */}
-        <div className="flex bg-white dark:bg-[#0B1929] rounded-xl border border-milestone-line dark:border-white/[0.08] p-1 gap-1 shadow-card">
+        <div className="ms-segment w-full sm:w-auto">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setView(key)}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
-                view === key
-                  ? "bg-milestone-blue text-white shadow-sm"
-                  : "text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white"
+              className={`ms-segment-btn flex-1 sm:flex-none ${
+                view === key ? "ms-segment-btn-active" : "ms-segment-btn-inactive"
               }`}
             >
               {label}

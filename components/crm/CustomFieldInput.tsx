@@ -2,9 +2,8 @@
 
 import type { CustomFieldDef } from "@/lib/customFields";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const INPUT = "ms-input";
+const LABEL = "ms-label";
 
 // Renders the appropriate input for a user-defined custom field. Inputs are
 // named `cf_<id>` so the server action can collect and coerce them by type.

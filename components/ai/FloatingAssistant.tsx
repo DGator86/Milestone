@@ -42,18 +42,18 @@ export default function FloatingAssistant() {
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
-          <div className="fixed z-50 bottom-0 right-0 sm:bottom-5 sm:right-5 w-full sm:w-[400px] h-[85vh] sm:h-[640px] sm:max-h-[85vh] bg-milestone-bg sm:rounded-2xl shadow-card-xl border border-milestone-line flex flex-col overflow-hidden animate-fade-up">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-milestone-line bg-white shrink-0">
+          <div className="fixed z-50 bottom-0 right-0 sm:bottom-5 sm:right-5 w-full sm:w-[400px] h-[85vh] sm:h-[640px] sm:max-h-[85vh] bg-milestone-bg dark:bg-[#07111F] sm:rounded-2xl shadow-card-xl border border-milestone-line dark:border-white/[0.08] flex flex-col overflow-hidden animate-fade-up">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-milestone-line dark:border-white/[0.08] bg-white dark:bg-[#0B1929] shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center">
                   <Bot size={15} className="text-white" />
                 </div>
-                <span className="text-sm font-bold text-gray-900">Assistant</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Assistant</span>
               </div>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                className="p-1.5 rounded-lg text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
               >
                 <X size={18} />
               </button>

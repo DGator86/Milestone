@@ -7,9 +7,8 @@ import type { CustomFieldDef } from "@/lib/customFields";
 import { updateContact, deleteContact } from "@/app/contacts/actions";
 import CustomFieldInput from "./CustomFieldInput";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const INPUT = "ms-input";
+const LABEL = "ms-label";
 
 export default function ContactEditForm({
   contact,

@@ -48,7 +48,7 @@ export default async function TeamPage({
         )}
 
         {/* Workspace */}
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden mb-4">
+        <div className="ms-card mb-4">
           <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
               <Building2 size={12} />
@@ -80,7 +80,7 @@ export default async function TeamPage({
         </div>
 
         {/* Members list */}
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden mb-4">
+        <div className="ms-card mb-4">
           <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60 flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
               <Users size={12} />
@@ -164,7 +164,7 @@ export default async function TeamPage({
         </div>
 
         {/* Invite a member */}
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+        <div className="ms-card">
           <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
             <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
               <UserPlus size={12} />

@@ -349,7 +349,7 @@ export function GoalsList({
 
   if (goals.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+      <div className="ms-card p-14 text-center">
         <Target size={40} className="mx-auto mb-3 text-gray-200" />
         <p className="text-sm font-medium text-gray-400">No goals yet.</p>
         <p className="text-xs text-gray-300 mt-1">
@@ -367,7 +367,7 @@ export function GoalsList({
             {section.label}
             <span className="ml-2 font-semibold text-gray-300">{section.items.length}</span>
           </p>
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             {section.items.map((goal) => (
               <GoalRow key={goal.id} goal={goal} groups={groups} />
             ))}

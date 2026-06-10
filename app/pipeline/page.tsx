@@ -61,7 +61,7 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
                 className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                 style={{
                   borderColor: color,
-                  backgroundColor: isCompleted ? color : "white",
+                  backgroundColor: isCompleted ? color : "var(--ms-dot-bg)",
                 }}
               >
                 {isCompleted && (
@@ -126,7 +126,7 @@ export default async function PipelinePage() {
         </div>
 
         {goalsList.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No goals yet.</p>
             <p className="text-xs text-gray-300 mt-1">Create a goal on the dashboard to get started.</p>
@@ -145,7 +145,7 @@ export default async function PipelinePage() {
                   <span className="text-xs text-gray-400">({stageGoals.length})</span>
                 </div>
 
-                <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
+                <div className="ms-card">
                   {stageGoals.map((goal) => {
                     const milestones = goal.milestones ?? [];
                     const contact = (goal as GoalWithDetails & { contacts?: { name: string } }).contacts;

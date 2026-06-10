@@ -194,7 +194,7 @@ export function GroupsClient({ groups }: { groups: Group[] }) {
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+        <div className="ms-card p-6">
           <h3 className="text-sm font-bold text-gray-900 mb-4">New Group</h3>
           <AddGroupForm onSuccess={() => setShowForm(false)} />
         </div>

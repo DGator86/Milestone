@@ -26,10 +26,9 @@ const PRESET_COLORS = [
 
 const DEFAULT_STAGES_TEXT = "Lead\nQualified\nProposal\nNegotiation\nWon\nLost";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
+const INPUT = "ms-input";
 
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const LABEL = "ms-label";
 
 interface Props {
   flows: CrmFlow[];
@@ -54,7 +53,7 @@ function FlowCard({
   onStart: (id: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden group">
+    <div className="ms-card group">
       {/* Colored top bar */}
       <div className="h-1.5" style={{ backgroundColor: flow.color }} />
 
@@ -296,7 +295,7 @@ export default function FlowsView({ flows, oppCountByFlow, instances, customers 
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-5 mb-6 animate-fade-up">
+        <div className="ms-card p-5 mb-6 animate-fade-up">
           <p className="text-sm font-bold text-gray-900 mb-4">New Flow</p>
           <form onSubmit={handleCreate}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -370,7 +369,7 @@ export default function FlowsView({ flows, oppCountByFlow, instances, customers 
             {flowsWithInstances.map((flow) => {
               const flowInstances = instances.filter((i) => i.flow_id === flow.id);
               return (
-                <div key={flow.id} className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+                <div key={flow.id} className="ms-card">
                   <div className="h-1" style={{ backgroundColor: flow.color }} />
                   <div className="px-4 py-3 border-b border-milestone-line/60 flex items-center gap-2.5">
                     <div
@@ -401,7 +400,7 @@ export default function FlowsView({ flows, oppCountByFlow, instances, customers 
       {/* Flow definitions — editable, with a launch point for instances */}
       <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Flow Templates</h2>
       {flows.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+        <div className="ms-card p-14 text-center">
           <Workflow size={36} className="mx-auto mb-3 text-gray-200" />
           <p className="text-sm font-medium text-gray-400">No flows yet.</p>
           <p className="text-xs text-gray-300 mt-1">

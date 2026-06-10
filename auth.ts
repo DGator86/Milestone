@@ -43,7 +43,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, account }) {
-      // Credentials: user.id is set by authorize()
       if (user?.id) {
         token.id = user.id;
         return token;

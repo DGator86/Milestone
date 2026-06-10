@@ -7,9 +7,8 @@ import { EDITABLE_TERMS, type Terms } from "@/lib/terms";
 import { type CustomFieldDefs } from "@/lib/customFields";
 import CustomFieldsEditor from "./CustomFieldsEditor";
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const INPUT = "ms-input";
+const LABEL = "ms-label";
 
 const SWATCHES = ["#1769FF", "#36A852", "#8B5CF6", "#EA4335", "#F8B400", "#0EA5E9", "#EC4899", "#0F172A"];
 
@@ -46,7 +45,7 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
   return (
     <form action={action} className="space-y-4">
       {/* Workspace identity */}
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
             <Building2 size={12} />
@@ -63,7 +62,7 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
       </div>
 
       {/* Brand color */}
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
             <Palette size={12} />
@@ -103,7 +102,7 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
       </div>
 
       {/* Terminology */}
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
             <Tags size={12} />
@@ -130,7 +129,7 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
       </div>
 
       {/* Customer types */}
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
             <Users size={12} />
@@ -200,7 +199,7 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
       />
 
       {/* Preferences */}
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
           <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Preferences</p>
         </div>
