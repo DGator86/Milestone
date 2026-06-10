@@ -77,9 +77,9 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
       : "bg-gray-100";
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-6">
+    <div className="ms-card p-6">
       <div className="mb-4">
-        <h2 className="text-[13px] font-bold uppercase tracking-widest text-gray-400">
+        <h2 className="text-[13px] font-semibold text-gray-500 dark:text-white/50">
           Momentum
         </h2>
         <p className="text-xs text-gray-400 mt-0.5">Your streak and daily progress</p>
@@ -89,13 +89,13 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
         <div className="flex flex-col items-center justify-center shrink-0">
           <div className="relative w-[88px] h-[88px]">
             <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#F1F5F9" strokeWidth="8" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ms-line)" strokeWidth="8" />
               <circle
                 cx="50"
                 cy="50"
                 r="40"
                 fill="none"
-                stroke={streak > 0 ? "#F8B400" : "#E2E8F0"}
+                stroke={streak > 0 ? "#F8B400" : "var(--ms-line)"}
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={`${Math.min(streak / 30, 1) * 251.2} 251.2`}
@@ -159,7 +159,7 @@ export default function Momentum({ goals }: { goals: GoalWithDetails[] }) {
                       isActive
                         ? "bg-milestone-green text-white"
                         : isToday
-                        ? "ring-2 ring-milestone-green ring-offset-1 text-milestone-green bg-white"
+                        ? "ring-2 ring-milestone-green ring-offset-1 ring-offset-[#0B1929] dark:ring-offset-[#0B1929] text-milestone-green bg-white dark:bg-[#0B1929]"
                         : "bg-gray-100 text-gray-300"
                     }`}
                   >

@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -23,15 +24,15 @@ const config: Config = {
           "amber-dim": "#FFF8E1",
           red: "#EA4335",
           "red-dim": "#FEE8E6",
-          bg: "#EEF2F7",
-          line: "#E2E8F0",
+          bg: "#F8FAFC",
+          line: "#E8EDF3",
         },
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-        "card-lg": "0 4px 24px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05)",
-        "card-xl": "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
-        "blue-glow": "0 4px 20px rgba(23,105,255,0.35)",
+        card: "0 1px 2px rgba(15,23,42,0.04)",
+        "card-lg": "0 4px 12px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04)",
+        "card-xl": "0 8px 24px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.04)",
+        "blue-glow": "0 2px 12px rgba(23,105,255,0.2)",
       },
       keyframes: {
         "fade-up": {

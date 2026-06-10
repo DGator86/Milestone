@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { groups } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
@@ -13,8 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function GroupsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const groupsRaw = await db.query.groups.findMany({
     where: eq(groups.user_id, userId),

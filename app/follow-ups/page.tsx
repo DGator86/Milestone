@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { contacts } from "@/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
@@ -44,8 +45,8 @@ function avatarColor(name: string): string {
 export default async function FollowUpsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const contactsRaw = await db.query.contacts.findMany({
     where: and(
@@ -72,7 +73,7 @@ export default async function FollowUpsPage() {
         </div>
 
         {followUps.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <Bell size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-semibold text-gray-400">{"You're all caught up!"}</p>
             <p className="text-xs text-gray-300 mt-1">
@@ -86,7 +87,7 @@ export default async function FollowUpsPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             {followUps.map(({ contact, daysSince, daysOverdue }, index) => {
               const initials = contact.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               const color = avatarColor(contact.name);
@@ -95,7 +96,7 @@ export default async function FollowUpsPage() {
               return (
                 <Link
                   key={contact.id}
-                  href={`/contacts/${contact.id}`}
+                  href={`/follow-ups/${contact.id}`}
                   className="flex items-center gap-4 px-5 py-4 border-b border-milestone-line last:border-0 hover:bg-gray-50/60 transition-colors group"
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${

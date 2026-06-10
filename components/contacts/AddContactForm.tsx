@@ -32,7 +32,7 @@ export default function AddContactForm({ lists }: { lists: Group[] }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden animate-fade-up">
+    <div className="ms-card animate-fade-up">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-milestone-line bg-gray-50/60">
         <div className="w-8 h-8 rounded-lg bg-milestone-blue-dim flex items-center justify-center">
           <User size={16} className="text-milestone-blue" />

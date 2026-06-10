@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, groups } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
@@ -13,8 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function GoalsPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [groupsRaw, goalsRaw] = await Promise.all([
     db.query.groups.findMany({
@@ -42,14 +43,14 @@ export default async function GoalsPage() {
 
   return (
     <AppShell user={user}>
-      <div className="p-6 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="ms-page max-w-4xl">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-              <Target size={20} className="text-milestone-blue" />
-              All Goals
+            <h1 className="ms-page-title">
+              <Target size={18} className="text-milestone-blue" />
+              All goals
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="ms-page-subtitle">
               {active} active · {completed} completed
             </p>
           </div>

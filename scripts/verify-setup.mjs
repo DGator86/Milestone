@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verifies .env.local and that the Supabase project responds (auth health).
+ * Verifies .env.local has the env vars the app needs (Neon + NextAuth + AI).
  * Run: npm run verify
  */
 
@@ -33,66 +33,60 @@ function parseEnv(content) {
   return out;
 }
 
-async function main() {
+function main() {
   if (!fs.existsSync(envPath)) {
     console.error("Missing .env.local");
     console.error("  cp .env.example .env.local");
-    console.error("  Then add your Supabase Project URL and anon (public) key.");
+    console.error("  Then set DATABASE_URL and AUTH_SECRET (ANTHROPIC_API_KEY optional).");
     process.exit(1);
   }
 
-  const env = parseEnv(fs.readFileSync(envPath, "utf8"));
-  const url = (env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
-  const key = (env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+  const env = { ...parseEnv(fs.readFileSync(envPath, "utf8")), ...process.env };
+  const errors = [];
+  const warnings = [];
 
-  if (!url || !key) {
-    console.error("Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local");
+  // DATABASE_URL — required, must be a postgres connection string.
+  const dbUrl = (env.DATABASE_URL ?? "").trim();
+  if (!dbUrl || dbUrl.includes("user:password@") || dbUrl.includes("ep-xxx")) {
+    errors.push("DATABASE_URL is missing or still a placeholder — set your Neon connection string.");
+  } else if (!/^postgres(ql)?:\/\//.test(dbUrl)) {
+    errors.push("DATABASE_URL does not look like a postgres:// connection string.");
+  } else if (!/sslmode=require/.test(dbUrl)) {
+    warnings.push("DATABASE_URL has no sslmode=require — Neon normally needs it.");
+  }
+
+  // AUTH_SECRET — required for NextAuth in production.
+  const authSecret = (env.AUTH_SECRET ?? env.NEXTAUTH_SECRET ?? "").trim();
+  if (!authSecret || authSecret === "your-random-secret-here") {
+    errors.push("AUTH_SECRET is missing — generate one: openssl rand -base64 32");
+  } else if (authSecret.length < 16) {
+    warnings.push("AUTH_SECRET is short — use at least 32 bytes (openssl rand -base64 32).");
+  }
+
+  // GEMINI_API_KEY — optional; gates the AI goal wizard and chat assistant.
+  const geminiKey = (env.GEMINI_API_KEY ?? "").trim();
+  if (!geminiKey) {
+    warnings.push("GEMINI_API_KEY is not set — the AI assistant will be disabled (everything else works).");
+  }
+
+  // ANTHROPIC_API_KEY — optional; gates milestone suggestions in the manual goal form.
+  const anthropicKey = (env.ANTHROPIC_API_KEY ?? "").trim();
+  if (!anthropicKey) {
+    warnings.push("ANTHROPIC_API_KEY is not set — milestone suggestions will use keyword fallbacks.");
+  } else if (!anthropicKey.startsWith("sk-ant-")) {
+    warnings.push("ANTHROPIC_API_KEY does not start with sk-ant- — double-check the key.");
+  }
+
+  for (const w of warnings) console.warn(`⚠  ${w}`);
+  if (errors.length) {
+    for (const e of errors) console.error(`✖  ${e}`);
     process.exit(1);
   }
 
-  if (
-    url === "your_supabase_project_url" ||
-    key === "your_supabase_anon_key" ||
-    url.includes("your-project")
-  ) {
-    console.error(".env.local still has placeholder values — use real Supabase credentials.");
-    process.exit(1);
-  }
-
-  let base;
-  try {
-    base = new URL(url);
-  } catch {
-    console.error("NEXT_PUBLIC_SUPABASE_URL is not a valid URL");
-    process.exit(1);
-  }
-
-  if (!base.hostname.endsWith("supabase.co")) {
-    console.warn("Warning: host does not end with supabase.co (custom domains are fine if intentional).");
-  }
-
-  if (process.env.VERIFY_SKIP_HEALTH === "1") {
-    console.log("OK — .env.local has non-placeholder URL and key (VERIFY_SKIP_HEALTH=1, skipped live check).");
-  } else {
-    const healthUrl = `${base.origin.replace(/\/$/, "")}/auth/v1/health`;
-    const res = await fetch(healthUrl, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-    });
-
-    if (!res.ok) {
-      console.error(`Supabase did not accept this URL/key (GET /auth/v1/health → ${res.status}).`);
-      console.error("Check Project Settings → API, and that the project is not paused.");
-      console.error("If your dashboard shows a different key type, you can run: VERIFY_SKIP_HEALTH=1 npm run verify");
-      process.exit(1);
-    }
-    console.log("OK — Supabase URL and anon key work, and auth endpoint responded.");
-  }
+  console.log("OK — required env vars are present.");
   console.log("");
-  console.log("If you have not already, run supabase/schema.sql in the Supabase SQL Editor.");
-  console.log("Then: npm run dev  →  http://localhost:3000");
+  console.log("Next: npm run db:push   (apply the schema to your database)");
+  console.log("Then: npm run dev       →  http://localhost:3000  →  sign up at /signup");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main();

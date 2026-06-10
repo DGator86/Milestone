@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals, milestones, activity_log, groups } from "@/db/schema";
 import { eq, and, ne, asc, max } from "drizzle-orm";
@@ -11,12 +12,23 @@ import { CreateGoalSchema } from "@/lib/schemas";
 export async function createGoal(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
-  const milestoneTitles: string[] = [];
-  for (let i = 1; i <= 6; i++) {
-    const t = formData.get(`milestone_${i}`) as string;
-    if (t?.trim()) milestoneTitles.push(t.trim());
+  interface MilestoneData {
+    title: string;
+    due_date: string | null;
+    touch_target: number | null;
+    touch_period: string | null;
+  }
+  const milestoneData: MilestoneData[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const t = (formData.get(`milestone_${i}`) as string)?.trim();
+    if (!t) continue;
+    const schedType = (formData.get(`milestone_${i}_schedule`) as string) || "none";
+    const schedDate = schedType === "date" ? ((formData.get(`milestone_${i}_date`) as string) || null) : null;
+    const touchTarget = schedType === "frequency" ? parseInt(formData.get(`milestone_${i}_target`) as string) || null : null;
+    const touchPeriod = schedType === "frequency" ? ((formData.get(`milestone_${i}_period`) as string) || null) : null;
+    milestoneData.push({ title: t, due_date: schedDate, touch_target: touchTarget, touch_period: touchPeriod });
   }
 
   const raw = {
@@ -33,7 +45,7 @@ export async function createGoal(formData: FormData) {
     redirect(`/dashboard?error=${encodeURIComponent(msg)}`);
   }
 
-  if (milestoneTitles.length === 0) {
+  if (milestoneData.length === 0) {
     redirect("/dashboard?error=At+least+one+milestone+is+required");
   }
 
@@ -51,11 +63,14 @@ export async function createGoal(formData: FormData) {
 
   if (!goal) redirect("/dashboard?error=Failed+to+create+goal");
 
-  const milestoneRows = milestoneTitles.map((t, i) => ({
+  const milestoneRows = milestoneData.map((m, i) => ({
     goal_id: goal.id,
-    title: t,
+    title: m.title,
     position: i,
     status: i === 0 ? "in_progress" : "upcoming",
+    due_date: m.due_date,
+    touch_target: m.touch_target,
+    touch_period: m.touch_period,
   }));
 
   await db.insert(milestones).values(milestoneRows);
@@ -74,11 +89,25 @@ export async function createGoal(formData: FormData) {
 export async function completeMilestone(milestoneId: string, goalId: string) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
+
+  // Authorize: the milestone must belong to a goal owned by this user before
+  // any mutation — otherwise a guessed milestone id could be completed.
+  const owned = await db
+    .select({ id: milestones.id })
+    .from(milestones)
+    .innerJoin(goals, eq(goals.id, milestones.goal_id))
+    .where(and(
+      eq(milestones.id, milestoneId),
+      eq(milestones.goal_id, goalId),
+      eq(goals.user_id, userId),
+    ))
+    .limit(1);
+  if (owned.length === 0) redirect("/dashboard?error=Not+authorized");
 
   await db.update(milestones)
     .set({ status: "completed", completed_at: new Date().toISOString() })
-    .where(eq(milestones.id, milestoneId));
+    .where(and(eq(milestones.id, milestoneId), eq(milestones.goal_id, goalId)));
 
   const remaining = await db.query.milestones.findMany({
     where: and(eq(milestones.goal_id, goalId), ne(milestones.status, "completed")),
@@ -109,14 +138,12 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
 export async function ensureDefaults() {
   const session = await auth();
   if (!session?.user?.id) return;
-  const userId = session.user.id;
+  const userId = await getDataOwnerId();
 
-  const existing = await db.query.groups.findFirst({
-    where: eq(groups.user_id, userId),
-  });
-  if (existing) return;
+  const existing = await db.query.groups.findMany({ where: eq(groups.user_id, userId) });
+  if (existing.length > 0) return;
 
   await db.insert(groups).values([
-    { user_id: userId, name: "Work", color: "#1769FF", sort_order: 0 },
+    { user_id: userId, name: "Business", color: "#1769FF", sort_order: 0 },
   ]);
 }

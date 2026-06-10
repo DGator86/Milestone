@@ -3,11 +3,13 @@
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign } from "lucide-react";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
+import type { CustomFieldDef } from "@/lib/customFields";
 import {
   createOpportunity,
   deleteOpportunity,
   moveOpportunity,
 } from "@/app/opportunities/actions";
+import CustomFieldInput from "./CustomFieldInput";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -21,15 +23,13 @@ const STAGE_HEADER: Record<string, string> = {
   Lost: "text-milestone-red",
 };
 
-const INPUT =
-  "w-full px-3 py-2 text-sm border border-milestone-line rounded-lg focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue bg-white";
-
-const LABEL = "block text-xs font-medium text-gray-500 mb-1";
+const INPUT = "ms-input";
+const LABEL = "ms-label";
 
 interface Props {
   opportunities: CrmOpportunity[];
   customers: Pick<CrmCustomer, "id" | "name">[];
-  contacts: Pick<CrmContact, "id" | "first_name" | "last_name">[];
+  contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[];
   flows: Pick<CrmFlow, "id" | "name" | "stages">[];
 }
 
@@ -69,7 +69,7 @@ function OppCard({
   }, [open]);
 
   return (
-    <div className="bg-white rounded-xl shadow-card border border-milestone-line p-3.5 group">
+    <div className="ms-surface p-3 group">
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-gray-900 text-[13px] leading-snug flex-1">{opp.title}</p>
         <button
@@ -117,7 +117,7 @@ function OppCard({
             Move stage <ChevronRight size={11} />
           </button>
           {open && (
-            <div className="absolute top-full mt-1 left-0 bg-white rounded-lg shadow-card-lg border border-milestone-line p-1 z-20 min-w-[130px]">
+            <div className="absolute top-full mt-1 left-0 bg-white dark:bg-[#0B1929] rounded-lg shadow-card-lg border border-milestone-line dark:border-white/[0.08] p-1 z-20 min-w-[130px]">
               {otherStages.map((s) => (
                 <button
                   key={s}
@@ -125,7 +125,7 @@ function OppCard({
                     onMove(opp.id, s);
                     setOpen(false);
                   }}
-                  className="block w-full text-left text-[12px] px-2.5 py-1.5 rounded hover:bg-gray-50 text-gray-700 font-medium"
+                  className="block w-full text-left text-[12px] px-2.5 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-white/[0.05] text-gray-700 dark:text-white/80 font-medium"
                 >
                   {s}
                 </button>
@@ -143,12 +143,20 @@ export default function OpportunitiesView({
   customers,
   contacts,
   flows,
+  customFields = [],
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
-}: Props & { labelPlural?: string; labelSingular?: string }) {
+}: Props & { customFields?: CustomFieldDef[]; labelPlural?: string; labelSingular?: string }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
+  const [formCustomerId, setFormCustomerId] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // Contacts shown in the add form are limited to the chosen company (when one is set).
+  const formContacts = useMemo(
+    () => (formCustomerId ? contacts.filter((c) => c.customer_id === formCustomerId) : contacts),
+    [formCustomerId, contacts]
+  );
 
   const activeStages = useMemo(() => {
     if (selectedFlowId) {
@@ -203,22 +211,22 @@ export default function OpportunitiesView({
   return (
     <div className="flex flex-col h-full" style={{ opacity: isPending ? 0.7 : 1 }}>
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 flex items-center justify-between gap-4 shrink-0">
+      <div className="px-4 md:px-6 pt-4 md:pt-5 pb-3 flex items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <TrendingUp size={20} className="text-milestone-blue" />
+          <h1 className="ms-page-title">
+            <TrendingUp size={18} className="text-milestone-blue" />
             {labelPlural}
           </h1>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="ms-page-subtitle">
             {openCount} open · {fmt(totalValue) ?? "$0"} total pipeline
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {flows.length > 0 && (
             <select
               value={selectedFlowId}
               onChange={(e) => setSelectedFlowId(e.target.value)}
-              className="text-sm border border-milestone-line rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-milestone-blue/20 focus:border-milestone-blue"
+              className="ms-input w-auto py-1.5"
             >
               <option value="">All flows</option>
               {flows.map((f) => (
@@ -230,7 +238,7 @@ export default function OpportunitiesView({
           )}
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2 bg-milestone-blue text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            className="ms-btn-primary"
           >
             {showForm ? <X size={15} /> : <Plus size={15} />}
             {showForm ? "Cancel" : `Add ${labelSingular}`}
@@ -240,8 +248,8 @@ export default function OpportunitiesView({
 
       {/* Add form */}
       {showForm && (
-        <div className="mx-6 mb-4 bg-white rounded-xl shadow-card border border-milestone-line p-5 animate-fade-up shrink-0">
-          <p className="text-sm font-bold text-gray-900 mb-4">New Opportunity</p>
+        <div className="mx-4 md:mx-6 mb-3 ms-surface p-4 animate-fade-up shrink-0">
+          <p className="text-sm font-semibold text-gray-900 mb-3">New opportunity</p>
           <form onSubmit={handleCreate}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="sm:col-span-2 lg:col-span-1">
@@ -264,7 +272,12 @@ export default function OpportunitiesView({
               </div>
               <div>
                 <label className={LABEL}>Customer</label>
-                <select name="customer_id" className={INPUT} defaultValue="">
+                <select
+                  name="customer_id"
+                  className={INPUT}
+                  value={formCustomerId}
+                  onChange={(e) => setFormCustomerId(e.target.value)}
+                >
                   <option value="">No customer</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -275,14 +288,17 @@ export default function OpportunitiesView({
               </div>
               <div>
                 <label className={LABEL}>Contact</label>
-                <select name="contact_id" className={INPUT} defaultValue="">
+                <select name="contact_id" className={INPUT} defaultValue="" key={formCustomerId}>
                   <option value="">No contact</option>
-                  {contacts.map((c) => (
+                  {formContacts.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.first_name} {c.last_name}
                     </option>
                   ))}
                 </select>
+                {formCustomerId && formContacts.length === 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1">No contacts for this company yet.</p>
+                )}
               </div>
               <div>
                 <label className={LABEL}>Flow (pipeline)</label>
@@ -299,6 +315,9 @@ export default function OpportunitiesView({
                 <label className={LABEL}>Close Date</label>
                 <input name="close_date" type="date" className={INPUT} />
               </div>
+              {customFields.map((f) => (
+                <CustomFieldInput key={f.id} field={f} />
+              ))}
             </div>
             <div className="mt-4">
               <label className={LABEL}>Notes</label>

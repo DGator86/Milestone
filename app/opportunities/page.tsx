@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { crm_opportunities, crm_customers, crm_contacts, crm_flows } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
@@ -13,8 +14,8 @@ export const dynamic = "force-dynamic";
 export default async function OpportunitiesPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const [oppsRaw, customersRaw, contactsRaw, flowsRaw] = await Promise.all([
     db.query.crm_opportunities.findMany({
@@ -26,7 +27,7 @@ export default async function OpportunitiesPage() {
       .from(crm_customers)
       .where(eq(crm_customers.user_id, userId))
       .orderBy(asc(crm_customers.name)),
-    db.select({ id: crm_contacts.id, first_name: crm_contacts.first_name, last_name: crm_contacts.last_name })
+    db.select({ id: crm_contacts.id, first_name: crm_contacts.first_name, last_name: crm_contacts.last_name, customer_id: crm_contacts.customer_id })
       .from(crm_contacts)
       .where(eq(crm_contacts.user_id, userId))
       .orderBy(asc(crm_contacts.first_name)),
@@ -42,9 +43,9 @@ export default async function OpportunitiesPage() {
   })) as unknown as CrmOpportunity[];
 
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
-  const contacts: Pick<CrmContact, "id" | "first_name" | "last_name">[] = contactsRaw;
+  const contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[] = contactsRaw;
   const flows: Pick<CrmFlow, "id" | "name" | "stages">[] = flowsRaw as unknown as Pick<CrmFlow, "id" | "name" | "stages">[];
-  const { terms } = await getSettings(userId);
+  const { terms, customFields } = await getSettings(userId);
 
   return (
     <AppShell user={user}>
@@ -53,6 +54,7 @@ export default async function OpportunitiesPage() {
         customers={customers}
         contacts={contacts}
         flows={flows}
+        customFields={customFields.opportunity}
         labelPlural={terms.opportunities}
         labelSingular={terms.opportunity}
       />

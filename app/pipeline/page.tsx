@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -60,7 +61,7 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
                 className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                 style={{
                   borderColor: color,
-                  backgroundColor: isCompleted ? color : "white",
+                  backgroundColor: isCompleted ? color : "var(--ms-dot-bg)",
                 }}
               >
                 {isCompleted && (
@@ -96,8 +97,8 @@ function MilestoneTrack({ milestones }: { milestones: Milestone[] }) {
 export default async function PipelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const goalsRaw = await db.query.goals.findMany({
     where: eq(goals.user_id, userId),
@@ -125,7 +126,7 @@ export default async function PipelinePage() {
         </div>
 
         {goalsList.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <TrendingUp size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No goals yet.</p>
             <p className="text-xs text-gray-300 mt-1">Create a goal on the dashboard to get started.</p>
@@ -144,7 +145,7 @@ export default async function PipelinePage() {
                   <span className="text-xs text-gray-400">({stageGoals.length})</span>
                 </div>
 
-                <div className="bg-white rounded-xl border border-milestone-line overflow-hidden shadow-card">
+                <div className="ms-card">
                   {stageGoals.map((goal) => {
                     const milestones = goal.milestones ?? [];
                     const contact = (goal as GoalWithDetails & { contacts?: { name: string } }).contacts;

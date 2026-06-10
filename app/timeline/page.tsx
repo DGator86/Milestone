@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
@@ -135,7 +136,7 @@ function Section({
           {items.length}
         </span>
       </p>
-      <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+      <div className="ms-card">
         {items.map((ms) => (
           <MilestoneItem key={ms.id} ms={ms} />
         ))}
@@ -147,8 +148,8 @@ function Section({
 export default async function TimelinePage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const goalsRaw = await db.query.goals.findMany({
     where: and(
@@ -196,7 +197,7 @@ export default async function TimelinePage() {
         </div>
 
         {allMilestones.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <Clock size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No milestones yet.</p>
             <p className="text-xs text-gray-300 mt-1">

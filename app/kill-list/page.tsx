@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getDataOwnerId } from "@/lib/workspace";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
@@ -41,8 +42,8 @@ export default async function KillListPage({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const userId = session.user.id;
-  const user: AppUser = { id: userId, email: session.user.email };
+  const userId = await getDataOwnerId();
+  const user: AppUser = { id: session.user.id, email: session.user.email };
 
   const goalsRaw = await db.query.goals.findMany({
     where: and(eq(goals.user_id, userId), eq(goals.status, "active")),
@@ -101,7 +102,7 @@ export default async function KillListPage({
         </div>
 
         {killList.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line p-14 text-center">
+          <div className="ms-card p-14 text-center">
             <Crosshair size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">
               {meta ? `No ${meta.label.toLowerCase()} goals right now.` : "No pending milestones on active goals."}
@@ -113,7 +114,7 @@ export default async function KillListPage({
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-card border border-milestone-line overflow-hidden">
+          <div className="ms-card">
             {killList.map(({ goal, milestone }, index) => {
               const overdueGoal = isOverdue(goal.due_date);
               const overdueMilestone = isOverdue(milestone.due_date);
