@@ -10,6 +10,7 @@ import { createContact, deleteContact } from "@/app/contacts/actions";
 import SlideOver from "./SlideOver";
 import ContactEditForm from "./ContactEditForm";
 import CustomFieldInput from "./CustomFieldInput";
+import CompanySelect from "./CompanySelect";
 
 const INPUT = "ms-input";
 const LABEL = "ms-label";
@@ -153,17 +154,7 @@ export default function ContactsView({
                 <label className={LABEL}>Phone</label>
                 <input name="phone" placeholder="+1 555 000 0000" className={INPUT} />
               </div>
-              <div>
-                <label className={LABEL}>Company</label>
-                <select name="customer_id" className={INPUT} defaultValue="">
-                  <option value="">No company</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CompanySelect customers={customers} />
             </div>
             {customFields.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">

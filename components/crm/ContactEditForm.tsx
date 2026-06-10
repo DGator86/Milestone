@@ -6,6 +6,7 @@ import type { CrmContact, CrmCustomer } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
 import { updateContact, deleteContact } from "@/app/contacts/actions";
 import CustomFieldInput from "./CustomFieldInput";
+import CompanySelect from "./CompanySelect";
 
 const INPUT = "ms-input";
 const LABEL = "ms-label";
@@ -70,17 +71,7 @@ export default function ContactEditForm({
           <input name="phone" defaultValue={contact.phone ?? ""} className={INPUT} />
         </div>
       </div>
-      <div>
-        <label className={LABEL}>Company</label>
-        <select name="customer_id" className={INPUT} defaultValue={contact.customer_id ?? ""}>
-          <option value="">No company</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <CompanySelect customers={customers} defaultValue={contact.customer_id ?? ""} />
       <div>
         <label className={LABEL}>Notes</label>
         <textarea name="notes" rows={3} defaultValue={contact.notes ?? ""} className={INPUT} />
