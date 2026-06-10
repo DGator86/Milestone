@@ -4,9 +4,9 @@ import { signUp } from "./actions";
 import { signInWithGoogle } from "@/app/login/actions";
 
 const perks = [
-  "Companies, contacts, and deal pipeline",
-  "Goals linked to what you're closing",
-  "Follow-ups and daily focus queue",
+  "CRM for companies, contacts, and deals",
+  "Goal milestones linked to your pipeline",
+  "Kill list and follow-ups that stay current",
 ];
 
 export default function SignupPage({
