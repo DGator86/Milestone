@@ -11,6 +11,7 @@ import {
   LogOut,
   Bot,
   Workflow,
+  CheckCircle2,
   Users,
   Menu,
   X,
@@ -160,6 +161,13 @@ export default function TopNav({
                     Flows
                   </Link>
                 )}
+                <Link
+                  href="/completed"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <CheckCircle2 size={15} className="text-gray-400" />
+                  Completed
+                </Link>
                 <Link
                   href="/ai"
                   className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-600 dark:text-white/60 rounded-md hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"

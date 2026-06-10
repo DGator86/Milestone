@@ -72,6 +72,7 @@ export async function updateMilestoneStatus(
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
+  revalidatePath("/completed");
 }
 
 export async function addMilestone(goalId: string, formData: FormData) {
@@ -157,6 +158,7 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
+  revalidatePath("/completed");
 }
 
 export async function archiveGoal(goalId: string): Promise<{ error?: string }> {
@@ -201,5 +203,6 @@ export async function reactivateGoal(goalId: string): Promise<{ error?: string }
   revalidatePath("/goals");
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/completed");
   return {};
 }
