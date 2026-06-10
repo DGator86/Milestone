@@ -10,12 +10,15 @@ interface ChatMessage {
   actions?: string[];
 }
 
-const STARTERS = [
-  "Break “launch our new pricing page” into milestones",
-  "Show me my kill list and tell me what to cut",
-  "Add Acme Corp as a company and a deal worth 25000",
+const FALLBACK_STARTERS = [
   "What should I work on next?",
+  "Help me turn an idea into a goal with milestones",
+  "Show me my kill list and help me triage",
+  "Walk me through adding a company and a deal",
 ];
+
+const FALLBACK_SUBTITLE =
+  "I can create goals, plan milestones, work your kill list, and manage your CRM.";
 
 export default function AgentChat({ variant = "page" }: { variant?: "page" | "drawer" }) {
   const router = useRouter();
@@ -23,8 +26,33 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [starters, setStarters] = useState<string[]>(FALLBACK_STARTERS);
+  const [subtitle, setSubtitle] = useState(FALLBACK_SUBTITLE);
+  const [loadingStarters, setLoadingStarters] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSuggestions() {
+      try {
+        const res = await fetch("/api/ai/suggestions");
+        if (!res.ok) return;
+        const data = (await res.json()) as { prompts?: string[]; subtitle?: string };
+        if (cancelled) return;
+        if (Array.isArray(data.prompts) && data.prompts.length > 0) setStarters(data.prompts);
+        if (typeof data.subtitle === "string" && data.subtitle.trim()) setSubtitle(data.subtitle.trim());
+      } catch {
+        // Keep fallbacks on network failure.
+      } finally {
+        if (!cancelled) setLoadingStarters(false);
+      }
+    }
+    void loadSuggestions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -101,19 +129,26 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">Milestone Assistant</p>
-                <p className="text-xs text-gray-500 dark:text-white/50">I can create goals, plan milestones, work your kill list, and manage your CRM.</p>
+                <p className="text-xs text-gray-500 dark:text-white/50">{subtitle}</p>
               </div>
             </div>
             <div className="mt-4 space-y-1.5">
-              {STARTERS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => void send(s)}
-                  className="block w-full text-left text-[13px] font-medium text-gray-600 bg-gray-50 hover:bg-milestone-blue-dim hover:text-milestone-blue border border-milestone-line rounded-lg px-3.5 py-2.5 transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
+              {loadingStarters
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-10 rounded-lg bg-gray-100 dark:bg-white/[0.05] border border-milestone-line dark:border-white/[0.06] animate-pulse"
+                    />
+                  ))
+                : starters.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => void send(s)}
+                      className="block w-full text-left text-[13px] font-medium text-gray-600 dark:text-white/70 bg-gray-50 dark:bg-white/[0.04] hover:bg-milestone-blue-dim hover:text-milestone-blue border border-milestone-line dark:border-white/[0.08] rounded-lg px-3.5 py-2.5 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
             </div>
           </div>
         )}
