@@ -24,15 +24,6 @@ export default async function DashboardPage() {
     redirect("/login?error=" + encodeURIComponent("Session expired — please sign in again"));
   }
 
-  // Redirect new admin users through onboarding before their first dashboard load.
-  const isAdmin = await getIsAdmin(session.user.id);
-  if (isAdmin) {
-    const settingsRow = await db.query.user_settings.findFirst({
-      where: eq(user_settings.user_id, session.user.id),
-    });
-    if (!settingsRow?.onboarding_completed_at) redirect("/onboarding");
-  }
-
   const userId = await getDataOwnerId();
   const user: AppUser = { id: session.user.id, email: session.user.email };
 

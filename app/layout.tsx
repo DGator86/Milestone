@@ -45,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="bg-milestone-bg text-gray-900 antialiased font-sans">{children}</body>
       <body className="bg-milestone-bg dark:bg-[#07111F] text-gray-900 dark:text-white antialiased font-sans">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
