@@ -19,6 +19,7 @@ import {
 import type { AppUser } from "@/lib/types";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { signOutAction } from "@/app/auth-actions";
+import ThemeToggle from "./ThemeToggle";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function TopNav({
@@ -110,6 +111,7 @@ export default function TopNav({
         </nav>
 
         {/* Right actions */}
+        <div className="flex items-center gap-1 ml-auto">
         <div className="flex items-center gap-0.5 ml-auto">
           <ThemeToggle />
           <button

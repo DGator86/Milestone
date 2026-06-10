@@ -97,6 +97,98 @@ body {
 .brand-scope .hover\:bg-blue-700:hover {
   background-color: color-mix(in srgb, var(--brand) 84%, #000000);
 }
+
+/* ── Dark mode ────────────────────────────────────────────────────────────
+   Toggled by adding `.dark` on <html> (see ThemeToggle + the no-flash script
+   in app/layout.tsx). Instead of dark: variants on every element, we remap the
+   app's core light tokens to dark equivalents. */
+html.dark body {
+  background-color: #0e1217;
+  color: #e7eaee;
+}
+html.dark .bg-milestone-bg {
+  background-color: #0e1217;
+}
+html.dark .bg-white {
+  background-color: #171b22;
+}
+html.dark .bg-gray-50,
+html.dark .bg-gray-50\/60,
+html.dark .bg-gray-50\/50 {
+  background-color: #1c212a;
+}
+html.dark .bg-gray-100 {
+  background-color: #232a34;
+}
+html.dark .text-gray-900 {
+  color: #e7eaee;
+}
+html.dark .text-gray-800 {
+  color: #dde1e7;
+}
+html.dark .text-gray-700 {
+  color: #cdd4dd;
+}
+html.dark .text-gray-600 {
+  color: #b6bfca;
+}
+html.dark .text-gray-500 {
+  color: #96a1ae;
+}
+html.dark .text-gray-400 {
+  color: #7b8694;
+}
+html.dark .text-gray-300 {
+  color: #5e6772;
+}
+html.dark .text-gray-200 {
+  color: #464d57;
+}
+html.dark .border-milestone-line,
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+  border-color: #2a313b;
+}
+html.dark .divide-milestone-line > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2a313b;
+}
+html.dark .bg-milestone-blue-dim {
+  background-color: #16233d;
+}
+html.dark .bg-milestone-green-dim {
+  background-color: #14271a;
+}
+html.dark .bg-milestone-amber-dim {
+  background-color: #2a2410;
+}
+html.dark .bg-milestone-red-dim {
+  background-color: #2d1513;
+}
+/* Form controls */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1c212a;
+  color: #e7eaee;
+  border-color: #2a313b;
+}
+html.dark ::placeholder {
+  color: #6b7480;
+}
+/* Common hover surfaces */
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-50\/50:hover {
+  background-color: #232a34;
+}
+html.dark .hover\:bg-milestone-blue-dim\/40:hover,
+html.dark .hover\:bg-milestone-blue-dim:hover {
+  background-color: #1b2a47;
+}
+/* Brand-dim tint adapts in dark too */
+html.dark.brand-scope .bg-milestone-blue-dim,
+html.dark .brand-scope .bg-milestone-blue-dim {
+  background-color: color-mix(in srgb, var(--brand) 22%, #0e1217);
+}
 .dark .brand-scope .bg-milestone-blue-dim {
   background-color: color-mix(in srgb, var(--brand) 16%, transparent);
 }
