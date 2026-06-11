@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Send, Sparkles, RotateCcw, Check, User } from "lucide-react";
+import { Bot, Send, Sparkles, RotateCcw, Check, User, ExternalLink } from "lucide-react";
+import type { AgentAction } from "@/lib/ai/actions";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  actions?: string[];
+  actions?: AgentAction[];
   warning?: string;
 }
 
-function looksLikeFalseSuccess(reply: string, actions: string[] | undefined, mutated: boolean) {
+function looksLikeFalseSuccess(reply: string, actions: AgentAction[] | undefined, mutated: boolean) {
   if (mutated || (actions?.length ?? 0) > 0) return false;
   return /\b(created|added|scheduled|set up|logged|saved|done|it's on|it is on)\b/i.test(reply);
 }
@@ -81,7 +83,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-        const actions = data.actions ?? [];
+        const actions: AgentAction[] = data.actions ?? [];
         const warning = looksLikeFalseSuccess(data.reply ?? "", actions, !!data.mutated)
           ? "Nothing was saved — try asking again or say “create it now”."
           : undefined;
@@ -112,7 +114,7 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      const actions = data.actions ?? [];
+      const actions: AgentAction[] = data.actions ?? [];
       const warning = looksLikeFalseSuccess(data.reply ?? "", actions, !!data.mutated)
         ? "Nothing was saved — try asking again or say “create it now”."
         : undefined;
@@ -198,7 +200,17 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
                   {m.actions.map((a, j) => (
                     <div key={j} className="flex items-center gap-1.5 text-[11px] font-medium text-milestone-green">
                       <Check size={12} className="shrink-0" />
-                      <span>{a}</span>
+                      {a.href ? (
+                        <Link
+                          href={a.href}
+                          className="inline-flex items-center gap-1 hover:underline text-milestone-blue"
+                        >
+                          <span>{a.label}</span>
+                          <ExternalLink size={10} className="shrink-0 opacity-70" />
+                        </Link>
+                      ) : (
+                        <span>{a.label}</span>
+                      )}
                     </div>
                   ))}
                 </div>

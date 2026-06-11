@@ -234,7 +234,7 @@ export const TOOLS: AgentTool[] = [
       }
       return {
         summary: `Completed “${current.title}” on goal “${goal.title}”`,
-        data: { completed: current.title, next: rest[0]?.title ?? null, goal_completed: rest.length === 0 },
+        data: { goal_id: goal.id, completed: current.title, next: rest[0]?.title ?? null, goal_completed: rest.length === 0 },
       };
     },
   },
@@ -550,7 +550,10 @@ export const TOOLS: AgentTool[] = [
         await db.insert(activity_log).values({ goal_id: goal.id, milestone_id: milestone.id, action: "milestone_status_changed", metadata: { status, via: "ai" } });
       }
       const displayTitle = newTitle ?? milestone.title;
-      return { summary: `Updated milestone "${displayTitle}" on goal "${goal.title}"`, data: { milestone_id: milestone.id, updated: Object.keys(updates) } };
+      return {
+        summary: `Updated milestone "${displayTitle}" on goal "${goal.title}"`,
+        data: { goal_id: goal.id, milestone_id: milestone.id, updated: Object.keys(updates) },
+      };
     },
   },
   {

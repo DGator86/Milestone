@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from "./tools";
+import { actionFromToolResult, type AgentAction } from "./actions";
 import { needsExecutionRetry } from "./execution";
 
 // Google Gemini via its OpenAI-compatible endpoint.
@@ -62,9 +63,11 @@ interface GroqToolCall {
   function: { name: string; arguments: string };
 }
 
+export type { AgentAction } from "./actions";
+
 export interface AgentResponse {
   reply: string;
-  actions: string[];
+  actions: AgentAction[];
   mutated: boolean;
 }
 
@@ -75,6 +78,7 @@ function revalidateAfterMutation() {
   revalidatePath("/customers");
   revalidatePath("/opportunities");
   revalidatePath("/goals");
+  revalidatePath("/tasks");
 }
 
 const groqTools = TOOLS.map((t) => ({
@@ -143,7 +147,7 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
   const overrideModel = process.env.GEMINI_MODEL ?? process.env.GROQ_MODEL;
   let modelIndex = overrideModel ? Math.max(0, MODEL_WATERFALL.indexOf(overrideModel)) : 0;
 
-  const actions: string[] = [];
+  const actions: AgentAction[] = [];
   let mutated = false;
 
   for (let step = 0; step < MAX_STEPS; step++) {
@@ -226,7 +230,7 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
               mutated = true;
               revalidateAfterMutation();
             }
-            if (result.summary) actions.push(result.summary);
+            if (result.summary) actions.push(actionFromToolResult(name, result.summary, result.data));
             toolContent = JSON.stringify({ ok: true, ...result });
           }
         } catch (err) {
