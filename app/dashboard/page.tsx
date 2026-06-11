@@ -72,12 +72,14 @@ export default async function DashboardPage() {
         <ToastTrigger />
       </Suspense>
       <RealtimeDashboard />
-      <DashboardShell
-        goals={goalsList}
-        groups={safeGroups as Group[]}
-        tasks={tasks}
-        customers={customers}
-      />
+      <Suspense>
+        <DashboardShell
+          goals={goalsList}
+          groups={safeGroups as Group[]}
+          tasks={tasks}
+          customers={customers}
+        />
+      </Suspense>
     </AppShell>
   );
 }

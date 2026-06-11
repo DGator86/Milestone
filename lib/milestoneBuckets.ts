@@ -1,3 +1,4 @@
+import { daysUntilDate } from "@/lib/dates";
 import { getNextMilestone } from "@/lib/progress";
 import type { GoalImportance, GoalWithDetails, Milestone } from "@/lib/types";
 
@@ -35,11 +36,7 @@ export interface OpenMilestoneItem {
 }
 
 export function daysUntilDue(dueDate: string | null, today = new Date()): number | null {
-  if (!dueDate) return null;
-  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const [y, m, d] = dueDate.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return Math.round((date.getTime() - t0.getTime()) / 86400000);
+  return daysUntilDate(dueDate, today);
 }
 
 export function milestoneBucket(daysUntil: number | null): MilestoneBucket {
