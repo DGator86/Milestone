@@ -18,6 +18,7 @@ const protectedRoutes = [
   "/opportunities",
   "/flows",
   "/follow-ups",
+  "/tasks",
   "/pipeline",
   "/reports",
   "/onboarding",

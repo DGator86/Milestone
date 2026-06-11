@@ -34,6 +34,7 @@ export async function createTask(formData: FormData) {
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/tasks");
 }
 
 export async function toggleTaskDone(id: string, done: boolean) {
@@ -46,6 +47,7 @@ export async function toggleTaskDone(id: string, done: boolean) {
     .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
 
   revalidatePath("/dashboard");
+  revalidatePath(`/tasks/${id}`);
 }
 
 export async function deleteTask(id: string) {
@@ -57,6 +59,7 @@ export async function deleteTask(id: string) {
     .where(and(eq(crm_tasks.id, id), eq(crm_tasks.user_id, userId)));
 
   revalidatePath("/dashboard");
+  revalidatePath("/tasks");
 }
 
 export async function toggleGoalPinned(id: string, pinned: boolean) {
