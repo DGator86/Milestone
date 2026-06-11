@@ -110,7 +110,7 @@ export default function DashboardShell({
         )}
 
         {/* ── Agenda: all milestones grouped by due date ── */}
-        {view === "agenda" && <AgendaView goals={goals} />}
+        {view === "agenda" && <AgendaView goals={goals} tasks={tasks} />}
 
         {/* ── Calendar: month grid with milestone dots ── */}
         {view === "calendar" && <CalendarView goals={goals} />}
