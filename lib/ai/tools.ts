@@ -9,7 +9,7 @@ import {
   crm_opportunities,
   crm_tasks,
 } from "@/db/schema";
-import { and, eq, asc, desc, ilike, ne } from "drizzle-orm";
+import { and, eq, asc, desc, ilike, ne, or } from "drizzle-orm";
 
 /**
  * Agent tool registry. Every handler is scoped to a single user id so the
@@ -86,6 +86,32 @@ async function findCustomer(userId: string, name?: string, id?: string) {
   if (name) {
     const matches = await db.query.crm_customers.findMany({
       where: and(eq(crm_customers.user_id, userId), ilike(crm_customers.name, `%${name}%`)),
+    });
+    return matches[0];
+  }
+  return undefined;
+}
+
+async function findContact(userId: string, name?: string, id?: string) {
+  if (id) {
+    return db.query.crm_contacts.findFirst({
+      where: and(eq(crm_contacts.id, id), eq(crm_contacts.user_id, userId)),
+    });
+  }
+  if (name) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const first = parts[0];
+    const last = parts.length > 1 ? parts.slice(1).join(" ") : null;
+    const matches = await db.query.crm_contacts.findMany({
+      where: and(
+        eq(crm_contacts.user_id, userId),
+        last
+          ? and(ilike(crm_contacts.first_name, `%${first}%`), ilike(crm_contacts.last_name, `%${last}%`))
+          : or(
+              ilike(crm_contacts.first_name, `%${first}%`),
+              ilike(crm_contacts.last_name, `%${first}%`),
+            ),
+      ),
     });
     return matches[0];
   }
@@ -529,15 +555,18 @@ export const TOOLS: AgentTool[] = [
   },
   {
     name: "create_task",
-    description: "Create a CRM follow-up task (call, email, meeting, etc.), optionally linked to a company by name.",
+    description:
+      "Create a CRM follow-up task (call, email, meeting, lunch, etc.), optionally linked to a company or contact by name. Use type 'meeting' for lunches and in-person meetings. Put time and location in notes (due_date is date-only).",
     input_schema: {
       type: "object",
       properties: {
         title: { type: "string" },
         company_name: { type: "string" },
+        contact_name: { type: "string", description: "Fuzzy match to link a CRM contact (e.g. 'Patrick Dore')" },
         type: { type: "string", enum: ["call", "email", "meeting", "task", "document"] },
         priority: { type: "string", enum: ["critical", "high", "medium", "low"] },
         due_date: { type: "string", description: "ISO date YYYY-MM-DD" },
+        notes: { type: "string", description: "Time, location, agenda, or other details (e.g. '11:30 AM at Yard House, Palm Beach Gardens')" },
       },
       required: ["title"],
     },
@@ -546,18 +575,27 @@ export const TOOLS: AgentTool[] = [
       const title = str(input.title);
       if (!title) return { error: "title required" };
       const customer = await findCustomer(userId, str(input.company_name));
+      const contact = await findContact(userId, str(input.contact_name));
       const [row] = await db
         .insert(crm_tasks)
         .values({
           user_id: userId,
-          customer_id: customer?.id ?? null,
+          customer_id: customer?.id ?? contact?.customer_id ?? null,
+          contact_id: contact?.id ?? null,
           title,
           type: (str(input.type) as string) || "task",
           priority: (str(input.priority) as string) || "medium",
           due_date: str(input.due_date) || null,
+          notes: str(input.notes) ?? null,
         })
         .returning();
-      return { summary: `Created task “${title}”${customer ? ` for ${customer.name}` : ""}`, data: { task_id: row.id } };
+      const who = contact
+        ? `${contact.first_name} ${contact.last_name}`.trim()
+        : customer?.name;
+      return {
+        summary: `Created task “${title}”${who ? ` with ${who}` : ""}`,
+        data: { task_id: row.id, notes: row.notes },
+      };
     },
   },
 ];
