@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star, Trophy, Check, Plus, Briefcase } from "lucide-react";
 import { calcProgress, getGoalHealth, type GoalHealth } from "@/lib/progress";
 import { toggleGoalPinned } from "@/app/dashboard/task-actions";
+import { buildMailtoLink, isEmailMilestone } from "@/lib/milestoneEmail";
 import type { GoalWithDetails, Milestone } from "@/lib/types";
 
 const HEALTH_META: Record<GoalHealth, { label: string; cls: string }> = {
@@ -26,7 +27,7 @@ function dotState(ms: Milestone, milestones: Milestone[]) {
   return "upcoming" as const;
 }
 
-function Journey({ milestones }: { milestones: Milestone[] }) {
+function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Milestone[] }) {
   if (milestones.length === 0) {
     return <p className="text-xs text-gray-300 mt-4">No milestones yet.</p>;
   }
@@ -82,17 +83,30 @@ function Journey({ milestones }: { milestones: Milestone[] }) {
                   {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
                 </div>
                 {/* label */}
-                <span
-                  className={`mt-1.5 text-[11px] leading-tight px-0.5 line-clamp-2 ${
+                {(() => {
+                  const mailto = isEmailMilestone(ms.title)
+                    ? buildMailtoLink(ms.title, { goal })
+                    : null;
+                  const cls = `mt-1.5 text-[11px] leading-tight px-0.5 line-clamp-2 block ${
                     state === "current"
                       ? "font-semibold text-gray-900 dark:text-white"
                       : state === "done"
                       ? "text-gray-500 dark:text-white/40"
                       : "text-gray-400 dark:text-white/30"
-                  }`}
-                >
-                  {ms.title}
-                </span>
+                  } ${mailto ? "text-milestone-blue hover:underline" : "hover:text-milestone-blue"}`;
+                  if (mailto) {
+                    return (
+                      <a href={mailto} className={cls} onClick={(e) => e.stopPropagation()}>
+                        {ms.title}
+                      </a>
+                    );
+                  }
+                  return (
+                    <Link href={`/goals/${goal.id}`} className={cls}>
+                      {ms.title}
+                    </Link>
+                  );
+                })()}
                 {ms.due_date && (
                   <span className="text-[10px] text-gray-400 mt-0.5">{fmtDate(ms.due_date)}</span>
                 )}
@@ -181,7 +195,7 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
         </div>
       </div>
 
-      <Journey milestones={milestones} />
+      <Journey goal={goal} milestones={milestones} />
     </div>
   );
 }

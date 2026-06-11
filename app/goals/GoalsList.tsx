@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useActionState, useTransition, useEffect } from "react";
+import Link from "next/link";
 import {
   CheckCircle,
   Circle,
@@ -10,6 +11,7 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   X,
   Briefcase,
   Home,
@@ -17,6 +19,7 @@ import {
   Target,
   ChevronDown as ChevronDownIcon,
 } from "lucide-react";
+import { getNextMilestone } from "@/lib/progress";
 import { calcProgress } from "@/lib/progress";
 import { updateGoal, archiveGoal, deleteGoal, reactivateGoal } from "./actions";
 import { useToast } from "@/lib/toast-context";
@@ -191,11 +194,14 @@ function GoalRow({
   groups: Group[];
 }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { show } = useToast();
   const progress = calcProgress(goal.milestones ?? []);
   const GroupIcon = GROUP_ICONS[goal.groups?.name ?? ""] ?? Target;
+  const milestones = goal.milestones ?? [];
+  const next = getNextMilestone(milestones);
 
   function handleArchive() {
     startTransition(async () => {
@@ -229,6 +235,19 @@ function GoalRow({
   return (
     <div className={`border-b border-milestone-line last:border-0 ${isPending ? "opacity-50" : ""}`}>
       <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="shrink-0 p-0.5 rounded text-gray-300 hover:text-milestone-blue transition-colors"
+          aria-label={expanded ? "Collapse goal preview" : "Expand goal preview"}
+          aria-expanded={expanded}
+        >
+          <ChevronRight
+            size={16}
+            className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
+        </button>
+
         {/* Status icon */}
         <div className="shrink-0">
           {goal.status === "completed" ? (
@@ -242,7 +261,12 @@ function GoalRow({
 
         {/* Goal info */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm truncate">{goal.title}</p>
+          <Link
+            href={`/goals/${goal.id}`}
+            className="font-semibold text-gray-900 text-sm truncate block hover:text-milestone-blue transition-colors"
+          >
+            {goal.title}
+          </Link>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <GroupIcon size={11} className="text-gray-400 shrink-0" />
             <span className="text-xs text-gray-400">{goal.groups?.name}</span>
@@ -326,6 +350,58 @@ function GoalRow({
           </button>
         </div>
       </div>
+
+      {expanded && !editing && (
+        <div className="px-5 pb-4 pt-1 bg-gray-50/50 border-t border-milestone-line animate-fade-up">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-xs text-gray-500">
+              {next ? (
+                <>
+                  Next: <span className="font-semibold text-gray-700">{next.title}</span>
+                  {next.due_date && (
+                    <span className="text-gray-400"> · due {next.due_date}</span>
+                  )}
+                </>
+              ) : (
+                "All milestones complete"
+              )}
+            </p>
+            <Link
+              href={`/goals/${goal.id}`}
+              className="text-xs font-semibold text-milestone-blue hover:underline shrink-0"
+            >
+              Open full detail →
+            </Link>
+          </div>
+          <div className="space-y-1">
+            {milestones.map((ms) => (
+              <div key={ms.id} className="flex items-center gap-2 text-xs">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    ms.status === "completed"
+                      ? "bg-milestone-green"
+                      : ms.status === "in_progress"
+                      ? "bg-milestone-blue"
+                      : ms.status === "stuck"
+                      ? "bg-milestone-red"
+                      : "bg-gray-300"
+                  }`}
+                />
+                <span
+                  className={`truncate ${
+                    ms.status === "completed" ? "text-gray-400 line-through" : "text-gray-700"
+                  }`}
+                >
+                  {ms.title}
+                </span>
+                {ms.due_date && (
+                  <span className="text-gray-400 shrink-0 ml-auto">{ms.due_date}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {editing && (
         <EditForm goal={goal} groups={groups} onClose={() => setEditing(false)} />

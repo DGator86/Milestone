@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
+import Link from "next/link";
 import {
   Phone,
   Mail,
@@ -16,8 +17,16 @@ import {
 import { groupTasks } from "@/lib/tasks";
 import { createTask, toggleTaskDone, deleteTask } from "@/app/dashboard/task-actions";
 import { completeMilestone } from "@/app/dashboard/actions";
+import {
+  groupOpenMilestones,
+  MILESTONE_BUCKET_ORDER,
+  MILESTONE_BUCKET_LABELS,
+  type MilestoneBucket,
+  type OpenMilestoneItem,
+} from "@/lib/milestoneBuckets";
+import { buildMailtoLink, isEmailMilestone } from "@/lib/milestoneEmail";
 import type { CrmTask, TaskType, TaskPriority, CrmCustomer } from "@/lib/types";
-import type { GoalWithDetails, Milestone } from "@/lib/types";
+import type { GoalWithDetails } from "@/lib/types";
 
 const TYPE_ICON: Record<TaskType, React.ComponentType<{ size?: number; className?: string }>> = {
   call: Phone,
@@ -42,29 +51,22 @@ const PRIORITY_META: Record<TaskPriority, string> = {
   low: "text-gray-300",
 };
 
+const BUCKET_TONE: Record<MilestoneBucket, string> = {
+  overdue: "bg-milestone-red-dim text-milestone-red",
+  today: "bg-milestone-amber-dim text-milestone-amber",
+  tomorrow: "bg-milestone-blue-dim text-milestone-blue",
+  week: "bg-gray-100 text-gray-500",
+  later: "bg-gray-100 text-gray-400",
+  noDate: "bg-gray-100 text-gray-400",
+};
+
+const IMPORTANCE_BADGE: Record<string, string> = {
+  critical: "bg-milestone-red-dim text-milestone-red",
+  important: "bg-milestone-amber-dim text-milestone-amber",
+  normal: "bg-gray-100 text-gray-400",
+};
+
 const INPUT = "ms-input";
-
-type MilestoneHealth = "critical" | "at_risk" | "on_track" | "none";
-
-interface MilestoneWithGoal {
-  milestone: Milestone;
-  goalId: string;
-  goalTitle: string;
-  health: MilestoneHealth;
-  daysUntil: number | null;
-}
-
-function getMilestoneHealth(dueDate: string | null): { health: MilestoneHealth; daysUntil: number | null } {
-  if (!dueDate) return { health: "none", daysUntil: null };
-  const [y, m, d] = dueDate.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const today = new Date();
-  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const daysUntil = Math.round((date.getTime() - t0.getTime()) / 86400000);
-  if (daysUntil < 0) return { health: "critical", daysUntil };
-  if (daysUntil <= 7) return { health: "at_risk", daysUntil };
-  return { health: "on_track", daysUntil };
-}
 
 function fmtMilestoneDate(daysUntil: number | null): { label: string; color: string } {
   if (daysUntil === null) return { label: "No date", color: "text-gray-300" };
@@ -74,32 +76,59 @@ function fmtMilestoneDate(daysUntil: number | null): { label: string; color: str
   return { label: `${daysUntil}d left`, color: "text-gray-400" };
 }
 
-const HEALTH_BORDER: Record<MilestoneHealth, string> = {
-  critical: "border-l-milestone-red",
-  at_risk: "border-l-milestone-amber",
-  on_track: "border-l-milestone-green",
-  none: "border-l-gray-200",
-};
-
 function MilestoneGoalRow({
   item,
   onComplete,
 }: {
-  item: MilestoneWithGoal;
+  item: OpenMilestoneItem;
   onComplete: (milestoneId: string, goalId: string) => void;
 }) {
   const { label, color } = fmtMilestoneDate(item.daysUntil);
+  const mailto =
+    isEmailMilestone(item.milestone.title)
+      ? buildMailtoLink(item.milestone.title, { goal: item.goal })
+      : null;
+
+  const titleEl = mailto ? (
+    <a
+      href={mailto}
+      className="text-sm font-semibold leading-snug truncate text-milestone-blue hover:underline block"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {item.milestone.title}
+    </a>
+  ) : (
+    <Link
+      href={`/goals/${item.goal.id}`}
+      className="text-sm font-semibold leading-snug truncate text-gray-900 dark:text-white hover:text-milestone-blue block"
+    >
+      {item.milestone.title}
+    </Link>
+  );
+
   return (
-    <div className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors border-l-[3px] ${HEALTH_BORDER[item.health]}`}>
+    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-snug truncate text-gray-900 dark:text-white">{item.milestone.title}</p>
-        <p className="text-xs text-gray-400 dark:text-white/40 truncate">{item.goalTitle}</p>
+        {titleEl}
+        <Link
+          href={`/goals/${item.goal.id}`}
+          className="text-xs text-gray-400 dark:text-white/40 truncate hover:text-milestone-blue block"
+        >
+          {item.goal.title}
+        </Link>
       </div>
+      <span
+        className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${
+          IMPORTANCE_BADGE[item.goal.importance] ?? IMPORTANCE_BADGE.normal
+        }`}
+      >
+        {item.goal.importance}
+      </span>
       <div className="text-right shrink-0">
         <p className={`text-[11px] font-semibold ${color}`}>{label}</p>
       </div>
       <button
-        onClick={() => onComplete(item.milestone.id, item.goalId)}
+        onClick={() => onComplete(item.milestone.id, item.goal.id)}
         className="text-gray-200 hover:text-milestone-green transition-colors opacity-0 group-hover:opacity-100 shrink-0"
         aria-label="Complete milestone"
       >
@@ -133,6 +162,27 @@ function TaskRow({
   onDelete: (id: string) => void;
 }) {
   const Icon = TYPE_ICON[task.type];
+  const titleEl =
+    task.type === "email" ? (
+      <a
+        href={buildMailtoLink(task.title) ?? `mailto:?subject=${encodeURIComponent(task.title)}`}
+        className={`text-sm font-semibold leading-snug truncate block hover:underline ${
+          task.done ? "text-gray-300 line-through" : "text-milestone-blue"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {task.title}
+      </a>
+    ) : (
+      <p
+        className={`text-sm font-semibold leading-snug truncate ${
+          task.done ? "text-gray-300 dark:text-white/20 line-through" : "text-gray-900 dark:text-white"
+        }`}
+      >
+        {task.title}
+      </p>
+    );
+
   return (
     <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
       <button
@@ -156,9 +206,7 @@ function TaskRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold leading-snug truncate ${task.done ? "text-gray-300 dark:text-white/20 line-through" : "text-gray-900 dark:text-white"}`}>
-          {task.title}
-        </p>
+        {titleEl}
         {task.crm_customers?.name && (
           <p className="text-xs text-gray-400 truncate">{task.crm_customers.name}</p>
         )}
@@ -213,7 +261,32 @@ function TaskGroup({
   );
 }
 
-const HEALTH_ORDER: Record<MilestoneHealth, number> = { critical: 0, at_risk: 1, on_track: 2, none: 3 };
+function MilestoneGroup({
+  bucket,
+  items,
+  onComplete,
+}: {
+  bucket: MilestoneBucket;
+  items: OpenMilestoneItem[];
+  onComplete: (milestoneId: string, goalId: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+        <span className="text-[11px] font-medium text-gray-500">{MILESTONE_BUCKET_LABELS[bucket]}</span>
+        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${BUCKET_TONE[bucket]}`}>
+          {items.length}
+        </span>
+      </div>
+      <div className="divide-y divide-milestone-line/70">
+        {items.map((item) => (
+          <MilestoneGoalRow key={item.milestone.id} item={item} onComplete={onComplete} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   tasks: CrmTask[];
@@ -226,23 +299,9 @@ export default function KillList({ tasks, customers, goals }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const groups = useMemo(() => groupTasks(tasks), [tasks]);
+  const milestoneGroups = useMemo(() => groupOpenMilestones(goals), [goals]);
+  const milestoneCount = MILESTONE_BUCKET_ORDER.reduce((n, k) => n + milestoneGroups[k].length, 0);
   const openCount = tasks.filter((t) => !t.done).length;
-
-  const goalMilestones = useMemo((): MilestoneWithGoal[] => {
-    const items: MilestoneWithGoal[] = [];
-    for (const goal of goals) {
-      if (goal.status !== "active") continue;
-      const inProgress = goal.milestones?.find((m) => m.status === "in_progress");
-      if (!inProgress) continue;
-      const { health, daysUntil } = getMilestoneHealth(inProgress.due_date);
-      // Only surface in kill list if overdue or due within 14 days — far-future
-      // and no-date milestones live in FocusToday / Agenda instead.
-      if (health === "none" || health === "on_track") continue;
-      items.push({ milestone: inProgress, goalId: goal.id, goalTitle: goal.title, health, daysUntil });
-    }
-    items.sort((a, b) => HEALTH_ORDER[a.health] - HEALTH_ORDER[b.health]);
-    return items;
-  }, [goals]);
 
   function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -272,7 +331,9 @@ export default function KillList({ tasks, customers, goals }: Props) {
       <div className="flex items-start justify-between px-4 pt-3.5 pb-2.5 border-b border-milestone-line dark:border-white/[0.06]">
         <div>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Kill list</h2>
-          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">{openCount + goalMilestones.length} prioritized actions</p>
+          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+            {openCount + milestoneCount} open actions
+          </p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -323,27 +384,27 @@ export default function KillList({ tasks, customers, goals }: Props) {
       )}
 
       <div className="flex-1 overflow-y-auto max-h-[calc(100vh-220px)]">
-        {goalMilestones.length > 0 && (
+        {milestoneCount > 0 && (
           <div>
             <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-              <span className="text-[11px] font-medium text-gray-500">Goal steps</span>
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-milestone-blue-dim text-milestone-blue">
-                {goalMilestones.length}
-              </span>
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400">Goal milestones</span>
             </div>
-            <div className="divide-y divide-milestone-line/70">
-              {goalMilestones.map((item) => (
-                <MilestoneGoalRow key={item.milestone.id} item={item} onComplete={handleComplete} />
-              ))}
-            </div>
+            {MILESTONE_BUCKET_ORDER.map((bucket) => (
+              <MilestoneGroup
+                key={bucket}
+                bucket={bucket}
+                items={milestoneGroups[bucket]}
+                onComplete={handleComplete}
+              />
+            ))}
           </div>
         )}
 
-        {goalMilestones.length > 0 && openCount > 0 && (
+        {milestoneCount > 0 && openCount > 0 && (
           <div className="mx-4 my-2 border-t border-milestone-line/50" />
         )}
 
-        {openCount === 0 && goalMilestones.length === 0 ? (
+        {openCount === 0 && milestoneCount === 0 ? (
           <div className="p-8 text-center">
             <ListChecks size={28} className="mx-auto mb-2 text-gray-200" />
             <p className="text-sm font-medium text-gray-400 dark:text-white/30">Nothing on the list.</p>
@@ -351,6 +412,9 @@ export default function KillList({ tasks, customers, goals }: Props) {
           </div>
         ) : openCount > 0 ? (
           <>
+            <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400">CRM tasks</span>
+            </div>
             <TaskGroup label="Overdue" tone="bg-milestone-red-dim text-milestone-red" tasks={groups.overdue} onToggle={handleToggle} onDelete={handleDelete} />
             <TaskGroup label="Today" tone="bg-milestone-blue-dim text-milestone-blue" tasks={groups.today} onToggle={handleToggle} onDelete={handleDelete} />
             <TaskGroup label="Upcoming This Week" tone="bg-gray-100 text-gray-500" tasks={groups.upcoming} onToggle={handleToggle} onDelete={handleDelete} />

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import AppShell from "@/components/layout/AppShell";
-import { Settings, User, LogOut, CreditCard } from "lucide-react";
+import { Settings, User, LogOut, CreditCard, Copy } from "lucide-react";
 import { signOutAction } from "@/app/auth-actions";
 import { getSettings } from "@/lib/settings";
 import { getIsAdmin } from "@/lib/admin";
@@ -71,6 +71,24 @@ export default async function SettingsPage() {
             customerTypes={settings.customerTypes}
             customFields={settings.customFields}
           />
+
+          <div className="ms-card">
+            <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                <Copy size={12} />
+                Data quality
+              </p>
+            </div>
+            <div className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Find duplicates</p>
+                <p className="text-xs text-gray-400">Merge or remove duplicate companies and contacts</p>
+              </div>
+              <Link href="/duplicates" className="text-milestone-blue text-sm font-semibold hover:underline">
+                Review →
+              </Link>
+            </div>
+          </div>
 
           <div className="ms-card">
             <div className="px-5 py-3.5 border-b border-milestone-line bg-gray-50/60">

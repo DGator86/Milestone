@@ -1,7 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { ArrowRight, CheckCircle } from "lucide-react";
+import { buildMailtoLink, isEmailMilestone } from "@/lib/milestoneEmail";
 import { getTopFocus } from "@/lib/progress";
 import { completeMilestone } from "@/app/dashboard/actions";
 import type { GoalWithDetails } from "@/lib/types";
@@ -59,9 +61,29 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
         <p className="text-xs text-white/45 mb-1 truncate">
           {first.goal.title}
         </p>
-        <p className="text-lg font-semibold text-white leading-snug mb-4">
-          {first.milestone.title}
-        </p>
+        {(() => {
+          const mailto = isEmailMilestone(first.milestone.title)
+            ? buildMailtoLink(first.milestone.title, { goal: first.goal })
+            : null;
+          if (mailto) {
+            return (
+              <a
+                href={mailto}
+                className="text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
+              >
+                {first.milestone.title}
+              </a>
+            );
+          }
+          return (
+            <Link
+              href={`/goals/${first.goal.id}`}
+              className="text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
+            >
+              {first.milestone.title}
+            </Link>
+          );
+        })()}
         <div className="flex items-center justify-between gap-3">
           <div>
             {badge ? (
@@ -95,10 +117,35 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
                   {i + 2}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-gray-400 dark:text-white/40 truncate">{goal.title}</p>
-                  <p className="text-sm font-medium text-gray-800 dark:text-white leading-snug truncate">
-                    {milestone.title}
-                  </p>
+                  <Link
+                    href={`/goals/${goal.id}`}
+                    className="text-[11px] text-gray-400 dark:text-white/40 truncate block hover:text-milestone-blue"
+                  >
+                    {goal.title}
+                  </Link>
+                  {(() => {
+                    const mailto = isEmailMilestone(milestone.title)
+                      ? buildMailtoLink(milestone.title, { goal })
+                      : null;
+                    if (mailto) {
+                      return (
+                        <a
+                          href={mailto}
+                          className="text-sm font-medium text-milestone-blue leading-snug truncate block hover:underline"
+                        >
+                          {milestone.title}
+                        </a>
+                      );
+                    }
+                    return (
+                      <Link
+                        href={`/goals/${goal.id}`}
+                        className="text-sm font-medium text-gray-800 dark:text-white leading-snug truncate block hover:text-milestone-blue"
+                      >
+                        {milestone.title}
+                      </Link>
+                    );
+                  })()}
                   {rowBadge && (
                     <span className={`text-[10px] font-medium ${rowBadge.cls.split(" ")[1]}`}>
                       {rowBadge.text}

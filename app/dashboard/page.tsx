@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const [goalsRaw, safeGroups, tasksRaw, customersRaw] = await Promise.all([
     db.query.goals.findMany({
       where: and(eq(goals.user_id, userId), eq(goals.status, "active")),
-      with: { groups: true, milestones: true },
+      with: { groups: true, milestones: true, crm_customers: true, contacts: true },
       orderBy: [desc(goals.pinned), asc(goals.created_at)],
     }),
     db.query.groups.findMany({
