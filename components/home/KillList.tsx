@@ -207,8 +207,10 @@ function TaskRow({
 
       <div className="flex-1 min-w-0">
         {titleEl}
-        {task.crm_customers?.name && (
-          <p className="text-xs text-gray-400 truncate">{task.crm_customers.name}</p>
+        {(task.notes || task.crm_customers?.name) && (
+          <p className="text-xs text-gray-400 truncate">
+            {[task.notes, task.crm_customers?.name].filter(Boolean).join(" · ")}
+          </p>
         )}
       </div>
 
