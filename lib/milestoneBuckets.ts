@@ -1,3 +1,4 @@
+import { getNextMilestone } from "@/lib/progress";
 import type { GoalImportance, GoalWithDetails, Milestone } from "@/lib/types";
 
 export type MilestoneBucket = "overdue" | "today" | "tomorrow" | "week" | "later" | "noDate";
@@ -50,7 +51,7 @@ export function milestoneBucket(daysUntil: number | null): MilestoneBucket {
   return "later";
 }
 
-/** All non-completed milestones on active goals, grouped by due-date bucket. */
+/** Next milestone per active goal, grouped by due-date bucket (kill list). */
 export function groupOpenMilestones(
   goals: GoalWithDetails[],
   today = new Date(),
@@ -66,12 +67,11 @@ export function groupOpenMilestones(
 
   for (const goal of goals) {
     if (goal.status !== "active") continue;
-    for (const milestone of goal.milestones ?? []) {
-      if (milestone.status === "completed") continue;
-      const daysUntil = daysUntilDue(milestone.due_date, today);
-      const bucket = milestoneBucket(daysUntil);
-      map[bucket].push({ goal, milestone, daysUntil, bucket });
-    }
+    const milestone = getNextMilestone(goal.milestones ?? []);
+    if (!milestone) continue;
+    const daysUntil = daysUntilDue(milestone.due_date, today);
+    const bucket = milestoneBucket(daysUntil);
+    map[bucket].push({ goal, milestone, daysUntil, bucket });
   }
 
   for (const key of MILESTONE_BUCKET_ORDER) {
