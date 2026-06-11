@@ -1,27 +1,27 @@
-import { groupOpenMilestones, milestoneBucket, type MilestoneBucket, type OpenMilestoneItem } from "@/lib/milestoneBuckets";
-import { daysUntilDate } from "@/lib/dates";
+import {
+  bucketForAnchor,
+  collectScheduledMilestones,
+  collectScheduledTasks,
+  type ScheduledMilestone,
+  type ScheduledTask,
+} from "@/lib/scheduleAnchor";
+import type { MilestoneBucket } from "@/lib/milestoneBuckets";
 import type { CrmTask, GoalWithDetails } from "@/lib/types";
 
 export type AgendaBucket = MilestoneBucket;
 
 export const AGENDA_BUCKET_ORDER: AgendaBucket[] = ["overdue", "today", "tomorrow", "week", "later"];
 
-export type AgendaMilestoneEntry = { kind: "milestone"; item: OpenMilestoneItem };
-export type AgendaTaskEntry = { kind: "task"; task: CrmTask };
+export type AgendaMilestoneEntry = { kind: "milestone"; item: ScheduledMilestone };
+export type AgendaTaskEntry = { kind: "task"; item: ScheduledTask };
 export type AgendaEntry = AgendaMilestoneEntry | AgendaTaskEntry;
 
-export function taskAgendaBucket(task: CrmTask, today = new Date()): AgendaBucket | null {
-  if (task.done || !task.due_date) return null;
-  return milestoneBucket(daysUntilDate(task.due_date, today));
-}
-
-/** Unified agenda buckets for milestones (next step per goal) and open CRM tasks. */
+/** Unified agenda buckets for all open milestones and CRM tasks with date or priority anchors. */
 export function buildAgendaBuckets(
   goals: GoalWithDetails[],
   tasks: CrmTask[],
   today = new Date(),
 ): Record<AgendaBucket, AgendaEntry[]> {
-  const milestoneGroups = groupOpenMilestones(goals, today);
   const map: Record<AgendaBucket, AgendaEntry[]> = {
     overdue: [],
     today: [],
@@ -31,21 +31,17 @@ export function buildAgendaBuckets(
     noDate: [],
   };
 
-  for (const bucket of AGENDA_BUCKET_ORDER) {
-    for (const item of milestoneGroups[bucket]) {
+  for (const item of collectScheduledMilestones(goals, today)) {
+    const bucket = bucketForAnchor(item.daysUntil);
+    if (AGENDA_BUCKET_ORDER.includes(bucket)) {
       map[bucket].push({ kind: "milestone", item });
     }
   }
 
-  // Undated next milestones are actionable today.
-  for (const item of milestoneGroups.noDate) {
-    map.today.push({ kind: "milestone", item });
-  }
-
-  for (const task of tasks) {
-    const bucket = taskAgendaBucket(task, today);
-    if (bucket && AGENDA_BUCKET_ORDER.includes(bucket)) {
-      map[bucket].push({ kind: "task", task });
+  for (const item of collectScheduledTasks(tasks, today)) {
+    const bucket = bucketForAnchor(item.daysUntil);
+    if (AGENDA_BUCKET_ORDER.includes(bucket)) {
+      map[bucket].push({ kind: "task", item });
     }
   }
 

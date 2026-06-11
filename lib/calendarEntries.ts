@@ -1,8 +1,12 @@
-import { getNextMilestone } from "@/lib/progress";
-import { dayOfMonth, isSameLocalMonth, localDateKey, toDateKey } from "@/lib/dates";
+import { dayOfMonth, isSameLocalMonth, toDateKey } from "@/lib/dates";
+import {
+  collectScheduledMilestones,
+  collectScheduledTasks,
+  type AnchorSource,
+} from "@/lib/scheduleAnchor";
 import type { CrmTask, GoalWithDetails } from "@/lib/types";
 
-export type CalendarEntryKind = "milestone" | "goal" | "task" | "current";
+export type CalendarEntryKind = "milestone" | "goal" | "task" | "priority";
 
 export interface CalendarEntry {
   date: string;
@@ -12,6 +16,7 @@ export interface CalendarEntry {
   goalTitle: string;
   label: string;
   kind: CalendarEntryKind;
+  anchorSource: AnchorSource;
 }
 
 function pushEntry(map: Map<number, CalendarEntry[]>, entry: CalendarEntry) {
@@ -20,7 +25,14 @@ function pushEntry(map: Map<number, CalendarEntry[]>, entry: CalendarEntry) {
   map.set(entry.day, dayList);
 }
 
-/** Build month calendar entries from goals, milestones, and CRM tasks. */
+function calendarKind(source: AnchorSource): CalendarEntryKind {
+  if (source === "goal") return "goal";
+  if (source === "task") return "task";
+  if (source === "priority") return "priority";
+  return "milestone";
+}
+
+/** Build month calendar entries from scheduled goals, milestones, and CRM tasks. */
 export function buildMonthCalendar(
   goals: GoalWithDetails[],
   tasks: CrmTask[],
@@ -30,73 +42,54 @@ export function buildMonthCalendar(
 ): { byDay: Map<number, CalendarEntry[]>; agenda: CalendarEntry[] } {
   const map = new Map<number, CalendarEntry[]>();
   const list: CalendarEntry[] = [];
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
-  const todayDay = today.getDate();
 
   for (const goal of goals) {
     if (goal.status !== "active") continue;
-
-    if (goal.due_date && isSameLocalMonth(goal.due_date, year, month)) {
-      const day = dayOfMonth(goal.due_date);
-      if (!day) continue;
-      const entry: CalendarEntry = {
-        date: toDateKey(goal.due_date)!,
-        day,
-        goalId: goal.id,
-        goalTitle: goal.title,
-        label: `Goal due: ${goal.title}`,
-        kind: "goal",
-      };
-      pushEntry(map, entry);
-      list.push(entry);
-    }
-
-    for (const ms of goal.milestones ?? []) {
-      if (ms.status === "completed" || !ms.due_date) continue;
-      if (!isSameLocalMonth(ms.due_date, year, month)) continue;
-      const day = dayOfMonth(ms.due_date);
-      if (!day) continue;
-      const entry: CalendarEntry = {
-        date: toDateKey(ms.due_date)!,
-        day,
-        goalId: goal.id,
-        goalTitle: goal.title,
-        label: ms.title,
-        kind: "milestone",
-      };
-      pushEntry(map, entry);
-      list.push(entry);
-    }
-
-    if (isCurrentMonth) {
-      const next = getNextMilestone(goal.milestones ?? []);
-      if (next && !next.due_date) {
-        const entry: CalendarEntry = {
-          date: localDateKey(today),
-          day: todayDay,
-          goalId: goal.id,
-          goalTitle: goal.title,
-          label: next.title,
-          kind: "current",
-        };
-        pushEntry(map, entry);
-        list.push(entry);
-      }
-    }
-  }
-
-  for (const task of tasks) {
-    if (task.done || !task.due_date) continue;
-    if (!isSameLocalMonth(task.due_date, year, month)) continue;
-    const day = dayOfMonth(task.due_date);
+    if (!goal.due_date || !isSameLocalMonth(goal.due_date, year, month)) continue;
+    const day = dayOfMonth(goal.due_date);
     if (!day) continue;
     const entry: CalendarEntry = {
-      date: toDateKey(task.due_date)!,
+      date: toDateKey(goal.due_date)!,
+      day,
+      goalId: goal.id,
+      goalTitle: goal.title,
+      label: `Goal due: ${goal.title}`,
+      kind: "goal",
+      anchorSource: "goal",
+    };
+    pushEntry(map, entry);
+    list.push(entry);
+  }
+
+  for (const { goal, milestone, anchor } of collectScheduledMilestones(goals, today)) {
+    if (!isSameLocalMonth(anchor.dateKey, year, month)) continue;
+    const day = dayOfMonth(anchor.dateKey);
+    if (!day) continue;
+    const entry: CalendarEntry = {
+      date: anchor.dateKey,
+      day,
+      goalId: goal.id,
+      goalTitle: goal.title,
+      label: milestone.title,
+      kind: calendarKind(anchor.source),
+      anchorSource: anchor.source,
+    };
+    pushEntry(map, entry);
+    list.push(entry);
+  }
+
+  for (const { task, anchor } of collectScheduledTasks(tasks, today)) {
+    if (!isSameLocalMonth(anchor.dateKey, year, month)) continue;
+    const day = dayOfMonth(anchor.dateKey);
+    if (!day) continue;
+    const entry: CalendarEntry = {
+      date: anchor.dateKey,
       day,
       taskId: task.id,
       goalTitle: task.crm_customers?.name ?? "CRM",
       label: task.title,
-      kind: "task",
+      kind: calendarKind(anchor.source),
+      anchorSource: anchor.source,
     };
     pushEntry(map, entry);
     list.push(entry);

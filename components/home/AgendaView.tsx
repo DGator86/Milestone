@@ -18,8 +18,9 @@ import {
   hasAgendaItems,
   type AgendaEntry,
 } from "@/lib/agenda";
-import type { MilestoneBucket, OpenMilestoneItem } from "@/lib/milestoneBuckets";
+import type { MilestoneBucket } from "@/lib/milestoneBuckets";
 import { buildMailtoLink, isEmailMilestone } from "@/lib/milestoneEmail";
+import type { ScheduledMilestone, ScheduledTask } from "@/lib/scheduleAnchor";
 import type { CrmTask, GoalWithDetails, TaskType } from "@/lib/types";
 
 const BUCKET_META: Record<MilestoneBucket, { label: string; cls: string }> = {
@@ -29,6 +30,13 @@ const BUCKET_META: Record<MilestoneBucket, { label: string; cls: string }> = {
   week: { label: "This Week", cls: "text-gray-500 dark:text-white/40" },
   later: { label: "Later", cls: "text-gray-400 dark:text-white/30" },
   noDate: { label: "No Date", cls: "text-gray-300 dark:text-white/20" },
+};
+
+const ANCHOR_LABEL: Record<string, string> = {
+  milestone: "Due date",
+  goal: "Goal deadline",
+  priority: "Priority",
+  task: "Due date",
 };
 
 const TYPE_ICON: Record<TaskType, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -51,7 +59,7 @@ function MilestoneRow({
   item,
   onComplete,
 }: {
-  item: OpenMilestoneItem;
+  item: ScheduledMilestone;
   onComplete: (milestoneId: string, goalId: string) => void;
 }) {
   const mailto = isEmailMilestone(item.milestone.title)
@@ -80,6 +88,9 @@ function MilestoneRow({
       <div className="flex-1 min-w-0">
         <p className="text-[11px] text-gray-400 dark:text-white/40 truncate">{item.goal.title}</p>
         {titleEl}
+        <p className="text-[10px] text-gray-400 dark:text-white/30 mt-0.5">
+          {ANCHOR_LABEL[item.anchor.source] ?? "Scheduled"}
+        </p>
       </div>
       <button
         onClick={() => onComplete(item.milestone.id, item.goal.id)}
@@ -93,12 +104,13 @@ function MilestoneRow({
 }
 
 function TaskRow({
-  task,
+  item,
   onToggle,
 }: {
-  task: CrmTask;
+  item: ScheduledTask;
   onToggle: (id: string, done: boolean) => void;
 }) {
+  const { task } = item;
   const Icon = TYPE_ICON[task.type];
   const titleEl =
     task.type === "email" ? (
@@ -128,6 +140,10 @@ function TaskRow({
       <div className="flex-1 min-w-0">
         <p className="text-[11px] text-gray-400 dark:text-white/40 truncate">CRM task</p>
         {titleEl}
+        <p className="text-[10px] text-gray-400 dark:text-white/30 mt-0.5">
+          {ANCHOR_LABEL[item.anchor.source] ?? "Scheduled"}
+          {item.anchor.source === "priority" ? ` · ${task.priority}` : ""}
+        </p>
         {(task.notes || task.crm_customers?.name) && (
           <p className="text-xs text-gray-400 dark:text-white/30 truncate">
             {[task.notes, task.crm_customers?.name].filter(Boolean).join(" · ")}
@@ -150,7 +166,7 @@ function AgendaRow({
   if (entry.kind === "milestone") {
     return <MilestoneRow item={entry.item} onComplete={onComplete} />;
   }
-  return <TaskRow task={entry.task} onToggle={onToggleTask} />;
+  return <TaskRow item={entry.item} onToggle={onToggleTask} />;
 }
 
 export default function AgendaView({
@@ -178,7 +194,7 @@ export default function AgendaView({
       <div className="bg-white dark:bg-[#0B1929] rounded-2xl shadow-card border border-milestone-line dark:border-white/[0.08] p-10 text-center">
         <p className="text-sm text-gray-400 dark:text-white/30">Nothing on your agenda yet.</p>
         <p className="text-xs text-gray-400 dark:text-white/20 mt-1">
-          Add due dates to milestones or CRM tasks to see them here.
+          Open milestones and tasks appear here when they have a due date or priority.
         </p>
       </div>
     );
@@ -203,7 +219,11 @@ export default function AgendaView({
             <div className="divide-y divide-milestone-line/60 dark:divide-white/[0.05]">
               {items.map((entry) => (
                 <AgendaRow
-                  key={entry.kind === "milestone" ? `ms-${entry.item.milestone.id}` : `task-${entry.task.id}`}
+                  key={
+                    entry.kind === "milestone"
+                      ? `ms-${entry.item.milestone.id}`
+                      : `task-${entry.item.task.id}`
+                  }
                   entry={entry}
                   onComplete={handleComplete}
                   onToggleTask={handleToggleTask}

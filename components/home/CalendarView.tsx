@@ -18,7 +18,7 @@ const KIND_LABEL: Record<CalendarEntry["kind"], string> = {
   goal: "Goal deadline",
   milestone: "Milestone",
   task: "CRM task",
-  current: "Current step",
+  priority: "Priority",
 };
 
 function entryHref(entry: CalendarEntry): string {
