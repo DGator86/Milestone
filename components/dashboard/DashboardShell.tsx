@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import CriticalPaths from "@/components/home/CriticalPaths";
 import FocusToday from "@/components/home/FocusToday";
 import AgendaView from "@/components/home/AgendaView";
@@ -42,9 +43,25 @@ export default function DashboardShell({
   tasks: CrmTask[];
   customers: Pick<CrmCustomer, "id" | "name">[];
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [prefill, setPrefill] = useState<GoalPrefill | null>(null);
-  const [view, setView] = useState<ViewTab>("focus");
+
+  const tabParam = searchParams.get("tab");
+  const view: ViewTab =
+    tabParam === "agenda" || tabParam === "calendar" || tabParam === "focus" ? tabParam : "focus";
+
+  const setView = useCallback(
+    (next: ViewTab) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === "focus") params.delete("tab");
+      else params.set("tab", next);
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   useEffect(() => {
     try {
@@ -113,7 +130,7 @@ export default function DashboardShell({
         {view === "agenda" && <AgendaView goals={goals} tasks={tasks} />}
 
         {/* ── Calendar: month grid with milestone dots ── */}
-        {view === "calendar" && <CalendarView goals={goals} />}
+        {view === "calendar" && <CalendarView goals={goals} tasks={tasks} />}
 
       </div>
     </>

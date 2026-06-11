@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react";
-import type { GoalWithDetails } from "@/lib/types";
+import { buildMonthCalendar, type CalendarEntry } from "@/lib/calendarEntries";
+import type { CrmTask, GoalWithDetails } from "@/lib/types";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -13,16 +14,26 @@ const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 type ViewMode = "month" | "agenda";
 
-interface CalendarEntry {
-  date: string;
-  day: number;
-  goalId: string;
-  goalTitle: string;
-  label: string;
-  kind: "milestone" | "goal";
+const KIND_LABEL: Record<CalendarEntry["kind"], string> = {
+  goal: "Goal deadline",
+  milestone: "Milestone",
+  task: "CRM task",
+  current: "Current step",
+};
+
+function entryHref(entry: CalendarEntry): string {
+  if (entry.kind === "task" && entry.taskId) return `/tasks/${entry.taskId}`;
+  if (entry.goalId) return `/goals/${entry.goalId}`;
+  return "/dashboard";
 }
 
-export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
+export default function CalendarView({
+  goals,
+  tasks,
+}: {
+  goals: GoalWithDetails[];
+  tasks: CrmTask[];
+}) {
   const today = new Date();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
@@ -33,54 +44,10 @@ export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDow = new Date(year, month, 1).getDay();
 
-  const { byDay, agenda } = useMemo(() => {
-    const map = new Map<number, CalendarEntry[]>();
-    const list: CalendarEntry[] = [];
-
-    for (const goal of goals) {
-      if (goal.status !== "active") continue;
-
-      if (goal.due_date) {
-        const [y, m, d] = goal.due_date.split("-").map(Number);
-        if (y === year && m - 1 === month) {
-          const entry: CalendarEntry = {
-            date: goal.due_date,
-            day: d,
-            goalId: goal.id,
-            goalTitle: goal.title,
-            label: `Goal due: ${goal.title}`,
-            kind: "goal",
-          };
-          const dayList = map.get(d) ?? [];
-          dayList.push(entry);
-          map.set(d, dayList);
-          list.push(entry);
-        }
-      }
-
-      for (const ms of goal.milestones ?? []) {
-        if (!ms.due_date || ms.status === "completed") continue;
-        const [y, m, d] = ms.due_date.split("-").map(Number);
-        if (y === year && m - 1 === month) {
-          const entry: CalendarEntry = {
-            date: ms.due_date,
-            day: d,
-            goalId: goal.id,
-            goalTitle: goal.title,
-            label: ms.title,
-            kind: "milestone",
-          };
-          const dayList = map.get(d) ?? [];
-          dayList.push(entry);
-          map.set(d, dayList);
-          list.push(entry);
-        }
-      }
-    }
-
-    list.sort((a, b) => a.date.localeCompare(b.date) || a.goalTitle.localeCompare(b.goalTitle));
-    return { byDay: map, agenda: list };
-  }, [goals, year, month]);
+  const { byDay, agenda } = useMemo(
+    () => buildMonthCalendar(goals, tasks, year, month),
+    [goals, tasks, year, month],
+  );
 
   const isToday = (d: number) =>
     d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
@@ -121,7 +88,7 @@ export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
             Detailed
           </button>
         </div>
-        <p className="text-xs text-gray-400">{agenda.length} key dates this month</p>
+        <p className="text-xs text-gray-400">{agenda.length} items this month</p>
       </div>
 
       {mode === "month" ? (
@@ -191,19 +158,23 @@ export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
                 </p>
               </div>
               {selectedItems.length === 0 ? (
-                <p className="px-4 py-4 text-xs text-gray-400">Nothing due on this day.</p>
+                <p className="px-4 py-4 text-xs text-gray-400">Nothing scheduled on this day.</p>
               ) : (
                 <div className="divide-y divide-milestone-line/60 dark:divide-white/[0.05] max-h-48 overflow-y-auto">
                   {selectedItems.map((item, idx) => (
                     <Link
-                      key={`${item.goalId}-${item.kind}-${idx}`}
-                      href={`/goals/${item.goalId}`}
+                      key={`${item.date}-${item.kind}-${item.goalId ?? item.taskId}-${idx}`}
+                      href={entryHref(item)}
                       className="block px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                     >
                       <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-                        {item.kind === "goal" ? "Goal deadline" : item.goalTitle}
+                        {KIND_LABEL[item.kind]}
+                        {item.kind !== "task" ? ` · ${item.goalTitle}` : ""}
                       </p>
                       <p className="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">{item.label}</p>
+                      {item.kind === "task" && (
+                        <p className="text-[10px] text-gray-400 mt-0.5">{item.goalTitle}</p>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -233,13 +204,13 @@ export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
             </button>
           </div>
           {agenda.length === 0 ? (
-            <p className="px-4 py-8 text-sm text-gray-400 text-center">No goal or milestone dates this month.</p>
+            <p className="px-4 py-8 text-sm text-gray-400 text-center">No scheduled items this month.</p>
           ) : (
             <div className="max-h-[420px] overflow-y-auto divide-y divide-milestone-line/60 dark:divide-white/[0.05]">
               {agenda.map((item, idx) => (
                 <Link
-                  key={`${item.date}-${item.goalId}-${item.kind}-${idx}`}
-                  href={`/goals/${item.goalId}`}
+                  key={`${item.date}-${item.kind}-${item.goalId ?? item.taskId}-${idx}`}
+                  href={entryHref(item)}
                   className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                 >
                   <div className="shrink-0 w-12 text-center">
@@ -252,7 +223,7 @@ export default function CalendarView({ goals }: { goals: GoalWithDetails[] }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-                      {item.kind === "goal" ? "Goal deadline" : "Milestone"}
+                      {KIND_LABEL[item.kind]}
                     </p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{item.label}</p>
                     <p className="text-xs text-gray-400 truncate">{item.goalTitle}</p>

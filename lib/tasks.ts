@@ -1,3 +1,4 @@
+import { parseDateParts, startOfLocalDay } from "@/lib/dates";
 import type { CrmTask, TaskPriority } from "./types";
 
 export interface TaskGroups {
@@ -14,13 +15,10 @@ const PRIORITY_RANK: Record<TaskPriority, number> = {
   low: 3,
 };
 
-function startOfDay(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-}
-
 function parseDateStr(s: string): Date {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  const parts = parseDateParts(s);
+  if (!parts) return new Date(NaN);
+  return new Date(parts.y, parts.m - 1, parts.d);
 }
 
 /**
@@ -30,7 +28,7 @@ function parseDateStr(s: string): Date {
  */
 export function groupTasks(tasks: CrmTask[]): TaskGroups {
   const now = new Date();
-  const todayStart = startOfDay(now);
+  const todayStart = startOfLocalDay(now).getTime();
   const weekEnd = todayStart + 7 * 86400000;
 
   const groups: TaskGroups = { overdue: [], today: [], upcoming: [], later: [] };
@@ -41,7 +39,7 @@ export function groupTasks(tasks: CrmTask[]): TaskGroups {
       groups.later.push(task);
       continue;
     }
-    const due = startOfDay(parseDateStr(task.due_date));
+    const due = startOfLocalDay(parseDateStr(task.due_date)).getTime();
     if (due < todayStart) groups.overdue.push(task);
     else if (due === todayStart) groups.today.push(task);
     else if (due <= weekEnd) groups.upcoming.push(task);
