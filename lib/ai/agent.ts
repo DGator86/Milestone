@@ -1,4 +1,6 @@
+import { revalidatePath } from "next/cache";
 import { TOOLS, TOOLS_BY_NAME, type ToolContext } from "./tools";
+import { needsExecutionRetry } from "./execution";
 
 // Google Gemini via its OpenAI-compatible endpoint.
 // Free tier: 60 RPM, 1M TPM — far more headroom than Groq's free plan.
@@ -28,11 +30,14 @@ Your job is to help the user:
 
 Rules of engagement:
 - Be conversational and collaborative. Think of yourself as a smart teammate, not an automation script.
-- NEVER create, update, or delete anything without the user's explicit confirmation first. Propose what you plan to do and wait for a clear "yes", "go ahead", "do it", or equivalent before calling any mutating tool.
-- When the user describes a goal or asks for help planning, outline your suggested milestones in plain text and ask "Want me to create this?" before touching any tool.
+- Execution is tool-only: you cannot create, update, or delete data with text alone. Every change requires calling a mutating tool in the same turn.
+- Never say something was created, added, scheduled, or done unless a mutating tool returned ok in this turn.
+- Direct commands with enough detail ("add a lunch task Friday", "create a goal to launch X") — call the tool immediately; do not ask for confirmation first.
+- Destructive or vague changes (delete, archive, unclear scope) — propose first, then call the tool only after the user confirms.
+- When the user describes a goal and wants help planning only, outline milestones and ask "Want me to create this?" before create_goal.
 - When reading data (list_goals, get_kill_list, etc.) to answer a question, you can call those tools immediately — they don't change anything.
 - After proposing an action, keep the ask short: one sentence ending with a yes/no question.
-- Once the user confirms, execute cleanly and give a brief recap of what changed plus the single most valuable next step.
+- When the user confirms (yes / go ahead / do it), your very next step must be a tool call — not a text-only "done" reply.
 - If the user says something ambiguous, ask one focused clarifying question rather than guessing.
 - Milestones must be concrete next actions (3-7 words each), ordered, and small enough to finish in days not months.
 - When your proposed milestones include any step that involves communicating with someone (e.g. "Schedule meeting", "Send follow-up", "Reach out", "Contact", "Email", "Call"), BEFORE asking "Want me to create this?", ask in a single message: (1) what communication channel to use for each such step (email, phone call, text, LinkedIn, in-person, etc.) and (2) who the specific recipient is if not already clear. Then revise those milestone titles to embed both the channel and person — e.g. "Email Sarah @ Monroe Concrete re: site visit", "Call CEO to schedule Q2 review". Only after getting those answers should you ask for final confirmation.
@@ -61,6 +66,15 @@ export interface AgentResponse {
   reply: string;
   actions: string[];
   mutated: boolean;
+}
+
+function revalidateAfterMutation() {
+  revalidatePath("/dashboard");
+  revalidatePath("/kill-list");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
+  revalidatePath("/opportunities");
+  revalidatePath("/goals");
 }
 
 const groqTools = TOOLS.map((t) => ({
@@ -159,8 +173,32 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
       tool_calls: message.tool_calls,
     });
 
-    if (finish_reason === "stop" || !message.tool_calls?.length) {
-      return { reply: message.content ?? "Done.", actions, mutated };
+    if (finish_reason === "stop" || finish_reason === "length" || !message.tool_calls?.length) {
+      const lastUser = history[history.length - 1]?.content ?? "";
+      const reply = message.content ?? "";
+
+      if (
+        needsExecutionRetry(lastUser, history, reply, mutated) &&
+        step < MAX_STEPS - 1
+      ) {
+        messages.push({
+          role: "user",
+          content:
+            "Stop — you have not called a tool yet. Call the appropriate mutating tool NOW to perform the action, then give a brief recap.",
+        });
+        continue;
+      }
+
+      if (!mutated && needsExecutionRetry(lastUser, history, reply, mutated)) {
+        return {
+          reply:
+            "I wasn't able to save that — the action didn't go through. Please try again or rephrase what you want created.",
+          actions,
+          mutated: false,
+        };
+      }
+
+      return { reply: reply || "How can I help?", actions, mutated };
     }
 
     // Execute each tool call and append results.
@@ -184,7 +222,10 @@ export async function runAgent(ctx: ToolContext, history: ClientMessage[]): Prom
           if (result.error) {
             toolContent = JSON.stringify({ error: result.error });
           } else {
-            if (tool.mutates) mutated = true;
+            if (tool.mutates) {
+              mutated = true;
+              revalidateAfterMutation();
+            }
             if (result.summary) actions.push(result.summary);
             toolContent = JSON.stringify({ ok: true, ...result });
           }

@@ -8,6 +8,12 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   actions?: string[];
+  warning?: string;
+}
+
+function looksLikeFalseSuccess(reply: string, actions: string[] | undefined, mutated: boolean) {
+  if (mutated || (actions?.length ?? 0) > 0) return false;
+  return /\b(created|added|scheduled|set up|logged|saved|done|it's on|it is on)\b/i.test(reply);
 }
 
 const FALLBACK_STARTERS = [
@@ -75,8 +81,15 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-        setMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
-        if (data.mutated) router.refresh();
+        const actions = data.actions ?? [];
+        const warning = looksLikeFalseSuccess(data.reply ?? "", actions, !!data.mutated)
+          ? "Nothing was saved — try asking again or say “create it now”."
+          : undefined;
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: data.reply, actions, warning },
+        ]);
+        if (data.mutated || actions.length > 0) router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Assistant error");
       } finally {
@@ -99,8 +112,15 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Something went wrong");
-      setMessages((m) => [...m, { role: "assistant", content: data.reply, actions: data.actions ?? [] }]);
-      if (data.mutated) router.refresh();
+      const actions = data.actions ?? [];
+      const warning = looksLikeFalseSuccess(data.reply ?? "", actions, !!data.mutated)
+        ? "Nothing was saved — try asking again or say “create it now”."
+        : undefined;
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: data.reply, actions, warning },
+      ]);
+      if (data.mutated || actions.length > 0) router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Assistant error");
     } finally {
@@ -170,6 +190,9 @@ export default function AgentChat({ variant = "page" }: { variant?: "page" | "dr
               >
                 {m.content}
               </div>
+              {m.warning && (
+                <p className="mt-1.5 text-[11px] font-medium text-milestone-amber">{m.warning}</p>
+              )}
               {m.actions && m.actions.length > 0 && (
                 <div className="mt-1.5 space-y-1">
                   {m.actions.map((a, j) => (
