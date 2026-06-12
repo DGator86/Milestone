@@ -7,6 +7,7 @@ export type MilestoneStatus = "upcoming" | "in_progress" | "waiting" | "complete
 export type GoalStatus = "active" | "archived" | "completed";
 export type GoalType = "concrete" | "touches" | "deadline" | "maintenance";
 export type GoalImportance = "normal" | "important" | "critical";
+export type RecurrenceUnit = "day" | "week" | "month" | "year";
 export type TouchType = "call" | "email" | "meeting" | "note";
 export type ContactStatus = "active" | "archived";
 
@@ -61,6 +62,10 @@ export interface Goal {
   importance: GoalImportance;
   status: GoalStatus;
   due_date: string | null;
+  is_recurring: boolean;
+  recurrence_interval: number | null;
+  recurrence_unit: RecurrenceUnit | null;
+  recurrence_end_date: string | null;
   pinned: boolean;
   created_at: string;
   updated_at: string;

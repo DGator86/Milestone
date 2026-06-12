@@ -8,6 +8,8 @@ import { db } from "@/db";
 import { goals, milestones, activity_log, groups } from "@/db/schema";
 import { eq, and, ne, asc, max } from "drizzle-orm";
 import { CreateGoalSchema } from "@/lib/schemas";
+import { parseRecurrenceFromForm } from "@/lib/recurrence";
+import { maybeAdvanceRecurringGoal } from "@/lib/goalRecurrence";
 
 export async function createGoal(formData: FormData) {
   const session = await auth();
@@ -31,12 +33,14 @@ export async function createGoal(formData: FormData) {
     milestoneData.push({ title: t, due_date: schedDate, touch_target: touchTarget, touch_period: touchPeriod });
   }
 
+  const recurrence = parseRecurrenceFromForm(formData);
   const raw = {
     title: (formData.get("title") as string)?.trim() ?? "",
     group_id: (formData.get("group_id") as string) ?? "",
     goal_type: (formData.get("goal_type") as string) || "concrete",
     importance: (formData.get("importance") as string) || "normal",
     due_date: (formData.get("due_date") as string) || null,
+    ...recurrence,
   };
 
   const parsed = CreateGoalSchema.safeParse(raw);
@@ -49,7 +53,17 @@ export async function createGoal(formData: FormData) {
     redirect("/dashboard?error=At+least+one+milestone+is+required");
   }
 
-  const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
+  const {
+    title,
+    group_id: groupId,
+    goal_type: goalType,
+    importance,
+    due_date: dueDate,
+    is_recurring: isRecurring,
+    recurrence_interval: recurrenceInterval,
+    recurrence_unit: recurrenceUnit,
+    recurrence_end_date: recurrenceEndDate,
+  } = parsed.data;
 
   const [goal] = await db.insert(goals).values({
     user_id: userId,
@@ -59,6 +73,10 @@ export async function createGoal(formData: FormData) {
     importance,
     status: "active",
     due_date: dueDate || null,
+    is_recurring: isRecurring,
+    recurrence_interval: recurrenceInterval,
+    recurrence_unit: recurrenceUnit,
+    recurrence_end_date: recurrenceEndDate,
   }).returning();
 
   if (!goal) redirect("/dashboard?error=Failed+to+create+goal");
@@ -119,9 +137,12 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
       .set({ status: "in_progress" })
       .where(eq(milestones.id, remaining[0].id));
   } else {
-    await db.update(goals)
-      .set({ status: "completed" })
-      .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
+    const advanced = await maybeAdvanceRecurringGoal(goalId);
+    if (!advanced) {
+      await db.update(goals)
+        .set({ status: "completed" })
+        .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
+    }
   }
 
   await db.insert(activity_log).values({

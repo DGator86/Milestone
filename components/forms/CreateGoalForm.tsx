@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Target, ChevronDown, Sparkles, Loader } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
+import RecurrenceFields from "@/components/goals/RecurrenceFields";
 import type { Group } from "@/lib/types";
 
 const IMPORTANCE_OPTIONS = [
@@ -231,6 +232,8 @@ export default function CreateGoalForm({ groups }: { groups: Group[] }) {
             </div>
           </div>
         </div>
+
+        <RecurrenceFields />
 
         <div>
           <div className="flex items-center justify-between mb-2">

@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { Pencil, ChevronDown, X } from "lucide-react";
 import { updateGoal } from "@/app/goals/actions";
+import RecurrenceFields from "@/components/goals/RecurrenceFields";
 import type { GoalWithDetails, Group } from "@/lib/types";
 
 export default function EditGoalPanel({
@@ -158,6 +159,15 @@ export default function EditGoalPanel({
               />
             </div>
           </div>
+
+          <RecurrenceFields
+            defaults={{
+              is_recurring: goal.is_recurring,
+              recurrence_interval: goal.recurrence_interval,
+              recurrence_unit: goal.recurrence_unit,
+              recurrence_end_date: goal.recurrence_end_date,
+            }}
+          />
 
           <div className="flex gap-2.5 pt-1">
             <button
