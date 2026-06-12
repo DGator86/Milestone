@@ -7,14 +7,7 @@ import { crm_contacts, crm_customers } from "@/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import ContactDetailActions from "@/components/crm/ContactDetailActions";
-import {
-  DetailSection,
-  EntityChip,
-  KillListItems,
-  GoalListItems,
-  OpportunityListItems,
-  TaskListItems,
-} from "@/components/crm/CrmDetailSections";
+import { EntityChip, CrmRelatedSections } from "@/components/crm/CrmDetailSections";
 import { getSettings } from "@/lib/settings";
 import {
   getRelatedGoalsForContact,
@@ -27,10 +20,6 @@ import {
   Phone,
   Building2,
   UserRound,
-  Zap,
-  Target,
-  Handshake,
-  CheckSquare,
   StickyNote,
 } from "lucide-react";
 import type { CrmContact, AppUser } from "@/lib/types";
@@ -142,21 +131,14 @@ export default async function CrmContactDetailPage({
           )}
         </div>
 
-        <DetailSection title="Milestones to Kill" count={killList.length} icon={Zap}>
-          <KillListItems items={killList} />
-        </DetailSection>
-
-        <DetailSection title="Active Goals" count={goals.length} icon={Target}>
-          <GoalListItems goals={goals} />
-        </DetailSection>
-
-        <DetailSection title="Open Opportunities" count={opportunities.length} icon={Handshake}>
-          <OpportunityListItems opportunities={opportunities} showCompany />
-        </DetailSection>
-
-        <DetailSection title="Open Tasks" count={tasks.length} icon={CheckSquare}>
-          <TaskListItems tasks={tasks} />
-        </DetailSection>
+        <CrmRelatedSections
+          killList={killList}
+          goals={goals}
+          opportunities={opportunities}
+          tasks={tasks}
+          context={{ contactId: id, customerId: contact.customer_id }}
+          showCompany
+        />
 
         {!contact.crm_customers && !goals.length && !opportunities.length && (
           <div className="text-center py-6">

@@ -103,6 +103,8 @@ export async function addMilestone(goalId: string, formData: FormData) {
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function deleteMilestone(milestoneId: string, goalId: string) {
@@ -113,6 +115,8 @@ export async function deleteMilestone(milestoneId: string, goalId: string) {
 
   revalidatePath(`/goals/${goalId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function updateGoal(
@@ -235,6 +239,8 @@ export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
   revalidatePath("/completed");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
   return {};
 }
 

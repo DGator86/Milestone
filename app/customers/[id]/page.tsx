@@ -9,10 +9,7 @@ import AppShell from "@/components/layout/AppShell";
 import CustomerDetailActions from "@/components/crm/CustomerDetailActions";
 import {
   DetailSection,
-  KillListItems,
-  GoalListItems,
-  OpportunityListItems,
-  TaskListItems,
+  CrmRelatedSections,
   ContactListItems,
 } from "@/components/crm/CrmDetailSections";
 import { getSettings } from "@/lib/settings";
@@ -27,10 +24,6 @@ import {
   Mail,
   Phone,
   Globe,
-  Zap,
-  Target,
-  Handshake,
-  CheckSquare,
   UserRound,
   StickyNote,
 } from "lucide-react";
@@ -167,21 +160,14 @@ export default async function CustomerDetailPage({
           <ContactListItems contacts={contacts} />
         </DetailSection>
 
-        <DetailSection title="Milestones to Kill" count={killList.length} icon={Zap}>
-          <KillListItems items={killList} />
-        </DetailSection>
-
-        <DetailSection title="Active Goals" count={goals.length} icon={Target}>
-          <GoalListItems goals={goals} />
-        </DetailSection>
-
-        <DetailSection title="Open Opportunities" count={opportunities.length} icon={Handshake}>
-          <OpportunityListItems opportunities={opportunities} showContact />
-        </DetailSection>
-
-        <DetailSection title="Open Tasks" count={tasks.length} icon={CheckSquare}>
-          <TaskListItems tasks={tasks} />
-        </DetailSection>
+        <CrmRelatedSections
+          killList={killList}
+          goals={goals}
+          opportunities={opportunities}
+          tasks={tasks}
+          context={{ customerId: id }}
+          showContact
+        />
       </div>
     </AppShell>
   );
