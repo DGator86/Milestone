@@ -21,7 +21,7 @@ export default function GoalStatusControls({
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       {status === "active" && (
         <>
           <button
