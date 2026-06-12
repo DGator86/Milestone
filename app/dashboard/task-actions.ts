@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { crm_tasks, goals } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { revalidateCrmEntityPathsFromForm } from "@/lib/crm/revalidateEntity";
 import type { TaskType, TaskPriority } from "@/lib/types";
 
 const TASK_TYPES: TaskType[] = ["call", "email", "meeting", "task", "document"];
@@ -35,6 +36,7 @@ export async function createTask(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
+  revalidateCrmEntityPathsFromForm(formData);
 }
 
 export async function toggleTaskDone(id: string, done: boolean) {
@@ -48,6 +50,8 @@ export async function toggleTaskDone(id: string, done: boolean) {
 
   revalidatePath("/dashboard");
   revalidatePath(`/tasks/${id}`);
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function deleteTask(id: string) {
@@ -60,6 +64,8 @@ export async function deleteTask(id: string) {
 
   revalidatePath("/dashboard");
   revalidatePath("/tasks");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function toggleGoalPinned(id: string, pinned: boolean) {

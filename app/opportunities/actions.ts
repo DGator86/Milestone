@@ -9,6 +9,7 @@ import type { OpportunityStatus } from "@/lib/types";
 import { getSettings } from "@/lib/settings";
 import { collectCustomValues } from "@/lib/customFields";
 import { resolveOrCreateCustomerId } from "@/lib/crm/resolveCustomer";
+import { revalidateCrmEntityPaths } from "@/lib/crm/revalidateEntity";
 
 function stageToStatus(stage: string): OpportunityStatus {
   if (stage === "Won") return "won";
@@ -64,6 +65,7 @@ export async function createOpportunity(formData: FormData) {
   });
 
   revalidatePath("/opportunities");
+  revalidateCrmEntityPaths({ contactId, customerId });
 }
 
 export async function deleteOpportunity(id: string) {
@@ -75,6 +77,8 @@ export async function deleteOpportunity(id: string) {
     .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
 
   revalidatePath("/opportunities");
+  revalidatePath("/contacts");
+  revalidatePath("/customers");
 }
 
 export async function moveOpportunity(id: string, stage: string) {
