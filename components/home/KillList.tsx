@@ -107,7 +107,7 @@ function MilestoneGoalRow({
   );
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
+    <div className="group flex items-center gap-3 px-4 py-3.5 active:bg-gray-50/60 dark:active:bg-white/[0.03] transition-colors">
       <div className="flex-1 min-w-0">
         {titleEl}
         <Link
@@ -129,10 +129,10 @@ function MilestoneGoalRow({
       </div>
       <button
         onClick={() => onComplete(item.milestone.id, item.goal.id)}
-        className="text-gray-200 hover:text-milestone-green transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        className="ms-touch-icon ms-row-complete text-gray-300 dark:text-white/25 active:text-milestone-green shrink-0"
         aria-label="Complete milestone"
       >
-        <CheckCircle size={16} />
+        <CheckCircle size={20} />
       </button>
     </div>
   );
@@ -184,18 +184,18 @@ function TaskRow({
     );
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
+    <div className="group flex items-center gap-3 px-4 py-3.5 active:bg-gray-50/60 dark:active:bg-white/[0.03] transition-colors">
       <button
         onClick={() => onToggle(task.id, !task.done)}
-        className={`w-[18px] h-[18px] rounded-md border-2 shrink-0 flex items-center justify-center transition-colors ${
+        className={`w-6 h-6 rounded-lg border-2 shrink-0 flex items-center justify-center transition-colors touch-manipulation ${
           task.done
             ? "bg-milestone-blue border-milestone-blue"
-            : "border-gray-300 hover:border-milestone-blue"
+            : "border-gray-300 active:border-milestone-blue"
         }`}
         aria-label="Toggle done"
       >
         {task.done && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
             <path d="M1.5 5l2.2 2.2L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
@@ -223,10 +223,10 @@ function TaskRow({
 
       <button
         onClick={() => onDelete(task.id)}
-        className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+        className="ms-touch-icon ms-row-complete text-gray-300 dark:text-white/25 active:text-milestone-red shrink-0"
         aria-label="Delete task"
       >
-        <Trash2 size={13} />
+        <Trash2 size={16} />
       </button>
     </div>
   );
@@ -329,17 +329,17 @@ export default function KillList({ tasks, customers, goals }: Props) {
   }
 
   return (
-    <section className="ms-surface overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
-      <div className="flex items-start justify-between px-4 pt-3.5 pb-2.5 border-b border-milestone-line dark:border-white/[0.06]">
+    <section className="ms-card-app overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
+      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line dark:border-white/[0.06]">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Kill list</h2>
+          <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">Kill list</h2>
           <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
             {openCount + milestoneCount} open actions
           </p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="ms-btn-ghost text-milestone-blue hover:bg-milestone-blue-dim"
+          className="ms-btn-ghost text-milestone-blue hover:bg-milestone-blue-dim min-h-[44px] min-w-[44px] justify-center touch-manipulation"
         >
           {showForm ? <X size={15} /> : <Plus size={15} />}
           {showForm ? "Cancel" : "Add"}
@@ -385,7 +385,7 @@ export default function KillList({ tasks, customers, goals }: Props) {
         </form>
       )}
 
-      <div className="flex-1 overflow-y-auto max-h-[calc(100vh-220px)]">
+      <div className="flex-1 md:overflow-y-auto md:max-h-[calc(100vh-220px)]">
         {milestoneCount > 0 && (
           <div>
             <div className="flex items-center gap-2 px-4 pt-3 pb-1">

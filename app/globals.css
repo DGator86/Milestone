@@ -261,6 +261,46 @@ html.dark .brand-scope .bg-milestone-blue-dim {
     @apply text-gray-500 hover:text-gray-700;
   }
 
+  /* Mobile app shell — safe areas, touch targets, native-feel cards */
+  .ms-mobile-page {
+    @apply px-4 pt-3 pb-24 max-w-7xl mx-auto md:px-6 md:py-5 md:pb-5;
+    padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 5rem));
+  }
+
+  @media (min-width: 768px) {
+    .ms-mobile-page {
+      padding-bottom: 1.25rem;
+    }
+  }
+
+  .ms-segment-app {
+    @apply flex w-full gap-1 p-1 rounded-xl bg-gray-100/90 border border-milestone-line/80;
+  }
+
+  .ms-segment-app-btn {
+    @apply flex-1 min-h-[44px] px-3 text-sm font-semibold rounded-[10px] transition-all touch-manipulation;
+  }
+
+  .ms-segment-app-btn-active {
+    @apply bg-white text-gray-900 shadow-sm;
+  }
+
+  .ms-segment-app-btn-inactive {
+    @apply text-gray-500 active:bg-white/50;
+  }
+
+  .ms-card-app {
+    @apply bg-white dark:bg-[#0B1929] rounded-2xl border border-milestone-line dark:border-white/[0.08] shadow-card overflow-hidden;
+  }
+
+  .ms-touch-icon {
+    @apply min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation;
+  }
+
+  .ms-row-complete {
+    @apply opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation;
+  }
+
   /* Dark mode — only inside authenticated app shell */
   .dark .brand-scope .ms-surface,
   .dark .brand-scope .ms-empty {
@@ -301,6 +341,18 @@ html.dark .brand-scope .bg-milestone-blue-dim {
 
   .dark .brand-scope .ms-segment-btn-inactive {
     @apply text-white/45 hover:text-white/75;
+  }
+
+  .dark .brand-scope .ms-segment-app {
+    @apply bg-white/[0.04] border-white/[0.06];
+  }
+
+  .dark .brand-scope .ms-segment-app-btn-active {
+    @apply bg-[#0B1929] text-white shadow-sm;
+  }
+
+  .dark .brand-scope .ms-segment-app-btn-inactive {
+    @apply text-white/45 active:bg-white/[0.06];
   }
 }
 

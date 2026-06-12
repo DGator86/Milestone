@@ -36,11 +36,11 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
 
   if (items.length === 0) {
     return (
-      <section className="ms-surface px-5 py-8 text-center">
-        <p className="text-gray-400 text-sm mb-4">No active goals yet.</p>
+      <section className="ms-card-app px-5 py-10 text-center">
+        <p className="text-gray-400 dark:text-white/40 text-sm mb-4">No active goals yet.</p>
         <button
           onClick={onNewGoal}
-          className="ms-btn-primary"
+          className="ms-btn-primary w-full sm:w-auto justify-center min-h-[44px] px-5"
         >
           Create your first goal <ArrowRight size={13} />
         </button>
@@ -52,13 +52,13 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
   const badge = urgencyBadge(first.milestone.due_date);
 
   return (
-    <section className="ms-surface overflow-hidden" style={{ opacity: isPending ? 0.75 : 1 }}>
+    <section className="ms-card-app overflow-hidden" style={{ opacity: isPending ? 0.75 : 1 }}>
       {/* ── Hero: #1 ranked action ── */}
-      <div className="px-4 py-4 border-b border-milestone-line dark:border-white/[0.06] bg-gradient-to-r from-milestone-navy to-[#0d2040]">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-white/35 mb-2">
+      <div className="px-4 py-5 sm:py-4 border-b border-milestone-line dark:border-white/[0.06] bg-gradient-to-r from-milestone-navy to-[#0d2040]">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/40 mb-2">
           Up next
         </p>
-        <p className="text-xs text-white/45 mb-1 truncate">
+        <p className="text-xs text-white/50 mb-1.5 truncate">
           {first.goal.title}
         </p>
         {(() => {
@@ -69,7 +69,7 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
             return (
               <a
                 href={mailto}
-                className="text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
+                className="text-[17px] sm:text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
               >
                 {first.milestone.title}
               </a>
@@ -78,25 +78,25 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
           return (
             <Link
               href={`/goals/${first.goal.id}`}
-              className="text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
+              className="text-[17px] sm:text-lg font-semibold text-white leading-snug mb-4 block hover:underline"
             >
               {first.milestone.title}
             </Link>
           );
         })()}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {badge ? (
-              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${badge.cls}`}>
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-md ${badge.cls}`}>
                 {badge.text}
               </span>
             ) : (
-              <span className="text-[11px] text-white/30">No deadline</span>
+              <span className="text-[11px] text-white/35">No deadline</span>
             )}
           </div>
           <button
             onClick={() => handleComplete(first.milestone.id, first.goal.id)}
-            className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-milestone-navy px-3 py-1.5 rounded-md text-sm font-medium transition-colors shrink-0"
+            className="flex items-center justify-center gap-1.5 w-full sm:w-auto bg-white hover:bg-gray-50 active:bg-gray-100 text-milestone-navy px-4 py-2.5 sm:py-1.5 rounded-xl sm:rounded-md text-sm font-semibold transition-colors shrink-0 min-h-[44px] sm:min-h-0 touch-manipulation"
           >
             Mark done <ArrowRight size={13} />
           </button>
@@ -111,7 +111,7 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
             return (
               <div
                 key={milestone.id}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50/80 dark:hover:bg-white/[0.02] transition-colors"
+                className="group flex items-center gap-3 px-4 py-3.5 sm:py-2.5 active:bg-gray-50/80 dark:active:bg-white/[0.03] transition-colors"
               >
                 <span className="text-xs font-medium text-gray-300 dark:text-white/15 w-4 shrink-0 tabular-nums select-none">
                   {i + 2}
@@ -154,10 +154,10 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
                 </div>
                 <button
                   onClick={() => handleComplete(milestone.id, goal.id)}
-                  className="shrink-0 text-gray-300 dark:text-white/20 hover:text-milestone-green transition-colors p-1"
+                  className="ms-touch-icon shrink-0 text-gray-300 dark:text-white/25 active:text-milestone-green transition-colors"
                   aria-label="Mark done"
                 >
-                  <CheckCircle size={17} />
+                  <CheckCircle size={20} />
                 </button>
               </div>
             );
