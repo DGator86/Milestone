@@ -41,6 +41,15 @@ export default function CompanySelect({
     onNewModeChange?.(false);
   }
 
+  function handleSelectChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const next = e.target.value;
+    if (next === NEW_CUSTOMER_VALUE) {
+      enterNewMode();
+      return;
+    }
+    onValueChange?.(next);
+  }
+
   if (mode === "new") {
     return (
       <div>
@@ -63,24 +72,14 @@ export default function CompanySelect({
     );
   }
 
-  const selectProps = isControlled
-    ? { value, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => onValueChange?.(e.target.value) }
-    : { defaultValue };
-
   return (
     <div>
       <label className={LABEL}>{label}</label>
       <select
         name="customer_id"
         className={INPUT}
-        {...selectProps}
-        onChange={(e) => {
-          if (e.target.value === NEW_CUSTOMER_VALUE) {
-            enterNewMode();
-            return;
-          }
-          if (isControlled) onValueChange?.(e.target.value);
-        }}
+        {...(isControlled ? { value } : { defaultValue })}
+        onChange={handleSelectChange}
       >
         <option value="">{noCompanyLabel}</option>
         {customers.map((c) => (
@@ -88,8 +87,14 @@ export default function CompanySelect({
             {c.name}
           </option>
         ))}
-        <option value={NEW_CUSTOMER_VALUE}>{addNewLabel}</option>
       </select>
+      <button
+        type="button"
+        onClick={enterNewMode}
+        className="mt-1.5 block text-xs font-medium text-milestone-blue hover:underline text-left"
+      >
+        {addNewLabel}
+      </button>
     </div>
   );
 }
