@@ -244,7 +244,12 @@ export default function OpportunitiesView({
             </select>
           )}
           <button
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => {
+              setShowForm((open) => {
+                if (!open) setFormCustomerId("");
+                return !open;
+              });
+            }}
             className="ms-btn-primary"
           >
             {showForm ? <X size={15} /> : <Plus size={15} />}
@@ -279,7 +284,6 @@ export default function OpportunitiesView({
               </div>
               <CompanySelect
                 customers={customers}
-                value={formCustomerId}
                 onValueChange={setFormCustomerId}
                 label="Customer"
                 noCompanyLabel="No customer"
