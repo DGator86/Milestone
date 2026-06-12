@@ -108,3 +108,37 @@ export async function getOpenTasksForCustomer(userId: string, customerId: string
     orderBy: [desc(crm_tasks.created_at)],
   });
 }
+
+/** Active goals linked to opportunities, grouped by opportunity_id. */
+export async function getGoalsByOpportunityIds(
+  userId: string,
+  opportunityIds: string[],
+): Promise<Record<string, GoalWithDetails[]>> {
+  if (opportunityIds.length === 0) return {};
+
+  const rows = await db.query.goals.findMany({
+    where: and(
+      eq(goals.user_id, userId),
+      eq(goals.status, "active"),
+      inArray(goals.opportunity_id, opportunityIds),
+    ),
+    with: {
+      milestones: true,
+      groups: true,
+    },
+    orderBy: [desc(goals.updated_at)],
+  });
+
+  const grouped: Record<string, GoalWithDetails[]> = {};
+  for (const row of rows) {
+    if (!row.opportunity_id) continue;
+    const goal = {
+      ...row,
+      groups: row.groups!,
+      milestones: [...(row.milestones ?? [])].sort((a, b) => a.position - b.position),
+    } as GoalWithDetails;
+    if (!grouped[row.opportunity_id]) grouped[row.opportunity_id] = [];
+    grouped[row.opportunity_id].push(goal);
+  }
+  return grouped;
+}

@@ -7,7 +7,8 @@ import { eq, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import OpportunitiesView from "@/components/crm/OpportunitiesView";
 import { getSettings } from "@/lib/settings";
-import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, AppUser } from "@/lib/types";
+import { getGoalsByOpportunityIds } from "@/lib/crm/related";
+import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, AppUser, GoalWithDetails } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,11 @@ export default async function OpportunitiesPage({
     value: o.value != null ? parseFloat(o.value) : null,
   })) as unknown as CrmOpportunity[];
 
+  const goalsByOpportunity = await getGoalsByOpportunityIds(
+    userId,
+    opportunities.map((o) => o.id),
+  );
+
   const customers: Pick<CrmCustomer, "id" | "name">[] = customersRaw;
   const contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[] = contactsRaw;
   const flows: Pick<CrmFlow, "id" | "name" | "stages">[] = flowsRaw as unknown as Pick<CrmFlow, "id" | "name" | "stages">[];
@@ -62,7 +68,10 @@ export default async function OpportunitiesPage({
         customFields={customFields.opportunity}
         labelPlural={terms.opportunities}
         labelSingular={terms.opportunity}
+        customerLabel={terms.customer}
+        contactLabel={terms.contact}
         highlightId={highlight}
+        goalsByOpportunity={goalsByOpportunity}
       />
     </AppShell>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
-import Link from "next/link";
 import {
   TrendingUp,
   Plus,
@@ -16,7 +15,7 @@ import {
   GitBranch,
   Pencil,
 } from "lucide-react";
-import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, OpportunityStatus } from "@/lib/types";
+import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, OpportunityStatus, GoalWithDetails } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
 import { formatCustomValue } from "@/lib/customFields";
 import {
@@ -28,6 +27,7 @@ import CustomFieldInput from "./CustomFieldInput";
 import CompanySelect from "./CompanySelect";
 import SlideOver from "./SlideOver";
 import OpportunityEditForm from "./OpportunityEditForm";
+import OpportunityDetailConnections from "./OpportunityDetailConnections";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -59,6 +59,7 @@ interface Props {
   customers: Pick<CrmCustomer, "id" | "name">[];
   contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[];
   flows: Pick<CrmFlow, "id" | "name" | "stages">[];
+  goalsByOpportunity?: Record<string, GoalWithDetails[]>;
 }
 
 function fmt(v: number | null) {
@@ -78,7 +79,7 @@ function fmtCloseDate(dateStr: string | null, withYear = false) {
   });
 }
 
-function contactLabel(opp: CrmOpportunity) {
+function formatContactName(opp: CrmOpportunity) {
   const c = opp.crm_contacts;
   if (!c) return null;
   return `${c.first_name} ${c.last_name}`.trim();
@@ -123,7 +124,7 @@ function OppCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const contact = contactLabel(opp);
+  const contact = formatContactName(opp);
 
   return (
     <div className="ms-surface p-3 group">
@@ -254,11 +255,16 @@ export default function OpportunitiesView({
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
   highlightId,
+  goalsByOpportunity = {},
+  customerLabel = "Company",
+  contactLabel = "Contact",
 }: Props & {
   customFields?: CustomFieldDef[];
   labelPlural?: string;
   labelSingular?: string;
   highlightId?: string;
+  customerLabel?: string;
+  contactLabel?: string;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
@@ -283,6 +289,11 @@ export default function OpportunitiesView({
   const detailOpp = useMemo(
     () => (detailId ? opportunities.find((o) => o.id === detailId) ?? null : null),
     [detailId, opportunities]
+  );
+
+  const detailGoals = useMemo(
+    () => (detailId ? goalsByOpportunity[detailId] ?? [] : []),
+    [detailId, goalsByOpportunity]
   );
 
   const showFlowOnCards = !selectedFlowId;
@@ -579,7 +590,7 @@ export default function OpportunitiesView({
             <>
               <div className="md:hidden space-y-3">
                 {visibleOpps.map((opp) => {
-                  const contact = contactLabel(opp);
+                  const contact = formatContactName(opp);
                   return (
                     <div key={opp.id} className="ms-surface p-3.5">
                       <button
@@ -699,7 +710,7 @@ export default function OpportunitiesView({
                           {opp.crm_customers?.name ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden md:table-cell">
-                          {contactLabel(opp) ?? "—"}
+                          {formatContactName(opp) ?? "—"}
                         </td>
                         {showFlowOnCards && (
                           <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden xl:table-cell">
@@ -783,28 +794,6 @@ export default function OpportunitiesView({
                 <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Close date</p>
                 <p className="text-gray-700 dark:text-white/80 mt-0.5">{fmtCloseDate(detailOpp.close_date, true) ?? "—"}</p>
               </div>
-              {detailOpp.crm_customers && (
-                <div className="col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Customer</p>
-                  <Link
-                    href={`/customers/${detailOpp.crm_customers.id}`}
-                    className="text-milestone-blue hover:underline mt-0.5 inline-flex items-center gap-1"
-                  >
-                    {detailOpp.crm_customers.name}
-                  </Link>
-                </div>
-              )}
-              {detailOpp.crm_contacts && (
-                <div className="col-span-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Contact</p>
-                  <Link
-                    href={`/contacts/${detailOpp.crm_contacts.id}`}
-                    className="text-milestone-blue hover:underline mt-0.5 inline-flex items-center gap-1"
-                  >
-                    {contactLabel(detailOpp)}
-                  </Link>
-                </div>
-              )}
               {detailOpp.crm_flows && (
                 <div className="col-span-2">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Pipeline</p>
@@ -812,6 +801,13 @@ export default function OpportunitiesView({
                 </div>
               )}
             </div>
+
+            <OpportunityDetailConnections
+              opportunity={detailOpp}
+              linkedGoals={detailGoals}
+              customerLabel={customerLabel}
+              contactLabel={contactLabel}
+            />
 
             {detailOpp.notes && (
               <div>

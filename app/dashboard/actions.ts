@@ -156,6 +156,7 @@ export async function completeMilestone(milestoneId: string, goalId: string) {
   revalidatePath("/kill-list");
   revalidatePath("/contacts");
   revalidatePath("/customers");
+  revalidatePath("/opportunities");
 }
 
 export async function ensureDefaults() {
