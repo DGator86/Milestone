@@ -81,6 +81,54 @@ export async function deleteOpportunity(id: string) {
   revalidatePath("/customers");
 }
 
+export async function updateOpportunity(id: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const userId = await getDataOwnerId();
+
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) return;
+
+  const valueStr = formData.get("value") as string;
+  const value = valueStr ? parseFloat(valueStr) : null;
+  const stage = (formData.get("stage") as string) || "Lead";
+
+  const submittedContactId = (formData.get("contact_id") as string) || null;
+  const customerId = await resolveOrCreateCustomerId(formData, userId);
+
+  let contactId: string | null = null;
+  if (submittedContactId) {
+    const ownedContact = await db.query.crm_contacts.findFirst({
+      columns: { id: true, customer_id: true },
+      where: and(eq(crm_contacts.id, submittedContactId), eq(crm_contacts.user_id, userId)),
+    });
+    if (ownedContact && (!customerId || ownedContact.customer_id === customerId)) {
+      contactId = submittedContactId;
+    }
+  }
+
+  const { customFields } = await getSettings(userId);
+  const custom = collectCustomValues(formData, customFields.opportunity);
+
+  await db
+    .update(crm_opportunities)
+    .set({
+      title,
+      customer_id: customerId,
+      contact_id: contactId,
+      flow_id: (formData.get("flow_id") as string) || null,
+      value: value !== null && !isNaN(value) ? String(value) : null,
+      stage,
+      status: stageToStatus(stage),
+      close_date: (formData.get("close_date") as string) || null,
+      notes: (formData.get("notes") as string) || null,
+      custom,
+    })
+    .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
+
+  revalidatePath("/opportunities");
+}
+
 export async function moveOpportunity(id: string, stage: string) {
   const trimmed = stage.trim();
   if (!trimmed) return;
