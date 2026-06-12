@@ -127,6 +127,7 @@ export async function updateOpportunity(id: string, formData: FormData) {
     .where(and(eq(crm_opportunities.id, id), eq(crm_opportunities.user_id, userId)));
 
   revalidatePath("/opportunities");
+  revalidateCrmEntityPaths({ contactId, customerId });
 }
 
 export async function moveOpportunity(id: string, stage: string) {
