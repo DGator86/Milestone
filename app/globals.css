@@ -301,6 +301,11 @@ html.dark .brand-scope .bg-milestone-blue-dim {
     @apply opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation;
   }
 
+  /* Light CTA on dark hero bands — must stay white (html.dark remaps bg-white otherwise) */
+  .ms-btn-on-dark {
+    @apply bg-white text-milestone-navy hover:bg-gray-50 active:bg-gray-100;
+  }
+
   /* Dark mode — only inside authenticated app shell */
   .dark .brand-scope .ms-surface,
   .dark .brand-scope .ms-empty {
@@ -384,6 +389,20 @@ html.dark .brand-scope .bg-milestone-blue-dim {
 
 .dark .brand-scope .hover\:bg-blue-100:hover {
   background-color: color-mix(in srgb, var(--brand, #1769ff) 18%, transparent);
+}
+
+html.dark .ms-btn-on-dark,
+.dark .brand-scope .ms-btn-on-dark {
+  background-color: #ffffff;
+  color: #07111f;
+}
+html.dark .ms-btn-on-dark:hover,
+.dark .brand-scope .ms-btn-on-dark:hover {
+  background-color: #f3f4f6;
+}
+html.dark .ms-btn-on-dark:active,
+.dark .brand-scope .ms-btn-on-dark:active {
+  background-color: #e5e7eb;
 }
 
 /* ── Dark mode: borders, surfaces, forms (app shell) ───────────────────── */
