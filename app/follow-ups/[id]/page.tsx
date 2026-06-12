@@ -18,7 +18,6 @@ import {
   ArrowLeft,
   Mail,
   Phone,
-  Building2,
   UserRound,
   StickyNote,
 } from "lucide-react";
@@ -89,7 +88,7 @@ export default async function CrmContactDetailPage({
                     <EntityChip
                       href={`/customers/${contact.crm_customers.id}`}
                       label={contact.crm_customers.name}
-                      icon={Building2}
+                      icon="building"
                     />
                   )}
                   {contact.email && (
