@@ -1,9 +1,24 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
-import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign, LayoutGrid, List } from "lucide-react";
-import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
+import Link from "next/link";
+import {
+  TrendingUp,
+  Plus,
+  X,
+  ChevronRight,
+  Trash2,
+  DollarSign,
+  LayoutGrid,
+  List,
+  User,
+  Building2,
+  GitBranch,
+  Pencil,
+} from "lucide-react";
+import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, OpportunityStatus } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
+import { formatCustomValue } from "@/lib/customFields";
 import {
   createOpportunity,
   deleteOpportunity,
@@ -11,6 +26,8 @@ import {
 } from "@/app/opportunities/actions";
 import CustomFieldInput from "./CustomFieldInput";
 import CompanySelect from "./CompanySelect";
+import SlideOver from "./SlideOver";
+import OpportunityEditForm from "./OpportunityEditForm";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -25,6 +42,12 @@ const STAGE_HEADER: Record<string, string> = {
 };
 
 const DEFAULT_COL_BG = "ms-kanban-col bg-gray-50/80 border-gray-200/60";
+
+const STATUS_STYLES: Record<OpportunityStatus, string> = {
+  open: "bg-milestone-blue-dim text-milestone-blue",
+  won: "bg-milestone-green-dim text-milestone-green",
+  lost: "bg-milestone-red-dim text-milestone-red",
+};
 
 type ViewMode = "kanban" | "list";
 
@@ -45,16 +68,43 @@ function fmt(v: number | null) {
   return `$${v.toLocaleString()}`;
 }
 
+function fmtCloseDate(dateStr: string | null, withYear = false) {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+}
+
+function contactLabel(opp: CrmOpportunity) {
+  const c = opp.crm_contacts;
+  if (!c) return null;
+  return `${c.first_name} ${c.last_name}`.trim();
+}
+
+function fmtTimestamp(iso: string | null) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 function OppCard({
   opp,
   stages,
   isMismatched,
+  showFlow,
+  onOpen,
   onMove,
   onDelete,
 }: {
   opp: CrmOpportunity;
   stages: string[];
   isMismatched: boolean;
+  showFlow: boolean;
+  onOpen: (id: string) => void;
   onMove: (id: string, stage: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -73,52 +123,101 @@ function OppCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
+  const contact = contactLabel(opp);
+
   return (
     <div className="ms-surface p-3 group">
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-gray-900 dark:text-white/95 text-[13px] leading-snug flex-1">{opp.title}</p>
+      <button
+        type="button"
+        onClick={() => onOpen(opp.id)}
+        className="w-full text-left"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-semibold text-gray-900 dark:text-white/95 text-[13px] leading-snug flex-1 group-hover:text-milestone-blue transition-colors">
+            {opp.title}
+          </p>
+          {opp.status !== "open" && (
+            <span
+              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 capitalize ${STATUS_STYLES[opp.status]}`}
+            >
+              {opp.status}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-1.5 space-y-0.5">
+          {opp.crm_customers && (
+            <p className="text-xs text-gray-500 dark:text-white/50 flex items-center gap-1">
+              <Building2 size={11} className="shrink-0 opacity-60" />
+              {opp.crm_customers.name}
+            </p>
+          )}
+          {contact && (
+            <p className="text-xs text-gray-500 dark:text-white/50 flex items-center gap-1">
+              <User size={11} className="shrink-0 opacity-60" />
+              {contact}
+            </p>
+          )}
+          {showFlow && opp.crm_flows && (
+            <p className="text-xs text-gray-400 dark:text-white/40 flex items-center gap-1">
+              <GitBranch size={11} className="shrink-0 opacity-60" />
+              {opp.crm_flows.name}
+            </p>
+          )}
+        </div>
+
+        {isMismatched && (
+          <p className="text-[10px] text-milestone-amber bg-milestone-amber-dim px-1.5 py-0.5 rounded mt-1.5 inline-block">
+            Stage: {opp.stage}
+          </p>
+        )}
+
+        {opp.notes && (
+          <p className="text-[11px] text-gray-400 dark:text-white/40 mt-1.5 line-clamp-2 leading-snug">
+            {opp.notes}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between mt-2.5">
+          {opp.value != null ? (
+            <span className="text-sm font-bold text-milestone-blue">{fmt(opp.value)}</span>
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-white/45 flex items-center gap-0.5">
+              <DollarSign size={11} />—
+            </span>
+          )}
+          {opp.close_date && (
+            <span className="text-[11px] text-gray-500 dark:text-white/45">{fmtCloseDate(opp.close_date)}</span>
+          )}
+        </div>
+      </button>
+
+      <div className="flex items-center justify-end gap-1 mt-1">
+        <button
+          type="button"
+          onClick={() => onOpen(opp.id)}
+          title="View details"
+          aria-label={`View details for ${opp.title}`}
+          className="text-gray-400 dark:text-white/40 hover:text-milestone-blue transition-colors p-1"
+        >
+          <Pencil size={13} />
+        </button>
         <button
           type="button"
           onClick={() => onDelete(opp.id)}
           title="Delete deal"
           aria-label={`Delete ${opp.title}`}
-          className="text-gray-400 dark:text-white/40 hover:text-milestone-red transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0 mt-0.5 p-1"
+          className="text-gray-400 dark:text-white/40 hover:text-milestone-red transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 p-1"
         >
           <Trash2 size={13} />
         </button>
       </div>
 
-      {opp.crm_customers && (
-        <p className="text-xs text-gray-500 dark:text-white/50 mt-1">{opp.crm_customers.name}</p>
-      )}
-      {isMismatched && (
-        <p className="text-[10px] text-milestone-amber bg-milestone-amber-dim px-1.5 py-0.5 rounded mt-1 inline-block">
-          Stage: {opp.stage}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between mt-2.5">
-        {opp.value != null ? (
-          <span className="text-sm font-bold text-milestone-blue">{fmt(opp.value)}</span>
-        ) : (
-          <span className="text-xs text-gray-400 dark:text-white/45 flex items-center gap-0.5">
-            <DollarSign size={11} />—
-          </span>
-        )}
-        {opp.close_date && (
-          <span className="text-[11px] text-gray-500 dark:text-white/45">
-            {(() => {
-              const [y, m, d] = opp.close_date.split("-").map(Number);
-              return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-            })()}
-          </span>
-        )}
-      </div>
-
       {/* Move stage */}
       {otherStages.length > 0 && (
-        <div ref={dropdownRef} className="relative mt-2.5 pt-2.5 border-t border-milestone-line dark:border-white/[0.08]">
+        <div ref={dropdownRef} className="relative mt-2 pt-2 border-t border-milestone-line dark:border-white/[0.08]">
           <button
+            type="button"
             onClick={() => setOpen((v) => !v)}
             className="text-[11px] text-gray-500 dark:text-white/50 hover:text-milestone-blue transition-colors flex items-center gap-0.5"
           >
@@ -154,11 +253,18 @@ export default function OpportunitiesView({
   customFields = [],
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
-}: Props & { customFields?: CustomFieldDef[]; labelPlural?: string; labelSingular?: string }) {
+  highlightId,
+}: Props & {
+  customFields?: CustomFieldDef[];
+  labelPlural?: string;
+  labelSingular?: string;
+  highlightId?: string;
+}) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
   const [formCustomerId, setFormCustomerId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -167,6 +273,19 @@ export default function OpportunitiesView({
       if (saved === "list" || saved === "kanban") setViewMode(saved);
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (highlightId && opportunities.some((o) => o.id === highlightId)) {
+      setDetailId(highlightId);
+    }
+  }, [highlightId, opportunities]);
+
+  const detailOpp = useMemo(
+    () => (detailId ? opportunities.find((o) => o.id === detailId) ?? null : null),
+    [detailId, opportunities]
+  );
+
+  const showFlowOnCards = !selectedFlowId;
 
   function switchView(mode: ViewMode) {
     setViewMode(mode);
@@ -231,7 +350,18 @@ export default function OpportunitiesView({
     const opp = opportunities.find((o) => o.id === id);
     const label = opp?.title ?? "this deal";
     if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
-    startTransition(() => deleteOpportunity(id));
+    startTransition(() => {
+      deleteOpportunity(id);
+      if (detailId === id) setDetailId(null);
+    });
+  }
+
+  function openDetail(id: string) {
+    setDetailId(id);
+  }
+
+  function closeDetail() {
+    setDetailId(null);
   }
 
   return (
@@ -421,6 +551,8 @@ export default function OpportunitiesView({
                         opp={opp}
                         stages={activeStages}
                         isMismatched={mismatchedIds.has(opp.id)}
+                        showFlow={showFlowOnCards}
+                        onOpen={openDetail}
                         onMove={handleMove}
                         onDelete={handleDelete}
                       />
@@ -446,52 +578,90 @@ export default function OpportunitiesView({
           ) : (
             <>
               <div className="md:hidden space-y-3">
-                {visibleOpps.map((opp) => (
-                  <div key={opp.id} className="ms-surface p-3.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-white leading-tight">{opp.title}</p>
-                        {opp.crm_customers && (
-                          <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">{opp.crm_customers.name}</p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
-                            {opp.stage}
-                          </span>
-                          {opp.value != null && (
-                            <span className="text-xs font-bold text-milestone-blue">{fmt(opp.value)}</span>
-                          )}
-                        </div>
-                      </div>
+                {visibleOpps.map((opp) => {
+                  const contact = contactLabel(opp);
+                  return (
+                    <div key={opp.id} className="ms-surface p-3.5">
                       <button
                         type="button"
-                        onClick={() => handleDelete(opp.id)}
-                        className="p-2 text-gray-400 dark:text-white/40 hover:text-milestone-red"
-                        aria-label={`Delete ${opp.title}`}
+                        onClick={() => openDetail(opp.id)}
+                        className="w-full text-left"
                       >
-                        <Trash2 size={15} />
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-gray-900 dark:text-white leading-tight">{opp.title}</p>
+                            {opp.crm_customers && (
+                              <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">{opp.crm_customers.name}</p>
+                            )}
+                            {contact && (
+                              <p className="text-xs text-gray-400 dark:text-white/45 mt-0.5">{contact}</p>
+                            )}
+                            {showFlowOnCards && opp.crm_flows && (
+                              <p className="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">{opp.crm_flows.name}</p>
+                            )}
+                            {opp.notes && (
+                              <p className="text-[11px] text-gray-400 dark:text-white/40 mt-1 line-clamp-2">{opp.notes}</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                                {opp.stage}
+                              </span>
+                              {opp.status !== "open" && (
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[opp.status]}`}
+                                >
+                                  {opp.status}
+                                </span>
+                              )}
+                              {opp.value != null && (
+                                <span className="text-xs font-bold text-milestone-blue">{fmt(opp.value)}</span>
+                              )}
+                              {opp.close_date && (
+                                <span className="text-[11px] text-gray-400">{fmtCloseDate(opp.close_date)}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </button>
-                    </div>
-                    {activeStages.filter((s) => s !== opp.stage).length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-milestone-line dark:border-white/[0.08]">
-                        <label className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">
-                          Move stage
-                        </label>
-                        <select
-                          value={opp.stage}
-                          onChange={(e) => handleMove(opp.id, e.target.value)}
-                          className="ms-input mt-1 py-1.5 text-xs"
+                      <div className="flex items-center justify-end gap-1 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => openDetail(opp.id)}
+                          className="p-2 text-gray-400 dark:text-white/40 hover:text-milestone-blue"
+                          aria-label={`Edit ${opp.title}`}
                         >
-                          {activeStages.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(opp.id)}
+                          className="p-2 text-gray-400 dark:text-white/40 hover:text-milestone-red"
+                          aria-label={`Delete ${opp.title}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {activeStages.filter((s) => s !== opp.stage).length > 0 && (
+                        <div className="mt-2 pt-3 border-t border-milestone-line dark:border-white/[0.08]">
+                          <label className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">
+                            Move stage
+                          </label>
+                          <select
+                            value={opp.stage}
+                            onChange={(e) => handleMove(opp.id, e.target.value)}
+                            className="ms-input mt-1 py-1.5 text-xs"
+                          >
+                            {activeStages.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="hidden md:block ms-surface overflow-hidden">
@@ -500,9 +670,13 @@ export default function OpportunitiesView({
                     <tr className="border-b border-milestone-line bg-gray-50/50 dark:bg-white/[0.03]">
                       <th className="ms-table-head pl-4 text-left">Title</th>
                       <th className="ms-table-head text-left hidden lg:table-cell">Customer</th>
+                      <th className="ms-table-head text-left hidden md:table-cell">Contact</th>
+                      {showFlowOnCards && (
+                        <th className="ms-table-head text-left hidden xl:table-cell">Flow</th>
+                      )}
                       <th className="ms-table-head text-left">Stage</th>
                       <th className="ms-table-head text-left hidden sm:table-cell">Value</th>
-                      <th className="ms-table-head text-left hidden xl:table-cell">Close</th>
+                      <th className="ms-table-head text-left hidden lg:table-cell">Close</th>
                       <th className="px-4 py-2 w-24" />
                     </tr>
                   </thead>
@@ -510,13 +684,29 @@ export default function OpportunitiesView({
                     {visibleOpps.map((opp) => (
                       <tr
                         key={opp.id}
-                        className="border-b border-milestone-line/70 dark:border-white/[0.06] hover:bg-gray-50/50 dark:hover:bg-white/[0.03]"
+                        onClick={() => openDetail(opp.id)}
+                        className="border-b border-milestone-line/70 dark:border-white/[0.06] hover:bg-gray-50/50 dark:hover:bg-white/[0.03] cursor-pointer"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{opp.title}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900 dark:text-white">{opp.title}</p>
+                          {opp.notes && (
+                            <p className="text-[11px] text-gray-400 dark:text-white/40 mt-0.5 line-clamp-1 max-w-xs">
+                              {opp.notes}
+                            </p>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden lg:table-cell">
                           {opp.crm_customers?.name ?? "—"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden md:table-cell">
+                          {contactLabel(opp) ?? "—"}
+                        </td>
+                        {showFlowOnCards && (
+                          <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden xl:table-cell">
+                            {opp.crm_flows?.name ?? "—"}
+                          </td>
+                        )}
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <select
                             value={opp.stage}
                             onChange={(e) => handleMove(opp.id, e.target.value)}
@@ -532,27 +722,28 @@ export default function OpportunitiesView({
                         <td className="px-4 py-3 font-semibold text-milestone-blue hidden sm:table-cell">
                           {fmt(opp.value) ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden xl:table-cell">
-                          {opp.close_date
-                            ? (() => {
-                                const [y, m, d] = opp.close_date.split("-").map(Number);
-                                return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                });
-                              })()
-                            : "—"}
+                        <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden lg:table-cell">
+                          {fmtCloseDate(opp.close_date, true) ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(opp.id)}
-                            className="p-1.5 rounded-lg text-gray-400 dark:text-white/40 hover:text-milestone-red hover:bg-milestone-red-dim transition-colors"
-                            aria-label={`Delete ${opp.title}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => openDetail(opp.id)}
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-white/40 hover:text-milestone-blue hover:bg-milestone-blue-dim transition-colors"
+                              aria-label={`Edit ${opp.title}`}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(opp.id)}
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-white/40 hover:text-milestone-red hover:bg-milestone-red-dim transition-colors"
+                              aria-label={`Delete ${opp.title}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -563,6 +754,116 @@ export default function OpportunitiesView({
           )}
         </div>
       )}
+
+      <SlideOver
+        open={!!detailOpp}
+        onClose={closeDetail}
+        title={detailOpp?.title ?? ""}
+        subtitle={detailOpp ? `${detailOpp.stage} · ${fmt(detailOpp.value) ?? "No value"}` : undefined}
+      >
+        {detailOpp && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[detailOpp.status]}`}
+              >
+                {detailOpp.status}
+              </span>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                {detailOpp.stage}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Value</p>
+                <p className="font-semibold text-milestone-blue mt-0.5">{fmt(detailOpp.value) ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Close date</p>
+                <p className="text-gray-700 dark:text-white/80 mt-0.5">{fmtCloseDate(detailOpp.close_date, true) ?? "—"}</p>
+              </div>
+              {detailOpp.crm_customers && (
+                <div className="col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Customer</p>
+                  <Link
+                    href={`/customers/${detailOpp.crm_customers.id}`}
+                    className="text-milestone-blue hover:underline mt-0.5 inline-flex items-center gap-1"
+                  >
+                    {detailOpp.crm_customers.name}
+                  </Link>
+                </div>
+              )}
+              {detailOpp.crm_contacts && (
+                <div className="col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Contact</p>
+                  <Link
+                    href={`/contacts/${detailOpp.crm_contacts.id}`}
+                    className="text-milestone-blue hover:underline mt-0.5 inline-flex items-center gap-1"
+                  >
+                    {contactLabel(detailOpp)}
+                  </Link>
+                </div>
+              )}
+              {detailOpp.crm_flows && (
+                <div className="col-span-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">Pipeline</p>
+                  <p className="text-gray-700 dark:text-white/80 mt-0.5">{detailOpp.crm_flows.name}</p>
+                </div>
+              )}
+            </div>
+
+            {detailOpp.notes && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-1">Notes</p>
+                <p className="text-sm text-gray-600 dark:text-white/70 whitespace-pre-wrap">{detailOpp.notes}</p>
+              </div>
+            )}
+
+            {customFields.some((f) => detailOpp.custom?.[f.id] != null && detailOpp.custom[f.id] !== "") && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-2">
+                  Custom fields
+                </p>
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  {customFields.map((f) => {
+                    const val = detailOpp.custom?.[f.id];
+                    if (val == null || val === "") return null;
+                    return (
+                      <div key={f.id}>
+                        <dt className="text-xs text-gray-400 dark:text-white/40">{f.label}</dt>
+                        <dd className="text-gray-700 dark:text-white/80 mt-0.5">{formatCustomValue(f, val)}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            )}
+
+            {(fmtTimestamp(detailOpp.created_at) || fmtTimestamp(detailOpp.updated_at)) && (
+              <p className="text-[11px] text-gray-400 dark:text-white/35">
+                {fmtTimestamp(detailOpp.created_at) && <>Created {fmtTimestamp(detailOpp.created_at)}</>}
+                {fmtTimestamp(detailOpp.created_at) && fmtTimestamp(detailOpp.updated_at) && " · "}
+                {fmtTimestamp(detailOpp.updated_at) && <>Updated {fmtTimestamp(detailOpp.updated_at)}</>}
+              </p>
+            )}
+
+            <div className="border-t border-milestone-line dark:border-white/[0.08] pt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Edit {labelSingular}</p>
+              <OpportunityEditForm
+                opportunity={detailOpp}
+                customers={customers}
+                contacts={contacts}
+                flows={flows}
+                customFields={customFields}
+                labelSingular={labelSingular}
+                onSaved={closeDetail}
+                onDeleted={closeDetail}
+              />
+            </div>
+          </div>
+        )}
+      </SlideOver>
     </div>
   );
 }
