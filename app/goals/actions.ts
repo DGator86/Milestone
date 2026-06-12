@@ -8,6 +8,8 @@ import { db } from "@/db";
 import { goals, milestones, activity_log } from "@/db/schema";
 import { eq, and, ne, asc, desc } from "drizzle-orm";
 import { UpdateGoalSchema } from "@/lib/schemas";
+import { parseRecurrenceFromForm } from "@/lib/recurrence";
+import { maybeAdvanceRecurringGoal } from "@/lib/goalRecurrence";
 import type { GoalStatus, MilestoneStatus } from "@/lib/types";
 
 export async function updateMilestoneStatus(
@@ -41,9 +43,12 @@ export async function updateMilestoneStatus(
         .set({ status: "in_progress" })
         .where(eq(milestones.id, remaining[0].id));
     } else {
-      await db.update(goals)
-        .set({ status: "completed" })
-        .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
+      const advanced = await maybeAdvanceRecurringGoal(goalId);
+      if (!advanced) {
+        await db.update(goals)
+          .set({ status: "completed" })
+          .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
+      }
     }
   } else {
     await db.update(milestones)
@@ -119,12 +124,14 @@ export async function updateGoal(
   if (!session?.user?.id) return { error: "Not authenticated" };
   const userId = await getDataOwnerId();
 
+  const recurrence = parseRecurrenceFromForm(formData);
   const raw = {
     title: (formData.get("title") as string)?.trim() ?? "",
     group_id: (formData.get("group_id") as string) ?? "",
     goal_type: (formData.get("goal_type") as string) || "concrete",
     importance: (formData.get("importance") as string) || "normal",
     due_date: (formData.get("due_date") as string) || null,
+    ...recurrence,
   };
 
   const parsed = UpdateGoalSchema.safeParse(raw);
@@ -132,10 +139,30 @@ export async function updateGoal(
     return { error: parsed.error.issues[0]?.message ?? "Validation error" };
   }
 
-  const { title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate } = parsed.data;
+  const {
+    title,
+    group_id: groupId,
+    goal_type: goalType,
+    importance,
+    due_date: dueDate,
+    is_recurring: isRecurring,
+    recurrence_interval: recurrenceInterval,
+    recurrence_unit: recurrenceUnit,
+    recurrence_end_date: recurrenceEndDate,
+  } = parsed.data;
 
   await db.update(goals)
-    .set({ title, group_id: groupId, goal_type: goalType, importance, due_date: dueDate })
+    .set({
+      title,
+      group_id: groupId,
+      goal_type: goalType,
+      importance,
+      due_date: dueDate,
+      is_recurring: isRecurring,
+      recurrence_interval: recurrenceInterval,
+      recurrence_unit: recurrenceUnit,
+      recurrence_end_date: recurrenceEndDate,
+    })
     .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
 
   revalidatePath(`/goals/${goalId}`);
@@ -149,6 +176,18 @@ export async function setGoalStatus(goalId: string, status: GoalStatus) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const userId = await getDataOwnerId();
+
+  if (status === "completed") {
+    const advanced = await maybeAdvanceRecurringGoal(goalId);
+    if (advanced) {
+      revalidatePath(`/goals/${goalId}`);
+      revalidatePath("/goals");
+      revalidatePath("/dashboard");
+      revalidatePath("/kill-list");
+      revalidatePath("/completed");
+      return;
+    }
+  }
 
   await db.update(goals)
     .set({ status })

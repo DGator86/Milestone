@@ -1,20 +1,59 @@
 import { z } from "zod";
 
-export const CreateGoalSchema = z.object({
-  title: z.string().min(1, "Title is required").max(120, "Title too long"),
-  group_id: z.string().min(1, "Group is required"),
-  goal_type: z.enum(["concrete", "touches", "deadline", "maintenance"]),
-  importance: z.enum(["normal", "important", "critical"]),
-  due_date: z.string().nullable(),
-});
+const RecurrenceUnitSchema = z.enum(["day", "week", "month", "year"]);
 
-export const UpdateGoalSchema = z.object({
-  title: z.string().min(1, "Title is required").max(120, "Title too long"),
-  group_id: z.string().min(1, "Group is required"),
-  goal_type: z.enum(["concrete", "touches", "deadline", "maintenance"]),
-  importance: z.enum(["normal", "important", "critical"]),
-  due_date: z.string().nullable(),
-});
+const goalRecurrenceFields = {
+  is_recurring: z.boolean(),
+  recurrence_interval: z.coerce.number().int().min(1).max(365).nullable(),
+  recurrence_unit: RecurrenceUnitSchema.nullable(),
+  recurrence_end_date: z.string().nullable(),
+};
+
+const goalRecurrenceRefine = <T extends z.ZodTypeAny>(schema: T) =>
+  schema.superRefine((data, ctx) => {
+    const value = data as {
+      is_recurring: boolean;
+      recurrence_interval: number | null;
+      recurrence_unit: string | null;
+    };
+    if (!value.is_recurring) return;
+    if (!value.recurrence_interval) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Recurrence interval is required",
+        path: ["recurrence_interval"],
+      });
+    }
+    if (!value.recurrence_unit) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Recurrence unit is required",
+        path: ["recurrence_unit"],
+      });
+    }
+  });
+
+export const CreateGoalSchema = goalRecurrenceRefine(
+  z.object({
+    title: z.string().min(1, "Title is required").max(120, "Title too long"),
+    group_id: z.string().min(1, "Group is required"),
+    goal_type: z.enum(["concrete", "touches", "deadline", "maintenance"]),
+    importance: z.enum(["normal", "important", "critical"]),
+    due_date: z.string().nullable(),
+    ...goalRecurrenceFields,
+  })
+);
+
+export const UpdateGoalSchema = goalRecurrenceRefine(
+  z.object({
+    title: z.string().min(1, "Title is required").max(120, "Title too long"),
+    group_id: z.string().min(1, "Group is required"),
+    goal_type: z.enum(["concrete", "touches", "deadline", "maintenance"]),
+    importance: z.enum(["normal", "important", "critical"]),
+    due_date: z.string().nullable(),
+    ...goalRecurrenceFields,
+  })
+);
 
 export const CreateGroupSchema = z.object({
   name: z.string().min(1, "Group name is required").max(50, "Name too long"),

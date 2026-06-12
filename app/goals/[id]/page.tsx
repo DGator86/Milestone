@@ -6,7 +6,8 @@ import { goals, groups, activity_log } from "@/db/schema";
 import { eq, and, desc, asc } from "drizzle-orm";
 import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
-import { ArrowLeft, Target, Briefcase, Home, Heart, Building2, Handshake } from "lucide-react";
+import { ArrowLeft, Target, Briefcase, Home, Heart, Building2, Handshake, Repeat } from "lucide-react";
+import { formatRecurrence } from "@/lib/recurrence";
 import { calcProgress } from "@/lib/progress";
 import type { GoalWithDetails, Group, ActivityLog, AppUser } from "@/lib/types";
 import MilestoneList from "@/components/goals/MilestoneList";
@@ -163,6 +164,19 @@ export default async function GoalDetailPage({
                     day: "numeric",
                     year: "numeric",
                   })}
+                </p>
+              )}
+              {goal.is_recurring && (
+                <p className="flex items-center gap-1.5 text-xs mt-1.5 font-medium text-milestone-blue">
+                  <Repeat size={12} />
+                  {formatRecurrence(goal.recurrence_interval, goal.recurrence_unit)}
+                  {goal.recurrence_end_date
+                    ? ` until ${new Date(goal.recurrence_end_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}`
+                    : " · no end date"}
                 </p>
               )}
             </div>

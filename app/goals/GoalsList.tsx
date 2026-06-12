@@ -22,6 +22,7 @@ import {
 import { getNextMilestone } from "@/lib/progress";
 import { calcProgress } from "@/lib/progress";
 import { updateGoal, archiveGoal, deleteGoal, reactivateGoal } from "./actions";
+import RecurrenceFields from "@/components/goals/RecurrenceFields";
 import { useToast } from "@/lib/toast-context";
 import type { GoalWithDetails, Group } from "@/lib/types";
 
@@ -164,6 +165,16 @@ function EditForm({
             </div>
           </div>
         </div>
+
+        <RecurrenceFields
+          compact
+          defaults={{
+            is_recurring: goal.is_recurring,
+            recurrence_interval: goal.recurrence_interval,
+            recurrence_unit: goal.recurrence_unit,
+            recurrence_end_date: goal.recurrence_end_date,
+          }}
+        />
 
         <div className="flex gap-2">
           <button
