@@ -33,7 +33,8 @@ function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Mile
   }
 
   return (
-    <div className="mt-5 flex items-start gap-1">
+    <div className="mt-5 -mx-1 overflow-x-auto no-scrollbar md:mx-0 md:overflow-visible">
+    <div className="flex items-start gap-1 min-w-max md:min-w-0 md:w-full pr-2 md:pr-0">
       {/* START */}
       <div className="flex flex-col items-center shrink-0 pt-1">
         <span className="text-[10px] font-medium text-gray-400">
@@ -54,8 +55,8 @@ function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Mile
             return (
               <div
                 key={ms.id}
-                className="relative flex flex-col items-center text-center"
-                style={{ width: `${100 / milestones.length}%`, minWidth: 0 }}
+                className={`relative flex flex-col items-center text-center shrink-0 ${milestones.length > 4 ? "w-[72px]" : ""}`}
+                style={milestones.length > 4 ? undefined : { width: `${100 / milestones.length}%`, minWidth: 0 }}
               >
                 {/* connector to next */}
                 {!isLast && (
@@ -126,6 +127,7 @@ function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Mile
         </span>
       </div>
     </div>
+    </div>
   );
 }
 
@@ -143,54 +145,52 @@ function GoalCard({ goal }: { goal: GoalWithDetails }) {
 
   return (
     <div
-      className="ms-surface p-4 border-l-2"
+      className="ms-card-app p-4 border-l-[3px]"
       style={{ borderLeftColor: accent, opacity: isPending ? 0.6 : 1 }}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `${accent}1A` }}
-        >
-          <Briefcase size={15} style={{ color: accent }} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: `${accent}1A` }}
+          >
+            <Briefcase size={16} style={{ color: accent }} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/goals/${goal.id}`}
+                className="font-semibold text-gray-900 dark:text-white hover:text-milestone-blue transition-colors truncate text-[15px] sm:text-sm"
+              >
+                {goal.title}
+              </Link>
+              <button
+                onClick={toggleStar}
+                className="ms-touch-icon shrink-0 -mr-2"
+                aria-label={goal.pinned ? "Unpin goal" : "Pin goal"}
+              >
+                <Star
+                  size={16}
+                  className={goal.pinned ? "text-milestone-amber" : "text-gray-300"}
+                  fill={goal.pinned ? "#F8B400" : "none"}
+                />
+              </button>
+            </div>
+            {goal.groups?.name && (
+              <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{goal.groups.name}</p>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/goals/${goal.id}`}
-              className="font-semibold text-gray-900 dark:text-white hover:text-milestone-blue transition-colors truncate text-sm"
-            >
-              {goal.title}
-            </Link>
-            <button
-              onClick={toggleStar}
-              className="shrink-0 transition-colors"
-              aria-label={goal.pinned ? "Unpin goal" : "Pin goal"}
-            >
-              <Star
-                size={15}
-                className={goal.pinned ? "text-milestone-amber" : "text-gray-300 hover:text-milestone-amber"}
-                fill={goal.pinned ? "#F8B400" : "none"}
-              />
-            </button>
-          </div>
-          {goal.groups?.name && (
-            <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{goal.groups.name}</p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-5 shrink-0 text-right">
+        <div className="flex items-center gap-6 sm:gap-5 shrink-0 pl-12 sm:pl-0">
           <div>
-            <p className="text-[10px] font-medium text-gray-400">
-              Progress
-            </p>
-            <p className="text-milestone-blue font-semibold text-sm">{progress}%</p>
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Progress</p>
+            <p className="text-milestone-blue font-bold text-base sm:text-sm">{progress}%</p>
           </div>
           <div>
-            <p className="text-[10px] font-medium text-gray-400">
-              Health
-            </p>
-            <p className={`font-semibold text-sm ${health.cls}`}>{health.label}</p>
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Health</p>
+            <p className={`font-bold text-base sm:text-sm ${health.cls}`}>{health.label}</p>
           </div>
         </div>
       </div>
@@ -209,14 +209,14 @@ export default function CriticalPaths({
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Active goals</h2>
-          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">Track progress on what you&apos;re closing</p>
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">Active goals</h2>
+          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 hidden sm:block">Track progress on what you&apos;re closing</p>
         </div>
         <button
           onClick={onNewGoal}
-          className="ms-btn-primary shrink-0"
+          className="ms-btn-primary shrink-0 min-h-[44px] touch-manipulation"
         >
           <Plus size={14} strokeWidth={2.5} />
           New

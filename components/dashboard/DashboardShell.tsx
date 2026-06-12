@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CriticalPaths from "@/components/home/CriticalPaths";
 import FocusToday from "@/components/home/FocusToday";
@@ -32,6 +32,14 @@ const TABS: { key: ViewTab; label: string }[] = [
   { key: "calendar", label: "Calendar" },
 ];
 
+function formatMobileDate() {
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function DashboardShell({
   goals,
   groups,
@@ -51,6 +59,8 @@ export default function DashboardShell({
   const tabParam = searchParams.get("tab");
   const view: ViewTab =
     tabParam === "agenda" || tabParam === "calendar" || tabParam === "focus" ? tabParam : "focus";
+
+  const mobileDate = useMemo(() => formatMobileDate(), []);
 
   const setView = useCallback(
     (next: ViewTab) => {
@@ -94,44 +104,54 @@ export default function DashboardShell({
   return (
     <>
       <GoalWizard groups={groups} open={wizardOpen} onClose={closeWizard} prefill={prefill} />
-      <div className="px-4 py-4 md:px-6 md:py-5 max-w-7xl mx-auto space-y-4">
-
-        {/* ── View tab switcher ── */}
-        <div className="ms-segment w-full sm:w-auto">
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setView(key)}
-              className={`ms-segment-btn flex-1 sm:flex-none ${
-                view === key ? "ms-segment-btn-active" : "ms-segment-btn-inactive"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      <div className="ms-mobile-page space-y-4">
+        {/* Mobile app header */}
+        <div className="md:hidden">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-white/35">
+            {mobileDate}
+          </p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight mt-0.5">
+            {view === "focus" ? "Today" : view === "agenda" ? "Agenda" : "Calendar"}
+          </h1>
         </div>
 
-        {/* ── Today: focus queue + goal paths + task list ── */}
+        {/* Sticky tab bar — app-style on mobile */}
+        <div className="sticky top-14 z-30 -mx-4 px-4 py-2.5 bg-milestone-bg/95 dark:bg-[#07111F]/95 backdrop-blur-md border-b border-milestone-line/60 dark:border-white/[0.06] md:static md:mx-0 md:px-0 md:py-0 md:bg-transparent md:border-0 md:backdrop-blur-none">
+          <div className="ms-segment-app md:ms-segment md:w-auto">
+            {TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                className={`ms-segment-app-btn md:ms-segment-btn md:flex-none md:min-h-0 ${
+                  view === key
+                    ? "ms-segment-app-btn-active md:ms-segment-btn-active"
+                    : "ms-segment-app-btn-inactive md:ms-segment-btn-inactive"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {view === "focus" && (
-          <>
+          <div className="space-y-4 md:space-y-4">
             <FocusToday goals={goals} onNewGoal={openWizard} />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-              <div className="lg:col-span-2">
-                <CriticalPaths goals={goals} onNewGoal={openWizard} />
-              </div>
-              <div className="lg:col-span-1">
+            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-6">
+              {/* Mobile: kill list before goal cards — actions first */}
+              <div className="order-1 lg:order-2 lg:col-span-1">
                 <KillList goals={goals} tasks={tasks} customers={customers} />
               </div>
+              <div className="order-2 lg:order-1 lg:col-span-2">
+                <CriticalPaths goals={goals} onNewGoal={openWizard} />
+              </div>
             </div>
-          </>
+          </div>
         )}
 
-        {/* ── Agenda: all milestones grouped by due date ── */}
         {view === "agenda" && <AgendaView goals={goals} tasks={tasks} />}
 
-        {/* ── Calendar: month grid with milestone dots ── */}
         {view === "calendar" && <CalendarView goals={goals} tasks={tasks} />}
-
       </div>
     </>
   );

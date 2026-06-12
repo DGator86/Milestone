@@ -84,7 +84,7 @@ function MilestoneRow({
   );
 
   return (
-    <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
+    <div className="group flex items-center gap-3 px-4 py-4 active:bg-gray-50/60 dark:active:bg-white/[0.03] transition-colors">
       <div className="flex-1 min-w-0">
         <p className="text-[11px] text-gray-400 dark:text-white/40 truncate">{item.goal.title}</p>
         {titleEl}
@@ -94,10 +94,10 @@ function MilestoneRow({
       </div>
       <button
         onClick={() => onComplete(item.milestone.id, item.goal.id)}
-        className="shrink-0 text-gray-200 dark:text-white/20 hover:text-milestone-green transition-colors p-0.5"
+        className="ms-touch-icon ms-row-complete text-gray-300 dark:text-white/25 active:text-milestone-green shrink-0"
         aria-label="Mark done"
       >
-        <CheckCircle size={18} />
+        <CheckCircle size={20} />
       </button>
     </div>
   );
@@ -128,10 +128,10 @@ function TaskRow({
     );
 
   return (
-    <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
+    <div className="group flex items-center gap-3 px-4 py-4 active:bg-gray-50/60 dark:active:bg-white/[0.03] transition-colors">
       <button
         onClick={() => onToggle(task.id, !task.done)}
-        className="w-[18px] h-[18px] rounded-md border-2 shrink-0 flex items-center justify-center border-gray-300 hover:border-milestone-blue transition-colors"
+        className="w-6 h-6 rounded-lg border-2 shrink-0 flex items-center justify-center border-gray-300 active:border-milestone-blue transition-colors touch-manipulation"
         aria-label="Toggle done"
       />
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${TYPE_TINT[task.type]}`}>
@@ -191,7 +191,7 @@ export default function AgendaView({
 
   if (!hasAny) {
     return (
-      <div className="bg-white dark:bg-[#0B1929] rounded-2xl shadow-card border border-milestone-line dark:border-white/[0.08] p-10 text-center">
+      <div className="ms-card-app p-10 text-center">
         <p className="text-sm text-gray-400 dark:text-white/30">Nothing on your agenda yet.</p>
         <p className="text-xs text-gray-400 dark:text-white/20 mt-1">
           Open milestones and tasks appear here when they have a due date or priority.
@@ -207,11 +207,8 @@ export default function AgendaView({
         if (items.length === 0) return null;
         const { label, cls } = BUCKET_META[key];
         return (
-          <div
-            key={key}
-            className="bg-white dark:bg-[#0B1929] rounded-2xl shadow-card border border-milestone-line dark:border-white/[0.08] overflow-hidden"
-          >
-            <div className="px-5 py-3 border-b border-milestone-line dark:border-white/[0.08]">
+          <div key={key} className="ms-card-app overflow-hidden">
+            <div className="px-4 py-3 border-b border-milestone-line dark:border-white/[0.08]">
               <span className={`text-[11px] font-bold uppercase tracking-wider ${cls}`}>
                 {label} · {items.length}
               </span>
