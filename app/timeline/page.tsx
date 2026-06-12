@@ -8,6 +8,7 @@ import AppShell from "@/components/layout/AppShell";
 import Link from "next/link";
 import { Clock, CheckCircle, AlertCircle, Calendar, ArrowRight } from "lucide-react";
 import type { GoalWithDetails, Milestone, AppUser } from "@/lib/types";
+import { getNextMilestone } from "@/lib/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -168,20 +169,37 @@ export default async function TimelinePage() {
     ),
   })) as unknown as GoalWithDetails[];
 
-  const allMilestones: MilestoneWithGoal[] = goalsList.flatMap((goal) =>
-    (goal.milestones ?? []).map((ms) => ({ ...ms, goal }))
+  const nextPerGoal: MilestoneWithGoal[] = goalsList
+    .filter((goal) => goal.status === "active")
+    .map((goal) => {
+      const next = getNextMilestone(goal.milestones ?? []);
+      return next ? { ...next, goal } : null;
+    })
+    .filter((ms): ms is MilestoneWithGoal => ms !== null);
+
+  const completedMilestones: MilestoneWithGoal[] = goalsList.flatMap((goal) =>
+    (goal.milestones ?? [])
+      .filter((ms) => ms.status === "completed")
+      .map((ms) => ({ ...ms, goal }))
   );
 
-  allMilestones.sort((a, b) => {
+  const sortByDueDate = (a: MilestoneWithGoal, b: MilestoneWithGoal) => {
     if (!a.due_date && !b.due_date) return 0;
     if (!a.due_date) return 1;
     if (!b.due_date) return -1;
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-  });
+  };
 
-  const grouped = groupByTime(allMilestones);
-  const pendingCount = allMilestones.filter((m) => m.status !== "completed").length;
-  const completedCount = allMilestones.filter((m) => m.status === "completed").length;
+  nextPerGoal.sort(sortByDueDate);
+  completedMilestones.sort(
+    (a, b) =>
+      new Date(b.completed_at ?? b.updated_at ?? 0).getTime() -
+      new Date(a.completed_at ?? a.updated_at ?? 0).getTime()
+  );
+
+  const grouped = groupByTime([...nextPerGoal, ...completedMilestones]);
+  const pendingCount = nextPerGoal.length;
+  const completedCount = completedMilestones.length;
 
   return (
     <AppShell user={user}>
@@ -196,7 +214,7 @@ export default async function TimelinePage() {
           </p>
         </div>
 
-        {allMilestones.length === 0 ? (
+        {nextPerGoal.length === 0 && completedMilestones.length === 0 ? (
           <div className="ms-card p-14 text-center">
             <Clock size={40} className="mx-auto mb-3 text-gray-200" />
             <p className="text-sm font-medium text-gray-400">No milestones yet.</p>
