@@ -28,21 +28,45 @@ export type CrmEntityContext = {
   customerId?: string | null;
 };
 
+export type EntityChipIcon = "building" | "user";
+
+const ENTITY_CHIP_ICONS: Record<
+  EntityChipIcon,
+  React.ComponentType<{ size?: number; className?: string }>
+> = {
+  building: Building2,
+  user: UserRound,
+};
+
+export type DetailSectionIcon = "zap" | "target" | "handshake" | "checkSquare" | "user";
+
+const DETAIL_SECTION_ICONS: Record<
+  DetailSectionIcon,
+  React.ComponentType<{ size?: number; className?: string }>
+> = {
+  zap: Zap,
+  target: Target,
+  handshake: Handshake,
+  checkSquare: CheckSquare,
+  user: UserRound,
+};
+
 export function DetailSection({
   title,
   count,
-  icon: Icon,
+  icon,
   onAdd,
   addLabel = "Add",
   children,
 }: {
   title: string;
   count?: number;
-  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  icon?: DetailSectionIcon;
   onAdd?: () => void;
   addLabel?: string;
   children: React.ReactNode;
 }) {
+  const Icon = icon ? DETAIL_SECTION_ICONS[icon] : null;
   return (
     <section className="ms-card">
       <div className="ms-card-header">
@@ -70,14 +94,15 @@ export function DetailSection({
 export function EntityChip({
   href,
   label,
-  icon: Icon,
+  icon = "building",
   variant = "blue",
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon?: EntityChipIcon;
   variant?: "blue" | "green" | "gray";
 }) {
+  const Icon = ENTITY_CHIP_ICONS[icon];
   const styles = {
     blue: "text-milestone-blue bg-milestone-blue-dim hover:bg-blue-100 dark:hover:bg-white/10",
     green: "text-milestone-green bg-milestone-green-dim hover:bg-green-100 dark:hover:bg-white/10",
@@ -627,14 +652,14 @@ export function CrmRelatedSections({
 
   return (
     <>
-      <DetailSection title="Milestones to Kill" count={killList.length} icon={Zap}>
+      <DetailSection title="Milestones to Kill" count={killList.length} icon="zap">
         <KillListItems items={killList} context={context} />
       </DetailSection>
 
       <DetailSection
         title="Active Goals"
         count={goals.length}
-        icon={Target}
+        icon="target"
         onAdd={openGoalWizard}
         addLabel="New goal"
       >
@@ -644,7 +669,7 @@ export function CrmRelatedSections({
       <DetailSection
         title="Open Opportunities"
         count={opportunities.length}
-        icon={Handshake}
+        icon="handshake"
         onAdd={() => setAddOpp(true)}
         addLabel="Add"
       >
@@ -661,7 +686,7 @@ export function CrmRelatedSections({
       <DetailSection
         title="Open Tasks"
         count={tasks.length}
-        icon={CheckSquare}
+        icon="checkSquare"
         onAdd={() => setAddTask(true)}
         addLabel="Add"
       >

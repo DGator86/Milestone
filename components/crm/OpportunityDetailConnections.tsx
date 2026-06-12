@@ -4,8 +4,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Building2,
-  UserRound,
   Target,
   ChevronRight,
   CheckCircle,
@@ -331,7 +329,7 @@ export default function OpportunityDetailConnections({
                 key={customer.id}
                 href={`/customers/${customer.id}`}
                 label={customer.name}
-                icon={Building2}
+                icon="building"
               />
             ))}
             {linkedContacts.map((contact) => (
@@ -339,7 +337,7 @@ export default function OpportunityDetailConnections({
                 key={contact.id}
                 href={`/contacts/${contact.id}`}
                 label={`${contact.first_name} ${contact.last_name}`.trim()}
-                icon={UserRound}
+                icon="user"
                 variant="gray"
               />
             ))}

@@ -12,8 +12,6 @@ import {
   ArrowLeft,
   Calendar,
   CheckSquare,
-  Building2,
-  UserRound,
   StickyNote,
 } from "lucide-react";
 import type { AppUser, TaskType } from "@/lib/types";
@@ -96,14 +94,14 @@ export default async function TaskDetailPage({
                     <EntityChip
                       href={`/customers/${task.crm_customers.id}`}
                       label={task.crm_customers.name}
-                      icon={Building2}
+                      icon="building"
                     />
                   )}
                   {task.crm_contacts && (
                     <EntityChip
                       href={`/contacts/${task.crm_contacts.id}`}
                       label={`${task.crm_contacts.first_name} ${task.crm_contacts.last_name}`}
-                      icon={UserRound}
+                      icon="user"
                     />
                   )}
                 </div>
