@@ -73,8 +73,11 @@ export default function TopNav({
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1929]/95 backdrop-blur-sm border-b border-milestone-line dark:border-white/[0.06]">
-      <div className="flex items-center h-14 px-4 md:px-5 gap-2">
+    <header
+      className="sticky top-0 z-40 bg-white/95 dark:bg-[#0B1929]/95 backdrop-blur-sm border-b border-milestone-line dark:border-white/[0.06]"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="flex items-center h-14 px-3 sm:px-4 md:px-5 gap-1 sm:gap-2">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 shrink-0 mr-1">
           <div
@@ -114,7 +117,7 @@ export default function TopNav({
         <div className="flex items-center gap-0.5 ml-auto">
           <ThemeToggle />
           <button
-            className="p-1.5 rounded-md text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
+            className="hidden sm:flex ms-touch-icon rounded-xl text-gray-400 dark:text-white/40 active:text-gray-700 dark:active:text-white/80 active:bg-gray-50 dark:active:bg-white/[0.05] transition-colors"
             aria-label="Search"
           >
             <Search size={17} />
@@ -133,7 +136,7 @@ export default function TopNav({
               onClick={() => setMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              className="flex items-center gap-1.5 pl-1 pr-1.5 py-1 rounded-md hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-1.5 pl-1 pr-1 sm:pr-1.5 py-1 rounded-md active:bg-gray-50 dark:active:bg-white/[0.04] transition-colors touch-manipulation"
             >
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-milestone-blue flex items-center justify-center shrink-0 ring-1 ring-black/5">
                 <span className="text-white text-[10px] font-semibold">{initial}</span>
@@ -214,7 +217,7 @@ export default function TopNav({
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden p-1.5 rounded-md text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors"
+            className="md:hidden ms-touch-icon rounded-xl text-gray-500 dark:text-white/50 active:bg-gray-50 dark:active:bg-white/[0.05] transition-colors"
             aria-label="Menu"
           >
             {mobileOpen ? <X size={18} /> : <Menu size={18} />}
