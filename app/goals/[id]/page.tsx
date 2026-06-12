@@ -111,7 +111,7 @@ export default async function GoalDetailPage({
 
   return (
     <AppShell user={user}>
-      <div className="p-6 max-w-3xl">
+      <div className="p-4 sm:p-6 max-w-3xl">
         <Link
           href="/goals"
           className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 mb-5 transition-colors"
@@ -120,9 +120,14 @@ export default async function GoalDetailPage({
           All Goals
         </Link>
 
-        <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-6 mb-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex-1 min-w-0">
+        <div className="bg-white dark:bg-[#0B1929] rounded-xl shadow-card border border-milestone-line dark:border-white/[0.08] p-4 sm:p-6 mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:order-2 sm:shrink-0 sm:justify-end">
+              <EditGoalPanel goal={goal} groups={safeGroups} />
+              <GoalStatusControls goalId={goal.id} status={goal.status} />
+            </div>
+
+            <div className="min-w-0 w-full sm:flex-1 sm:order-1">
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <span className="flex items-center gap-1 text-xs font-semibold text-gray-400">
                   <GroupIcon size={12} />
@@ -143,7 +148,9 @@ export default async function GoalDetailPage({
                   </span>
                 )}
               </div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{goal.title}</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-snug break-words">
+                {goal.title}
+              </h1>
               {goal.due_date && (
                 <p
                   className={`text-xs mt-1.5 font-medium ${
@@ -158,11 +165,6 @@ export default async function GoalDetailPage({
                   })}
                 </p>
               )}
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <EditGoalPanel goal={goal} groups={safeGroups} />
-              <GoalStatusControls goalId={goal.id} status={goal.status} />
             </div>
           </div>
 
