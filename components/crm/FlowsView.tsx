@@ -256,6 +256,9 @@ export default function FlowsView({ flows, oppCountByFlow, instances, customers 
   }
 
   function handleDelete(id: string) {
+    const flow = flows.find((f) => f.id === id);
+    const label = flow?.name ?? "this flow";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
     startTransition(() => deleteFlow(id));
   }
 
@@ -268,6 +271,7 @@ export default function FlowsView({ flows, oppCountByFlow, instances, customers 
   }
 
   function handleDeleteInstance(instanceId: string) {
+    if (!window.confirm("Delete this flow instance?")) return;
     startTransition(() => deleteFlowInstance(instanceId));
   }
 

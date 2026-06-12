@@ -221,12 +221,20 @@ export async function deleteGoal(goalId: string): Promise<{ error?: string }> {
   if (!session?.user?.id) return { error: "Not authenticated" };
   const userId = await getDataOwnerId();
 
-  await db.delete(goals)
-    .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)));
+  try {
+    const deleted = await db.delete(goals)
+      .where(and(eq(goals.id, goalId), eq(goals.user_id, userId)))
+      .returning({ id: goals.id });
+
+    if (!deleted.length) return { error: "Goal not found" };
+  } catch {
+    return { error: "Could not delete goal — please try again." };
+  }
 
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/kill-list");
+  revalidatePath("/completed");
   return {};
 }
 

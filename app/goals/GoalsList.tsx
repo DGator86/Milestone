@@ -2,6 +2,7 @@
 
 import { useState, useActionState, useTransition, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle,
   Circle,
@@ -12,7 +13,6 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
-  X,
   Briefcase,
   Home,
   Heart,
@@ -24,6 +24,7 @@ import { calcProgress } from "@/lib/progress";
 import { updateGoal, archiveGoal, deleteGoal, reactivateGoal } from "./actions";
 import RecurrenceFields from "@/components/goals/RecurrenceFields";
 import { useToast } from "@/lib/toast-context";
+import { confirmDestructive } from "@/lib/confirmDestructive";
 import type { GoalWithDetails, Group } from "@/lib/types";
 
 const GROUP_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -206,8 +207,8 @@ function GoalRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const { show } = useToast();
   const progress = calcProgress(goal.milestones ?? []);
   const GroupIcon = GROUP_ICONS[goal.groups?.name ?? ""] ?? Target;
@@ -218,7 +219,10 @@ function GoalRow({
     startTransition(async () => {
       const result = await archiveGoal(goal.id);
       if (result.error) show(result.error, "error");
-      else show("Goal archived", "info");
+      else {
+        show("Goal archived", "info");
+        router.refresh();
+      }
     });
   }
 
@@ -226,30 +230,38 @@ function GoalRow({
     startTransition(async () => {
       const result = await reactivateGoal(goal.id);
       if (result.error) show(result.error, "error");
-      else show("Goal reactivated!", "success");
+      else {
+        show("Goal reactivated!", "success");
+        router.refresh();
+      }
     });
   }
 
   function handleDelete() {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 3000);
+    if (
+      !confirmDestructive(
+        `Delete "${goal.title}"? This removes the goal and all its milestones permanently.`
+      )
+    ) {
       return;
     }
     startTransition(async () => {
       const result = await deleteGoal(goal.id);
       if (result.error) show(result.error, "error");
-      else show("Goal deleted", "info");
+      else {
+        show("Goal deleted", "info");
+        router.refresh();
+      }
     });
   }
 
   return (
     <div className={`border-b border-milestone-line last:border-0 ${isPending ? "opacity-50" : ""}`}>
-      <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
+      <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/60 dark:hover:bg-white/[0.03] transition-colors">
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 p-0.5 rounded text-gray-300 hover:text-milestone-blue transition-colors"
+          className="shrink-0 p-0.5 rounded text-gray-300 dark:text-white/30 hover:text-milestone-blue dark:hover:text-milestone-blue transition-colors"
           aria-label={expanded ? "Collapse goal preview" : "Expand goal preview"}
           aria-expanded={expanded}
         >
@@ -318,30 +330,36 @@ function GoalRow({
         <div className="flex items-center gap-1 shrink-0">
           {goal.status === "archived" ? (
             <button
+              type="button"
               onClick={handleReactivate}
               title="Reactivate"
-              className="p-1.5 rounded-lg text-gray-300 hover:text-milestone-green hover:bg-milestone-green-dim transition-colors"
+              aria-label="Reactivate goal"
+              className="p-1.5 rounded-lg text-gray-300 dark:text-white/35 hover:text-milestone-green hover:bg-milestone-green-dim transition-colors"
             >
               <RotateCcw size={14} />
             </button>
           ) : (
             <>
               <button
-                onClick={() => { setEditing((e) => !e); setConfirmDelete(false); }}
+                type="button"
+                onClick={() => setEditing((e) => !e)}
                 title="Edit"
+                aria-label="Edit goal"
                 className={`p-1.5 rounded-lg transition-colors ${
                   editing
                     ? "text-milestone-blue bg-milestone-blue-dim"
-                    : "text-gray-300 hover:text-milestone-blue hover:bg-milestone-blue-dim"
+                    : "text-gray-300 dark:text-white/35 hover:text-milestone-blue hover:bg-milestone-blue-dim"
                 }`}
               >
                 {editing ? <ChevronUp size={14} /> : <Pencil size={14} />}
               </button>
               {goal.status === "active" && (
                 <button
+                  type="button"
                   onClick={handleArchive}
                   title="Archive"
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-milestone-amber hover:bg-milestone-amber-dim transition-colors"
+                  aria-label="Archive goal"
+                  className="p-1.5 rounded-lg text-gray-300 dark:text-white/35 hover:text-milestone-amber hover:bg-milestone-amber-dim transition-colors"
                 >
                   <Archive size={14} />
                 </button>
@@ -349,15 +367,13 @@ function GoalRow({
             </>
           )}
           <button
+            type="button"
             onClick={handleDelete}
-            title={confirmDelete ? "Click again to confirm delete" : "Delete"}
-            className={`p-1.5 rounded-lg transition-colors ${
-              confirmDelete
-                ? "text-milestone-red bg-milestone-red-dim"
-                : "text-gray-300 hover:text-milestone-red hover:bg-milestone-red-dim"
-            }`}
+            title="Delete goal"
+            aria-label="Delete goal"
+            className="p-1.5 rounded-lg text-gray-300 dark:text-white/35 hover:text-milestone-red hover:bg-milestone-red-dim transition-colors"
           >
-            {confirmDelete ? <X size={14} /> : <Trash2 size={14} />}
+            <Trash2 size={14} />
           </button>
         </div>
       </div>

@@ -222,9 +222,11 @@ function TaskRow({
       </div>
 
       <button
+        type="button"
         onClick={() => onDelete(task.id)}
         className="ms-touch-icon ms-row-complete text-gray-300 dark:text-white/25 active:text-milestone-red shrink-0"
         aria-label="Delete task"
+        title="Delete task"
       >
         <Trash2 size={16} />
       </button>
@@ -321,6 +323,9 @@ export default function KillList({ tasks, customers, goals }: Props) {
   }
 
   function handleDelete(id: string) {
+    const task = tasks.find((t) => t.id === id);
+    const label = task?.title ?? "this task";
+    if (!window.confirm(`Delete "${label}"?`)) return;
     startTransition(() => deleteTask(id));
   }
 

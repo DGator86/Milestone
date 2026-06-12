@@ -36,13 +36,14 @@ export default function TaskDetailActions({
       <button
         type="button"
         disabled={pending}
-        onClick={() =>
+        onClick={() => {
+          if (!window.confirm("Delete this task? This cannot be undone.")) return;
           startTransition(async () => {
             await deleteTask(taskId);
             router.push("/dashboard");
             router.refresh();
-          })
-        }
+          });
+        }}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-milestone-red hover:bg-milestone-red-dim transition-colors disabled:opacity-50"
       >
         <Trash2 size={14} />
