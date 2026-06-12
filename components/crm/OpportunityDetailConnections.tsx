@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Target, ChevronRight, CheckCircle } from "lucide-react";
 import {
   Target,
   ChevronRight,
@@ -326,6 +327,8 @@ export default function OpportunityDetailConnections({
           <div className="flex flex-wrap gap-2">
             {linkedCustomers.map((customer) => (
               <EntityChip
+                href={`/customers/${opportunity.crm_customers.id}`}
+                label={opportunity.crm_customers.name}
                 key={customer.id}
                 href={`/customers/${customer.id}`}
                 label={customer.name}
@@ -334,6 +337,8 @@ export default function OpportunityDetailConnections({
             ))}
             {linkedContacts.map((contact) => (
               <EntityChip
+                href={`/contacts/${opportunity.crm_contacts.id}`}
+                label={`${opportunity.crm_contacts.first_name} ${opportunity.crm_contacts.last_name}`.trim()}
                 key={contact.id}
                 href={`/contacts/${contact.id}`}
                 label={`${contact.first_name} ${contact.last_name}`.trim()}
