@@ -26,10 +26,10 @@ import type { CrmTask, GoalWithDetails, TaskType } from "@/lib/types";
 const BUCKET_META: Record<MilestoneBucket, { label: string; cls: string }> = {
   overdue: { label: "Overdue", cls: "text-milestone-red" },
   today: { label: "Today", cls: "text-milestone-amber" },
-  tomorrow: { label: "Tomorrow", cls: "text-gray-500 dark:text-white/40" },
-  week: { label: "This Week", cls: "text-gray-500 dark:text-white/40" },
-  later: { label: "Later", cls: "text-gray-400 dark:text-white/30" },
-  noDate: { label: "No Date", cls: "text-gray-300 dark:text-white/20" },
+  tomorrow: { label: "Tomorrow", cls: "text-gray-500 dark:text-white/55" },
+  week: { label: "This Week", cls: "text-gray-500 dark:text-white/55" },
+  later: { label: "Later", cls: "text-gray-500 dark:text-white/55" },
+  noDate: { label: "No Date", cls: "text-gray-500 dark:text-white/55" },
 };
 
 const ANCHOR_LABEL: Record<string, string> = {

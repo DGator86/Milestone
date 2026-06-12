@@ -78,7 +78,7 @@ function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Mile
                       ? "bg-milestone-blue border-milestone-blue text-white ring-4 ring-milestone-blue/15"
                       : state === "stuck"
                       ? "bg-milestone-red border-milestone-red text-white"
-                      : "bg-white dark:bg-[#0f2032] border-gray-200 dark:border-white/15 text-gray-300 dark:text-white/30"
+                      : "bg-white dark:bg-white/12 border-gray-200 dark:border-white/25 text-gray-500 dark:text-white/75"
                   }`}
                 >
                   {state === "done" ? <Check size={13} strokeWidth={3} /> : i + 1}
@@ -93,7 +93,7 @@ function Journey({ goal, milestones }: { goal: GoalWithDetails; milestones: Mile
                       ? "font-semibold text-gray-900 dark:text-white"
                       : state === "done"
                       ? "text-gray-500 dark:text-white/40"
-                      : "text-gray-400 dark:text-white/30"
+                      : "text-gray-500 dark:text-white/55"
                   } ${mailto ? "text-milestone-blue hover:underline" : "hover:text-milestone-blue"}`;
                   if (mailto) {
                     return (

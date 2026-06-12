@@ -36,12 +36,14 @@ const TYPE_ICON: Record<TaskType, React.ComponentType<{ size?: number; className
   document: FileText,
 };
 
+const NEUTRAL_BADGE = "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/70";
+
 const TYPE_TINT: Record<TaskType, string> = {
   call: "bg-milestone-green-dim text-milestone-green",
   email: "bg-milestone-blue-dim text-milestone-blue",
-  meeting: "bg-purple-100 text-purple-600",
+  meeting: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300",
   task: "bg-milestone-amber-dim text-milestone-amber",
-  document: "bg-gray-100 text-gray-500",
+  document: NEUTRAL_BADGE,
 };
 
 const PRIORITY_META: Record<TaskPriority, string> = {
@@ -55,15 +57,15 @@ const BUCKET_TONE: Record<MilestoneBucket, string> = {
   overdue: "bg-milestone-red-dim text-milestone-red",
   today: "bg-milestone-amber-dim text-milestone-amber",
   tomorrow: "bg-milestone-blue-dim text-milestone-blue",
-  week: "bg-gray-100 text-gray-500",
-  later: "bg-gray-100 text-gray-400",
-  noDate: "bg-gray-100 text-gray-400",
+  week: NEUTRAL_BADGE,
+  later: NEUTRAL_BADGE,
+  noDate: NEUTRAL_BADGE,
 };
 
 const IMPORTANCE_BADGE: Record<string, string> = {
   critical: "bg-milestone-red-dim text-milestone-red",
   important: "bg-milestone-amber-dim text-milestone-amber",
-  normal: "bg-gray-100 text-gray-400",
+  normal: NEUTRAL_BADGE,
 };
 
 const INPUT = "ms-input";
@@ -424,8 +426,8 @@ export default function KillList({ tasks, customers, goals }: Props) {
             </div>
             <TaskGroup label="Overdue" tone="bg-milestone-red-dim text-milestone-red" tasks={groups.overdue} onToggle={handleToggle} onDelete={handleDelete} />
             <TaskGroup label="Today" tone="bg-milestone-blue-dim text-milestone-blue" tasks={groups.today} onToggle={handleToggle} onDelete={handleDelete} />
-            <TaskGroup label="Upcoming This Week" tone="bg-gray-100 text-gray-500" tasks={groups.upcoming} onToggle={handleToggle} onDelete={handleDelete} />
-            <TaskGroup label="Later" tone="bg-gray-100 text-gray-400" tasks={groups.later} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Upcoming This Week" tone={NEUTRAL_BADGE} tasks={groups.upcoming} onToggle={handleToggle} onDelete={handleDelete} />
+            <TaskGroup label="Later" tone={NEUTRAL_BADGE} tasks={groups.later} onToggle={handleToggle} onDelete={handleDelete} />
           </>
         ) : null}
       </div>

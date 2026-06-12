@@ -96,7 +96,7 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
           </div>
           <button
             onClick={() => handleComplete(first.milestone.id, first.goal.id)}
-            className="flex items-center justify-center gap-1.5 w-full sm:w-auto bg-white hover:bg-gray-50 active:bg-gray-100 text-milestone-navy px-4 py-2.5 sm:py-1.5 rounded-xl sm:rounded-md text-sm font-semibold transition-colors shrink-0 min-h-[44px] sm:min-h-0 touch-manipulation"
+            className="ms-btn-on-dark flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:py-1.5 rounded-xl sm:rounded-md text-sm font-semibold transition-colors shrink-0 min-h-[44px] sm:min-h-0 touch-manipulation"
           >
             Mark done <ArrowRight size={13} />
           </button>
@@ -113,7 +113,7 @@ export default function FocusToday({ goals, onNewGoal }: Props) {
                 key={milestone.id}
                 className="group flex items-center gap-3 px-4 py-3.5 sm:py-2.5 active:bg-gray-50/80 dark:active:bg-white/[0.03] transition-colors"
               >
-                <span className="text-xs font-medium text-gray-300 dark:text-white/15 w-4 shrink-0 tabular-nums select-none">
+                <span className="text-xs font-medium text-gray-400 dark:text-white/50 w-4 shrink-0 tabular-nums select-none">
                   {i + 2}
                 </span>
                 <div className="flex-1 min-w-0">
