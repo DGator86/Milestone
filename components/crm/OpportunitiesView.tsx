@@ -74,7 +74,10 @@ function OppCard({
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-gray-900 text-[13px] leading-snug flex-1">{opp.title}</p>
         <button
+          type="button"
           onClick={() => onDelete(opp.id)}
+          title="Delete deal"
+          aria-label={`Delete ${opp.title}`}
           className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
         >
           <Trash2 size={13} />
@@ -206,6 +209,9 @@ export default function OpportunitiesView({
   }
 
   function handleDelete(id: string) {
+    const opp = opportunities.find((o) => o.id === id);
+    const label = opp?.title ?? "this deal";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
     startTransition(() => deleteOpportunity(id));
   }
 

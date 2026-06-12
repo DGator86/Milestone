@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useTransition, useState, useEffect } from "react";
-import { Plus, Trash2, X, Briefcase, Home, Heart, Target } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2, Briefcase, Home, Heart, Target } from "lucide-react";
 import { createGroup, deleteGroup } from "./actions";
 import { useToast } from "@/lib/toast-context";
+import { confirmDestructive } from "@/lib/confirmDestructive";
 import type { Group } from "@/lib/types";
 
 const GROUP_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -106,23 +108,24 @@ function AddGroupForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function GroupCard({ group }: { group: Group }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const { show } = useToast();
   const Icon = GROUP_ICONS[group.name] ?? Target;
   const gradient = GROUP_GRADIENTS[group.name] ?? "from-gray-50 to-gray-50 border-gray-100";
   const iconColor = GROUP_ICON_COLORS[group.name] ?? "text-gray-500 bg-gray-100";
 
   function handleDelete() {
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 3000);
+    if (!confirmDestructive(`Delete group "${group.name}"? Goals in this group will need to be moved first.`)) {
       return;
     }
     startTransition(async () => {
       const result = await deleteGroup(group.id);
       if (result.error) show(result.error, "error");
-      else show(`"${group.name}" deleted`, "info");
+      else {
+        show(`"${group.name}" deleted`, "info");
+        router.refresh();
+      }
     });
   }
 
@@ -146,16 +149,14 @@ function GroupCard({ group }: { group: Group }) {
         </div>
       </div>
       <button
+        type="button"
         onClick={handleDelete}
-        title={confirmDelete ? "Click again to confirm" : "Delete group"}
+        title="Delete group"
+        aria-label={`Delete group ${group.name}`}
         disabled={isPending}
-        className={`p-2 rounded-lg transition-colors shrink-0 ${
-          confirmDelete
-            ? "text-milestone-red bg-milestone-red-dim"
-            : "text-gray-300 hover:text-milestone-red hover:bg-milestone-red-dim"
-        }`}
+        className="p-2 rounded-lg transition-colors shrink-0 text-gray-300 hover:text-milestone-red hover:bg-milestone-red-dim"
       >
-        {confirmDelete ? <X size={15} /> : <Trash2 size={15} />}
+        <Trash2 size={15} />
       </button>
     </div>
   );
