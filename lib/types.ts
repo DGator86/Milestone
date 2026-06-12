@@ -170,6 +170,8 @@ export interface CrmOpportunity {
   crm_customers?: Pick<CrmCustomer, "id" | "name"> | null;
   crm_contacts?: Pick<CrmContact, "id" | "first_name" | "last_name"> | null;
   crm_flows?: Pick<CrmFlow, "id" | "name" | "stages"> | null;
+  linked_customers?: Pick<CrmCustomer, "id" | "name">[];
+  linked_contacts?: Pick<CrmContact, "id" | "first_name" | "last_name">[];
 }
 
 export interface ContactWithDetails extends Contact {

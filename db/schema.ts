@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric, index, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp, date, jsonb, numeric, index, primaryKey, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 const id = uuid("id").primaryKey().default(sql`gen_random_uuid()`);
@@ -205,6 +205,35 @@ export const crm_opportunities = pgTable("crm_opportunities", {
   updated_at: ts("updated_at"),
 });
 
+// ─── CRM Opportunity links (many-to-many) ──────────────────────────────────────
+export const crm_opportunity_customers = pgTable(
+  "crm_opportunity_customers",
+  {
+    opportunity_id: uuid("opportunity_id")
+      .notNull()
+      .references(() => crm_opportunities.id, { onDelete: "cascade" }),
+    customer_id: uuid("customer_id")
+      .notNull()
+      .references(() => crm_customers.id, { onDelete: "cascade" }),
+    created_at: ts("created_at"),
+  },
+  (t) => [primaryKey({ columns: [t.opportunity_id, t.customer_id] })],
+);
+
+export const crm_opportunity_contacts = pgTable(
+  "crm_opportunity_contacts",
+  {
+    opportunity_id: uuid("opportunity_id")
+      .notNull()
+      .references(() => crm_opportunities.id, { onDelete: "cascade" }),
+    contact_id: uuid("contact_id")
+      .notNull()
+      .references(() => crm_contacts.id, { onDelete: "cascade" }),
+    created_at: ts("created_at"),
+  },
+  (t) => [primaryKey({ columns: [t.opportunity_id, t.contact_id] })],
+);
+
 // ─── CRM Tasks ─────────────────────────────────────────────────────────────────
 export const crm_tasks = pgTable("crm_tasks", {
   id,
@@ -304,6 +333,30 @@ export const crmOpportunitiesRelations = relations(crm_opportunities, ({ one, ma
   crm_contacts: one(crm_contacts, { fields: [crm_opportunities.contact_id], references: [crm_contacts.id] }),
   crm_flows: one(crm_flows, { fields: [crm_opportunities.flow_id], references: [crm_flows.id] }),
   goals: many(goals),
+  crm_opportunity_customers: many(crm_opportunity_customers),
+  crm_opportunity_contacts: many(crm_opportunity_contacts),
+}));
+
+export const crmOpportunityCustomersRelations = relations(crm_opportunity_customers, ({ one }) => ({
+  crm_opportunities: one(crm_opportunities, {
+    fields: [crm_opportunity_customers.opportunity_id],
+    references: [crm_opportunities.id],
+  }),
+  crm_customers: one(crm_customers, {
+    fields: [crm_opportunity_customers.customer_id],
+    references: [crm_customers.id],
+  }),
+}));
+
+export const crmOpportunityContactsRelations = relations(crm_opportunity_contacts, ({ one }) => ({
+  crm_opportunities: one(crm_opportunities, {
+    fields: [crm_opportunity_contacts.opportunity_id],
+    references: [crm_opportunities.id],
+  }),
+  crm_contacts: one(crm_contacts, {
+    fields: [crm_opportunity_contacts.contact_id],
+    references: [crm_contacts.id],
+  }),
 }));
 
 export const crmTasksRelations = relations(crm_tasks, ({ one }) => ({

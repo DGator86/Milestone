@@ -6,7 +6,8 @@ import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/typ
 import type { CustomFieldDef } from "@/lib/customFields";
 import { updateOpportunity, deleteOpportunity } from "@/app/opportunities/actions";
 import CustomFieldInput from "./CustomFieldInput";
-import CompanySelect from "./CompanySelect";
+import { MultiCompanyPicker, MultiContactPicker } from "./MultiEntityPicker";
+import { getLinkedContacts, getLinkedCustomers } from "@/lib/crm/opportunityLinks";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -20,6 +21,8 @@ export default function OpportunityEditForm({
   flows,
   customFields = [],
   labelSingular = "Opportunity",
+  customerLabel = "Companies",
+  contactLabel = "Contacts",
   onSaved,
   onDeleted,
 }: {
@@ -29,15 +32,17 @@ export default function OpportunityEditForm({
   flows: Pick<CrmFlow, "id" | "name" | "stages">[];
   customFields?: CustomFieldDef[];
   labelSingular?: string;
+  customerLabel?: string;
+  contactLabel?: string;
   onSaved?: () => void;
   onDeleted?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [customerId, setCustomerId] = useState(opportunity.customer_id ?? "");
-
-  const formContacts = useMemo(
-    () => (customerId ? contacts.filter((c) => c.customer_id === customerId) : contacts),
-    [customerId, contacts]
+  const [customerIds, setCustomerIds] = useState(() =>
+    getLinkedCustomers(opportunity).map((customer) => customer.id),
+  );
+  const [contactIds, setContactIds] = useState(() =>
+    getLinkedContacts(opportunity).map((contact) => contact.id),
   );
 
   const stages = useMemo(() => {
@@ -96,29 +101,20 @@ export default function OpportunityEditForm({
           </select>
         </div>
       </div>
-      <CompanySelect
+      <MultiCompanyPicker
         customers={customers}
-        defaultValue={opportunity.customer_id ?? ""}
-        onValueChange={setCustomerId}
-        label="Customer"
-        noCompanyLabel="No customer"
+        selectedIds={customerIds}
+        onChange={setCustomerIds}
+        label={customerLabel}
+        noCompanyLabel={`No ${customerLabel.toLowerCase()}`}
       />
-      <div>
-        <label className={LABEL}>Contact</label>
-        <select
-          name="contact_id"
-          className={INPUT}
-          defaultValue={opportunity.contact_id ?? ""}
-          key={customerId}
-        >
-          <option value="">No contact</option>
-          {formContacts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.first_name} {c.last_name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <MultiContactPicker
+        contacts={contacts}
+        selectedIds={contactIds}
+        onChange={setContactIds}
+        customerIds={customerIds}
+        label={contactLabel}
+      />
       <div>
         <label className={LABEL}>Flow (pipeline)</label>
         <select name="flow_id" className={INPUT} defaultValue={opportunity.flow_id ?? ""}>
