@@ -15,7 +15,7 @@ import {
   GitBranch,
   Pencil,
 } from "lucide-react";
-import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, OpportunityStatus, GoalWithDetails } from "@/lib/types";
+import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow, OpportunityStatus, GoalWithDetails, Group } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
 import { formatCustomValue } from "@/lib/customFields";
 import {
@@ -24,10 +24,15 @@ import {
   moveOpportunity,
 } from "@/app/opportunities/actions";
 import CustomFieldInput from "./CustomFieldInput";
-import CompanySelect from "./CompanySelect";
 import SlideOver from "./SlideOver";
 import OpportunityEditForm from "./OpportunityEditForm";
 import OpportunityDetailConnections from "./OpportunityDetailConnections";
+import { MultiCompanyPicker, MultiContactPicker } from "./MultiEntityPicker";
+import {
+  formatEntitySummary,
+  getLinkedContacts,
+  getLinkedCustomers,
+} from "@/lib/crm/opportunityLinks";
 
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
@@ -59,6 +64,8 @@ interface Props {
   customers: Pick<CrmCustomer, "id" | "name">[];
   contacts: Pick<CrmContact, "id" | "first_name" | "last_name" | "customer_id">[];
   flows: Pick<CrmFlow, "id" | "name" | "stages">[];
+  groups?: Group[];
+  linkableGoals?: Array<{ id: string; title: string; opportunity_id: string | null }>;
   goalsByOpportunity?: Record<string, GoalWithDetails[]>;
 }
 
@@ -79,10 +86,16 @@ function fmtCloseDate(dateStr: string | null, withYear = false) {
   });
 }
 
-function formatContactName(opp: CrmOpportunity) {
-  const c = opp.crm_contacts;
-  if (!c) return null;
-  return `${c.first_name} ${c.last_name}`.trim();
+function formatContactSummary(opp: CrmOpportunity) {
+  const labels = getLinkedContacts(opp).map(
+    (contact) => `${contact.first_name} ${contact.last_name}`.trim(),
+  );
+  return formatEntitySummary(labels);
+}
+
+function formatCustomerSummary(opp: CrmOpportunity) {
+  const labels = getLinkedCustomers(opp).map((customer) => customer.name);
+  return formatEntitySummary(labels);
 }
 
 function fmtTimestamp(iso: string | null) {
@@ -124,7 +137,8 @@ function OppCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  const contact = formatContactName(opp);
+  const contact = formatContactSummary(opp);
+  const customer = formatCustomerSummary(opp);
 
   return (
     <div className="ms-surface p-3 group">
@@ -147,10 +161,10 @@ function OppCard({
         </div>
 
         <div className="mt-1.5 space-y-0.5">
-          {opp.crm_customers && (
+          {customer && (
             <p className="text-xs text-gray-500 dark:text-white/50 flex items-center gap-1">
               <Building2 size={11} className="shrink-0 opacity-60" />
-              {opp.crm_customers.name}
+              {customer}
             </p>
           )}
           {contact && (
@@ -251,6 +265,8 @@ export default function OpportunitiesView({
   customers,
   contacts,
   flows,
+  groups = [],
+  linkableGoals = [],
   customFields = [],
   labelPlural = "Opportunities",
   labelSingular = "Opportunity",
@@ -268,7 +284,8 @@ export default function OpportunitiesView({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
-  const [formCustomerId, setFormCustomerId] = useState("");
+  const [formCustomerIds, setFormCustomerIds] = useState<string[]>([]);
+  const [formContactIds, setFormContactIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [detailId, setDetailId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -305,10 +322,14 @@ export default function OpportunitiesView({
     } catch {}
   }
 
-  // Contacts shown in the add form are limited to the chosen company (when one is set).
   const formContacts = useMemo(
-    () => (formCustomerId ? contacts.filter((c) => c.customer_id === formCustomerId) : contacts),
-    [formCustomerId, contacts]
+    () =>
+      formCustomerIds.length
+        ? contacts.filter(
+            (contact) => !contact.customer_id || formCustomerIds.includes(contact.customer_id),
+          )
+        : contacts,
+    [formCustomerIds, contacts],
   );
 
   const activeStages = useMemo(() => {
@@ -430,7 +451,10 @@ export default function OpportunitiesView({
           <button
             onClick={() => {
               setShowForm((open) => {
-                if (!open) setFormCustomerId("");
+                if (!open) {
+                  setFormCustomerIds([]);
+                  setFormContactIds([]);
+                }
                 return !open;
               });
             }}
@@ -466,26 +490,20 @@ export default function OpportunitiesView({
                   ))}
                 </select>
               </div>
-              <CompanySelect
+              <MultiCompanyPicker
                 customers={customers}
-                onValueChange={setFormCustomerId}
-                label="Customer"
-                noCompanyLabel="No customer"
+                selectedIds={formCustomerIds}
+                onChange={setFormCustomerIds}
+                label={customerLabel}
+                noCompanyLabel={`No ${customerLabel.toLowerCase()}`}
               />
-              <div>
-                <label className={LABEL}>Contact</label>
-                <select name="contact_id" className={INPUT} defaultValue="" key={formCustomerId}>
-                  <option value="">No contact</option>
-                  {formContacts.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.first_name} {c.last_name}
-                    </option>
-                  ))}
-                </select>
-                {formCustomerId && formContacts.length === 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1">No contacts for this company yet.</p>
-                )}
-              </div>
+              <MultiContactPicker
+                contacts={formContacts}
+                selectedIds={formContactIds}
+                onChange={setFormContactIds}
+                customerIds={formCustomerIds}
+                label={contactLabel}
+              />
               <div>
                 <label className={LABEL}>Flow (pipeline)</label>
                 <select name="flow_id" className={INPUT} defaultValue={selectedFlowId}>
@@ -590,7 +608,8 @@ export default function OpportunitiesView({
             <>
               <div className="md:hidden space-y-3">
                 {visibleOpps.map((opp) => {
-                  const contact = formatContactName(opp);
+                  const contact = formatContactSummary(opp);
+                  const customer = formatCustomerSummary(opp);
                   return (
                     <div key={opp.id} className="ms-surface p-3.5">
                       <button
@@ -601,8 +620,8 @@ export default function OpportunitiesView({
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-gray-900 dark:text-white leading-tight">{opp.title}</p>
-                            {opp.crm_customers && (
-                              <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">{opp.crm_customers.name}</p>
+                            {customer && (
+                              <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">{customer}</p>
                             )}
                             {contact && (
                               <p className="text-xs text-gray-400 dark:text-white/45 mt-0.5">{contact}</p>
@@ -707,10 +726,10 @@ export default function OpportunitiesView({
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden lg:table-cell">
-                          {opp.crm_customers?.name ?? "—"}
+                          {formatCustomerSummary(opp) ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden md:table-cell">
-                          {formatContactName(opp) ?? "—"}
+                          {formatContactSummary(opp) ?? "—"}
                         </td>
                         {showFlowOnCards && (
                           <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden xl:table-cell">
@@ -805,6 +824,8 @@ export default function OpportunitiesView({
             <OpportunityDetailConnections
               opportunity={detailOpp}
               linkedGoals={detailGoals}
+              groups={groups}
+              linkableGoals={linkableGoals}
               customerLabel={customerLabel}
               contactLabel={contactLabel}
             />
@@ -853,6 +874,8 @@ export default function OpportunitiesView({
                 flows={flows}
                 customFields={customFields}
                 labelSingular={labelSingular}
+                customerLabel={customerLabel}
+                contactLabel={contactLabel}
                 onSaved={closeDetail}
                 onDeleted={closeDetail}
               />

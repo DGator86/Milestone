@@ -1,8 +1,45 @@
 import { db } from "@/db";
-import { goals, crm_opportunities, crm_tasks } from "@/db/schema";
+import { goals, crm_opportunities, crm_tasks, crm_opportunity_contacts, crm_opportunity_customers } from "@/db/schema";
 import { eq, and, or, inArray, desc } from "drizzle-orm";
 import { getKillList } from "@/lib/progress";
 import type { GoalWithDetails } from "@/lib/types";
+
+async function getOpportunityIdsForContact(userId: string, contactId: string) {
+  const [direct, linked] = await Promise.all([
+    db
+      .select({ id: crm_opportunities.id })
+      .from(crm_opportunities)
+      .where(and(eq(crm_opportunities.user_id, userId), eq(crm_opportunities.contact_id, contactId))),
+    db
+      .select({ id: crm_opportunity_contacts.opportunity_id })
+      .from(crm_opportunity_contacts)
+      .innerJoin(crm_opportunities, eq(crm_opportunities.id, crm_opportunity_contacts.opportunity_id))
+      .where(
+        and(eq(crm_opportunities.user_id, userId), eq(crm_opportunity_contacts.contact_id, contactId)),
+      ),
+  ]);
+  return [...new Set([...direct.map((row) => row.id), ...linked.map((row) => row.id)])];
+}
+
+async function getOpportunityIdsForCustomer(userId: string, customerId: string) {
+  const [direct, linked] = await Promise.all([
+    db
+      .select({ id: crm_opportunities.id })
+      .from(crm_opportunities)
+      .where(and(eq(crm_opportunities.user_id, userId), eq(crm_opportunities.customer_id, customerId))),
+    db
+      .select({ id: crm_opportunity_customers.opportunity_id })
+      .from(crm_opportunity_customers)
+      .innerJoin(crm_opportunities, eq(crm_opportunities.id, crm_opportunity_customers.opportunity_id))
+      .where(
+        and(
+          eq(crm_opportunities.user_id, userId),
+          eq(crm_opportunity_customers.customer_id, customerId),
+        ),
+      ),
+  ]);
+  return [...new Set([...direct.map((row) => row.id), ...linked.map((row) => row.id)])];
+}
 
 function asGoalWithDetails(
   rows: Awaited<ReturnType<typeof fetchGoalsWithMilestones>>
@@ -41,12 +78,7 @@ export async function getRelatedGoalsForContact(
   contactId: string,
   customerId: string | null
 ) {
-  const oppRows = await db
-    .select({ id: crm_opportunities.id })
-    .from(crm_opportunities)
-    .where(and(eq(crm_opportunities.user_id, userId), eq(crm_opportunities.contact_id, contactId)));
-
-  const oppIds = oppRows.map((o) => o.id);
+  const oppIds = await getOpportunityIdsForContact(userId, contactId);
   const linkFilter =
     customerId && oppIds.length
       ? or(eq(goals.customer_id, customerId), inArray(goals.opportunity_id, oppIds))
@@ -64,11 +96,14 @@ export async function getRelatedGoalsForContact(
 }
 
 export async function getOpenOpportunitiesForContact(userId: string, contactId: string) {
+  const oppIds = await getOpportunityIdsForContact(userId, contactId);
+  if (oppIds.length === 0) return [];
+
   return db.query.crm_opportunities.findMany({
     where: and(
       eq(crm_opportunities.user_id, userId),
-      eq(crm_opportunities.contact_id, contactId),
-      eq(crm_opportunities.status, "open")
+      eq(crm_opportunities.status, "open"),
+      inArray(crm_opportunities.id, oppIds),
     ),
     with: { crm_customers: { columns: { id: true, name: true } } },
     orderBy: [desc(crm_opportunities.updated_at)],
@@ -76,11 +111,14 @@ export async function getOpenOpportunitiesForContact(userId: string, contactId: 
 }
 
 export async function getOpenOpportunitiesForCustomer(userId: string, customerId: string) {
+  const oppIds = await getOpportunityIdsForCustomer(userId, customerId);
+  if (oppIds.length === 0) return [];
+
   return db.query.crm_opportunities.findMany({
     where: and(
       eq(crm_opportunities.user_id, userId),
-      eq(crm_opportunities.customer_id, customerId),
-      eq(crm_opportunities.status, "open")
+      eq(crm_opportunities.status, "open"),
+      inArray(crm_opportunities.id, oppIds),
     ),
     with: { crm_contacts: { columns: { id: true, first_name: true, last_name: true } } },
     orderBy: [desc(crm_opportunities.updated_at)],
