@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, UserRound, Target, ChevronRight, CheckCircle } from "lucide-react";
+import { Target, ChevronRight, CheckCircle } from "lucide-react";
 import { completeMilestone } from "@/app/dashboard/actions";
 import { calcProgress } from "@/lib/progress";
 import { EntityChip } from "./CrmDetailSections";
@@ -127,14 +127,14 @@ export default function OpportunityDetailConnections({
               <EntityChip
                 href={`/customers/${opportunity.crm_customers.id}`}
                 label={opportunity.crm_customers.name}
-                icon={Building2}
+                icon="building"
               />
             )}
             {opportunity.crm_contacts && (
               <EntityChip
                 href={`/contacts/${opportunity.crm_contacts.id}`}
                 label={`${opportunity.crm_contacts.first_name} ${opportunity.crm_contacts.last_name}`.trim()}
-                icon={UserRound}
+                icon="user"
                 variant="gray"
               />
             )}

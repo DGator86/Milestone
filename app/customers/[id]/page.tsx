@@ -24,7 +24,6 @@ import {
   Mail,
   Phone,
   Globe,
-  UserRound,
   StickyNote,
 } from "lucide-react";
 import type { CrmCustomer, CustomerStatus, AppUser } from "@/lib/types";
@@ -156,7 +155,7 @@ export default async function CustomerDetailPage({
           )}
         </div>
 
-        <DetailSection title={terms.contacts} count={contacts.length} icon={UserRound}>
+        <DetailSection title={terms.contacts} count={contacts.length} icon="user">
           <ContactListItems contacts={contacts} />
         </DetailSection>
 
