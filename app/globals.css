@@ -114,7 +114,8 @@ html.dark .bg-white {
 }
 html.dark .bg-gray-50,
 html.dark .bg-gray-50\/60,
-html.dark .bg-gray-50\/50 {
+html.dark .bg-gray-50\/50,
+html.dark .bg-gray-50\/80 {
   background-color: #1c212a;
 }
 html.dark .bg-gray-100 {
@@ -303,7 +304,14 @@ html.dark .brand-scope .bg-milestone-blue-dim {
 
   /* Light CTA on dark hero bands — must stay white (html.dark remaps bg-white otherwise) */
   .ms-btn-on-dark {
-    @apply bg-white text-milestone-navy hover:bg-gray-50 active:bg-gray-100;
+    background-color: #ffffff;
+    color: #07111f;
+  }
+  .ms-btn-on-dark:hover {
+    background-color: #f3f4f6;
+  }
+  .ms-btn-on-dark:active {
+    background-color: #e5e7eb;
   }
 
   /* Dark mode — only inside authenticated app shell */
@@ -393,16 +401,30 @@ html.dark .brand-scope .bg-milestone-blue-dim {
 
 html.dark .ms-btn-on-dark,
 .dark .brand-scope .ms-btn-on-dark {
-  background-color: #ffffff;
-  color: #07111f;
+  background-color: #ffffff !important;
+  color: #07111f !important;
 }
 html.dark .ms-btn-on-dark:hover,
 .dark .brand-scope .ms-btn-on-dark:hover {
-  background-color: #f3f4f6;
+  background-color: #f3f4f6 !important;
 }
 html.dark .ms-btn-on-dark:active,
 .dark .brand-scope .ms-btn-on-dark:active {
-  background-color: #e5e7eb;
+  background-color: #e5e7eb !important;
+}
+
+/* Kanban columns — keep dark surfaces instead of washed-out light grays */
+.dark .brand-scope .ms-kanban-col {
+  background-color: rgb(255 255 255 / 0.04);
+  border-color: rgb(255 255 255 / 0.08);
+}
+.dark .brand-scope .ms-kanban-col-won {
+  background-color: color-mix(in srgb, #36a852 12%, #0b1929);
+  border-color: rgb(54 168 82 / 0.25);
+}
+.dark .brand-scope .ms-kanban-col-lost {
+  background-color: color-mix(in srgb, #ea4335 12%, #0b1929);
+  border-color: rgb(234 67 53 / 0.25);
 }
 
 /* ── Dark mode: borders, surfaces, forms (app shell) ───────────────────── */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
-import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign } from "lucide-react";
+import { TrendingUp, Plus, X, ChevronRight, Trash2, DollarSign, LayoutGrid, List } from "lucide-react";
 import type { CrmOpportunity, CrmCustomer, CrmContact, CrmFlow } from "@/lib/types";
 import type { CustomFieldDef } from "@/lib/customFields";
 import {
@@ -15,14 +15,18 @@ import CompanySelect from "./CompanySelect";
 const DEFAULT_STAGES = ["Lead", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
 
 const STAGE_COLORS: Record<string, string> = {
-  Won: "bg-milestone-green-dim border-milestone-green/20",
-  Lost: "bg-milestone-red-dim border-milestone-red/20",
+  Won: "ms-kanban-col-won bg-milestone-green-dim border-milestone-green/20",
+  Lost: "ms-kanban-col-lost bg-milestone-red-dim border-milestone-red/20",
 };
 
 const STAGE_HEADER: Record<string, string> = {
   Won: "text-milestone-green",
   Lost: "text-milestone-red",
 };
+
+const DEFAULT_COL_BG = "ms-kanban-col bg-gray-50/80 border-gray-200/60";
+
+type ViewMode = "kanban" | "list";
 
 const INPUT = "ms-input";
 const LABEL = "ms-label";
@@ -72,20 +76,20 @@ function OppCard({
   return (
     <div className="ms-surface p-3 group">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-gray-900 text-[13px] leading-snug flex-1">{opp.title}</p>
+        <p className="font-semibold text-gray-900 dark:text-white/95 text-[13px] leading-snug flex-1">{opp.title}</p>
         <button
           type="button"
           onClick={() => onDelete(opp.id)}
           title="Delete deal"
           aria-label={`Delete ${opp.title}`}
-          className="text-gray-200 hover:text-milestone-red transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
+          className="text-gray-400 dark:text-white/40 hover:text-milestone-red transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 shrink-0 mt-0.5 p-1"
         >
           <Trash2 size={13} />
         </button>
       </div>
 
       {opp.crm_customers && (
-        <p className="text-xs text-gray-400 mt-1">{opp.crm_customers.name}</p>
+        <p className="text-xs text-gray-500 dark:text-white/50 mt-1">{opp.crm_customers.name}</p>
       )}
       {isMismatched && (
         <p className="text-[10px] text-milestone-amber bg-milestone-amber-dim px-1.5 py-0.5 rounded mt-1 inline-block">
@@ -97,12 +101,12 @@ function OppCard({
         {opp.value != null ? (
           <span className="text-sm font-bold text-milestone-blue">{fmt(opp.value)}</span>
         ) : (
-          <span className="text-xs text-gray-300 flex items-center gap-0.5">
+          <span className="text-xs text-gray-400 dark:text-white/45 flex items-center gap-0.5">
             <DollarSign size={11} />—
           </span>
         )}
         {opp.close_date && (
-          <span className="text-[11px] text-gray-400">
+          <span className="text-[11px] text-gray-500 dark:text-white/45">
             {(() => {
               const [y, m, d] = opp.close_date.split("-").map(Number);
               return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -113,10 +117,10 @@ function OppCard({
 
       {/* Move stage */}
       {otherStages.length > 0 && (
-        <div ref={dropdownRef} className="relative mt-2.5 pt-2.5 border-t border-milestone-line">
+        <div ref={dropdownRef} className="relative mt-2.5 pt-2.5 border-t border-milestone-line dark:border-white/[0.08]">
           <button
             onClick={() => setOpen((v) => !v)}
-            className="text-[11px] text-gray-400 hover:text-milestone-blue transition-colors flex items-center gap-0.5"
+            className="text-[11px] text-gray-500 dark:text-white/50 hover:text-milestone-blue transition-colors flex items-center gap-0.5"
           >
             Move stage <ChevronRight size={11} />
           </button>
@@ -154,7 +158,22 @@ export default function OpportunitiesView({
   const [showForm, setShowForm] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState("");
   const [formCustomerId, setFormCustomerId] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("opportunities-view");
+      if (saved === "list" || saved === "kanban") setViewMode(saved);
+    } catch {}
+  }, []);
+
+  function switchView(mode: ViewMode) {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("opportunities-view", mode);
+    } catch {}
+  }
 
   // Contacts shown in the add form are limited to the chosen company (when one is set).
   const formContacts = useMemo(
@@ -228,7 +247,31 @@ export default function OpportunitiesView({
             {openCount} open · {fmt(totalValue) ?? "$0"} total pipeline
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="ms-segment shrink-0">
+            <button
+              type="button"
+              onClick={() => switchView("kanban")}
+              className={`ms-segment-btn flex items-center gap-1.5 ${
+                viewMode === "kanban" ? "ms-segment-btn-active" : "ms-segment-btn-inactive"
+              }`}
+              aria-pressed={viewMode === "kanban"}
+            >
+              <LayoutGrid size={14} />
+              <span className="hidden sm:inline">Board</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => switchView("list")}
+              className={`ms-segment-btn flex items-center gap-1.5 ${
+                viewMode === "list" ? "ms-segment-btn-active" : "ms-segment-btn-inactive"
+              }`}
+              aria-pressed={viewMode === "list"}
+            >
+              <List size={14} />
+              <span className="hidden sm:inline">List</span>
+            </button>
+          </div>
           {flows.length > 0 && (
             <select
               value={selectedFlowId}
@@ -261,7 +304,7 @@ export default function OpportunitiesView({
       {/* Add form */}
       {showForm && (
         <div className="mx-4 md:mx-6 mb-3 ms-surface p-4 animate-fade-up shrink-0">
-          <p className="text-sm font-semibold text-gray-900 mb-3">New opportunity</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-3">New opportunity</p>
           <form onSubmit={handleCreate}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="sm:col-span-2 lg:col-span-1">
@@ -345,56 +388,181 @@ export default function OpportunitiesView({
         </div>
       )}
 
-      {/* Kanban board */}
-      <div className="flex-1 overflow-x-auto px-6 pb-6">
-        <div className="flex gap-4 h-full min-w-max">
-          {activeStages.map((stage) => {
-            const cards = byStage[stage] ?? [];
-            const stageValue = cards.reduce((s, o) => s + (o.value ?? 0), 0);
-            const colBg = STAGE_COLORS[stage] ?? "bg-gray-50/80 border-gray-200/60";
-            const headerCls = STAGE_HEADER[stage] ?? "text-gray-700";
+      {viewMode === "kanban" ? (
+        <div className="flex-1 overflow-x-auto px-4 md:px-6 pb-6">
+          <div className="flex gap-4 h-full min-w-max">
+            {activeStages.map((stage) => {
+              const cards = byStage[stage] ?? [];
+              const stageValue = cards.reduce((s, o) => s + (o.value ?? 0), 0);
+              const colBg = STAGE_COLORS[stage] ?? DEFAULT_COL_BG;
+              const headerCls = STAGE_HEADER[stage] ?? "text-gray-700 dark:text-white/85";
 
-            return (
-              <div
-                key={stage}
-                className={`flex flex-col rounded-xl border ${colBg} w-[260px] shrink-0`}
-              >
-                {/* Column header */}
-                <div className="px-4 pt-4 pb-3 border-b border-black/5">
-                  <div className="flex items-center justify-between">
-                    <p className={`text-[13px] font-bold ${headerCls}`}>{stage}</p>
-                    <span className="text-[11px] font-semibold text-gray-400 bg-white/70 px-1.5 py-0.5 rounded-full">
-                      {cards.length}
-                    </span>
-                  </div>
-                  {stageValue > 0 && (
-                    <p className="text-xs text-gray-400 mt-0.5">{fmt(stageValue)}</p>
-                  )}
-                </div>
-
-                {/* Cards */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-                  {cards.map((opp) => (
-                    <OppCard
-                      key={opp.id}
-                      opp={opp}
-                      stages={activeStages}
-                      isMismatched={mismatchedIds.has(opp.id)}
-                      onMove={handleMove}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                  {cards.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-xs text-gray-300">Empty</p>
+              return (
+                <div
+                  key={stage}
+                  className={`flex flex-col rounded-xl border ${colBg} w-[260px] shrink-0`}
+                >
+                  <div className="px-4 pt-4 pb-3 border-b border-black/5 dark:border-white/[0.06]">
+                    <div className="flex items-center justify-between">
+                      <p className={`text-[13px] font-bold ${headerCls}`}>{stage}</p>
+                      <span className="text-[11px] font-semibold text-gray-500 dark:text-white/55 bg-white/70 dark:bg-white/10 px-1.5 py-0.5 rounded-full">
+                        {cards.length}
+                      </span>
                     </div>
-                  )}
+                    {stageValue > 0 && (
+                      <p className="text-xs text-gray-500 dark:text-white/45 mt-0.5">{fmt(stageValue)}</p>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                    {cards.map((opp) => (
+                      <OppCard
+                        key={opp.id}
+                        opp={opp}
+                        stages={activeStages}
+                        isMismatched={mismatchedIds.has(opp.id)}
+                        onMove={handleMove}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                    {cards.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-xs text-gray-400 dark:text-white/30">Empty</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-6">
+          {visibleOpps.length === 0 ? (
+            <div className="ms-empty">
+              <TrendingUp size={28} className="mx-auto mb-2 text-gray-300 dark:text-white/25" />
+              <p className="text-sm font-medium text-gray-500 dark:text-white/50">No opportunities yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="md:hidden space-y-3">
+                {visibleOpps.map((opp) => (
+                  <div key={opp.id} className="ms-surface p-3.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-gray-900 dark:text-white leading-tight">{opp.title}</p>
+                        {opp.crm_customers && (
+                          <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">{opp.crm_customers.name}</p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-milestone-blue-dim text-milestone-blue">
+                            {opp.stage}
+                          </span>
+                          {opp.value != null && (
+                            <span className="text-xs font-bold text-milestone-blue">{fmt(opp.value)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(opp.id)}
+                        className="p-2 text-gray-400 dark:text-white/40 hover:text-milestone-red"
+                        aria-label={`Delete ${opp.title}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                    {activeStages.filter((s) => s !== opp.stage).length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-milestone-line dark:border-white/[0.08]">
+                        <label className="text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40">
+                          Move stage
+                        </label>
+                        <select
+                          value={opp.stage}
+                          onChange={(e) => handleMove(opp.id, e.target.value)}
+                          className="ms-input mt-1 py-1.5 text-xs"
+                        >
+                          {activeStages.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="hidden md:block ms-surface overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-milestone-line bg-gray-50/50 dark:bg-white/[0.03]">
+                      <th className="ms-table-head pl-4 text-left">Title</th>
+                      <th className="ms-table-head text-left hidden lg:table-cell">Customer</th>
+                      <th className="ms-table-head text-left">Stage</th>
+                      <th className="ms-table-head text-left hidden sm:table-cell">Value</th>
+                      <th className="ms-table-head text-left hidden xl:table-cell">Close</th>
+                      <th className="px-4 py-2 w-24" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleOpps.map((opp) => (
+                      <tr
+                        key={opp.id}
+                        className="border-b border-milestone-line/70 dark:border-white/[0.06] hover:bg-gray-50/50 dark:hover:bg-white/[0.03]"
+                      >
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{opp.title}</td>
+                        <td className="px-4 py-3 text-gray-500 dark:text-white/50 hidden lg:table-cell">
+                          {opp.crm_customers?.name ?? "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={opp.stage}
+                            onChange={(e) => handleMove(opp.id, e.target.value)}
+                            className="ms-input w-auto py-1 text-xs min-w-[7rem]"
+                          >
+                            {activeStages.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-milestone-blue hidden sm:table-cell">
+                          {fmt(opp.value) ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 dark:text-white/45 hidden xl:table-cell">
+                          {opp.close_date
+                            ? (() => {
+                                const [y, m, d] = opp.close_date.split("-").map(Number);
+                                return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                });
+                              })()
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(opp.id)}
+                            className="p-1.5 rounded-lg text-gray-400 dark:text-white/40 hover:text-milestone-red hover:bg-milestone-red-dim transition-colors"
+                            aria-label={`Delete ${opp.title}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
