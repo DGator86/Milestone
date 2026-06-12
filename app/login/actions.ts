@@ -3,9 +3,24 @@
 import { signIn as authSignIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import { isGoogleAuthConfigured } from "@/lib/auth-env";
 
 export async function signInWithGoogle() {
-  await authSignIn("google", { redirectTo: "/dashboard" });
+  if (!isGoogleAuthConfigured()) {
+    redirect(
+      `/login?error=${encodeURIComponent("Google sign-in is not available right now. Use email and password instead.")}`
+    );
+  }
+  try {
+    await authSignIn("google", { redirectTo: "/dashboard" });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect(
+        `/login?error=${encodeURIComponent("Google sign-in failed. Try email and password instead.")}`
+      );
+    }
+    throw error;
+  }
 }
 
 export async function signIn_action(formData: FormData) {

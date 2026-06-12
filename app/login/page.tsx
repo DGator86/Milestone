@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Zap, Building2, Handshake, Target } from "lucide-react";
 import { signIn_action, signInWithGoogle } from "./actions";
+import { authErrorMessage, isGoogleAuthConfigured } from "@/lib/auth-env";
 
 const features = [
   { icon: Building2, label: "Companies", desc: "Accounts, contacts, and relationships" },
@@ -96,7 +97,7 @@ export default function LoginPage({
             </button>
           </form>
 
-          {process.env.GOOGLE_CLIENT_ID && (
+          {isGoogleAuthConfigured() && (
             <>
               <div className="flex items-center gap-3 my-3.5">
                 <div className="flex-1 h-px bg-gray-200" />
@@ -149,9 +150,17 @@ async function AuthFlash({
 }) {
   const params = await searchParams;
   if (params.error) {
+    let message = authErrorMessage(params.error);
+    if (!message) {
+      try {
+        message = decodeURIComponent(params.error);
+      } catch {
+        message = params.error;
+      }
+    }
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-3 py-2">
-        {params.error}
+        {message}
       </div>
     );
   }

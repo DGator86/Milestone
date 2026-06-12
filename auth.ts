@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import type { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "@/db";
@@ -6,6 +7,7 @@ import { users } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
+import { getAuthSecret, isGoogleAuthConfigured } from "@/lib/auth-env";
 
 async function findUserByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -14,13 +16,7 @@ async function findUserByEmail(email: string) {
   });
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfig,
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
+const providers: Provider[] = [
     Credentials({
       credentials: {
         email: { type: "email" },
@@ -39,7 +35,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return { id: user.id, email: user.email };
       },
     }),
-  ],
+];
+
+if (isGoogleAuthConfigured()) {
+  providers.unshift(
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    })
+  );
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
+  secret: getAuthSecret(),
+  providers,
   callbacks: {
     ...authConfig.callbacks,
     async jwt({ token, user, account }) {

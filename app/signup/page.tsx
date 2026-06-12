@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Zap, Check } from "lucide-react";
 import { signUp } from "./actions";
 import { signInWithGoogle } from "@/app/login/actions";
+import { isGoogleAuthConfigured } from "@/lib/auth-env";
 
 const perks = [
   "CRM for companies, contacts, and deals",
@@ -88,7 +89,7 @@ export default function SignupPage({
             </button>
           </form>
 
-          {process.env.GOOGLE_CLIENT_ID && (
+          {isGoogleAuthConfigured() && (
             <>
               <div className="flex items-center gap-3 my-3.5">
                 <div className="flex-1 h-px bg-gray-200" />
