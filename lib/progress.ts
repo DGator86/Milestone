@@ -1,5 +1,11 @@
 import type { Milestone, GoalWithDetails, GoalImportance } from "./types";
 
+/**
+ * Product rule: action lists (agenda, kill list, focus, timeline, etc.) show
+ * only the next open milestone per goal. Full milestone lists belong on goal
+ * detail and progress views, not in "what to do" surfaces.
+ */
+
 export function calcProgress(milestones: Milestone[]): number {
   if (!milestones.length) return 0;
   const completed = milestones.filter((m) => m.status === "completed").length;

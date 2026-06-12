@@ -380,7 +380,7 @@ function GoalRow({
 
       {expanded && !editing && (
         <div className="px-5 pb-4 pt-1 bg-gray-50/50 border-t border-milestone-line animate-fade-up">
-          <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-gray-500">
               {next ? (
                 <>
@@ -399,33 +399,6 @@ function GoalRow({
             >
               Open full detail →
             </Link>
-          </div>
-          <div className="space-y-1">
-            {milestones.map((ms) => (
-              <div key={ms.id} className="flex items-center gap-2 text-xs">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                    ms.status === "completed"
-                      ? "bg-milestone-green"
-                      : ms.status === "in_progress"
-                      ? "bg-milestone-blue"
-                      : ms.status === "stuck"
-                      ? "bg-milestone-red"
-                      : "bg-gray-300"
-                  }`}
-                />
-                <span
-                  className={`truncate ${
-                    ms.status === "completed" ? "text-gray-400 line-through" : "text-gray-700"
-                  }`}
-                >
-                  {ms.title}
-                </span>
-                {ms.due_date && (
-                  <span className="text-gray-400 shrink-0 ml-auto">{ms.due_date}</span>
-                )}
-              </div>
-            ))}
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { daysUntilDate, localDateKey, toDateKey } from "@/lib/dates";
 import { milestoneBucket } from "@/lib/milestoneBuckets";
+import { getNextMilestone } from "@/lib/progress";
 import type {
   CrmTask,
   GoalImportance,
@@ -83,13 +84,13 @@ export function collectScheduledMilestones(
 
   for (const goal of goals) {
     if (goal.status !== "active") continue;
-    for (const milestone of goal.milestones ?? []) {
-      const anchor = resolveMilestoneAnchor(goal, milestone, today);
-      if (!anchor) continue;
-      const daysUntil = daysUntilDate(anchor.dateKey, today);
-      if (daysUntil === null) continue;
-      items.push({ goal, milestone, anchor, daysUntil });
-    }
+    const milestone = getNextMilestone(goal.milestones ?? []);
+    if (!milestone) continue;
+    const anchor = resolveMilestoneAnchor(goal, milestone, today);
+    if (!anchor) continue;
+    const daysUntil = daysUntilDate(anchor.dateKey, today);
+    if (daysUntil === null) continue;
+    items.push({ goal, milestone, anchor, daysUntil });
   }
 
   return items.sort((a, b) => {
