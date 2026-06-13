@@ -15,7 +15,6 @@ import { toggleTaskDone } from "@/app/dashboard/task-actions";
 import {
   AGENDA_BUCKET_ORDER,
   buildAgendaBuckets,
-  hasAgendaItems,
   type AgendaEntry,
 } from "@/lib/agenda";
 import type { MilestoneBucket } from "@/lib/milestoneBuckets";
@@ -172,14 +171,17 @@ function AgendaRow({
 export default function AgendaView({
   goals,
   tasks,
+  scope = "all",
 }: {
   goals: GoalWithDetails[];
   tasks: CrmTask[];
+  scope?: "all" | "today";
 }) {
   const [isPending, startTransition] = useTransition();
 
   const grouped = useMemo(() => buildAgendaBuckets(goals, tasks), [goals, tasks]);
-  const hasAny = hasAgendaItems(grouped);
+  const bucketKeys = scope === "today" ? (["overdue", "today"] as const) : AGENDA_BUCKET_ORDER;
+  const hasAny = bucketKeys.some((key) => grouped[key].length > 0);
 
   function handleComplete(milestoneId: string, goalId: string) {
     startTransition(() => completeMilestone(milestoneId, goalId));
@@ -191,45 +193,61 @@ export default function AgendaView({
 
   if (!hasAny) {
     return (
-      <div className="ms-card-app p-10 text-center">
-        <p className="text-sm text-gray-400 dark:text-white/30">Nothing on your agenda yet.</p>
-        <p className="text-xs text-gray-400 dark:text-white/20 mt-1">
-          Open milestones and tasks appear here when they have a due date or priority.
-        </p>
-      </div>
+      <section className="ms-card-app overflow-hidden h-full">
+        <div className="px-4 py-3 border-b border-milestone-line dark:border-white/[0.08]">
+          <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">
+            {scope === "today" ? "Today's agenda" : "Agenda"}
+          </h2>
+        </div>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-400 dark:text-white/30">
+            {scope === "today" ? "Nothing due today." : "Nothing on your agenda yet."}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-white/20 mt-1">
+            Open milestones and tasks appear here when they have a due date or priority.
+          </p>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-3" style={{ opacity: isPending ? 0.7 : 1 }}>
-      {AGENDA_BUCKET_ORDER.map((key) => {
-        const items = grouped[key];
-        if (items.length === 0) return null;
-        const { label, cls } = BUCKET_META[key];
-        return (
-          <div key={key} className="ms-card-app overflow-hidden">
-            <div className="px-4 py-3 border-b border-milestone-line dark:border-white/[0.08]">
-              <span className={`text-[11px] font-bold uppercase tracking-wider ${cls}`}>
-                {label} · {items.length}
-              </span>
-            </div>
-            <div className="divide-y divide-milestone-line/60 dark:divide-white/[0.05]">
-              {items.map((entry) => (
-                <AgendaRow
-                  key={
-                    entry.kind === "milestone"
-                      ? `ms-${entry.item.milestone.id}`
-                      : `task-${entry.item.task.id}`
-                  }
-                  entry={entry}
-                  onComplete={handleComplete}
-                  onToggleTask={handleToggleTask}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <section className="ms-card-app overflow-hidden flex flex-col h-full" style={{ opacity: isPending ? 0.7 : 1 }}>
+      <div className="px-4 py-3 border-b border-milestone-line dark:border-white/[0.08] shrink-0">
+        <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">
+          {scope === "today" ? "Today's agenda" : "Agenda"}
+        </h2>
+      </div>
+      <div className="flex-1 xl:max-h-[calc(100vh-220px)] xl:overflow-y-auto">
+        <div className="divide-y divide-milestone-line/60 dark:divide-white/[0.05]">
+          {bucketKeys.map((key) => {
+            const items = grouped[key];
+            if (items.length === 0) return null;
+            const { label, cls } = BUCKET_META[key];
+            return (
+              <div key={key}>
+                <div className="px-4 py-2.5 bg-gray-50/60 dark:bg-white/[0.02]">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${cls}`}>
+                    {label} · {items.length}
+                  </span>
+                </div>
+                {items.map((entry) => (
+                  <AgendaRow
+                    key={
+                      entry.kind === "milestone"
+                        ? `ms-${entry.item.milestone.id}`
+                        : `task-${entry.item.task.id}`
+                    }
+                    entry={entry}
+                    onComplete={handleComplete}
+                    onToggleTask={handleToggleTask}
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

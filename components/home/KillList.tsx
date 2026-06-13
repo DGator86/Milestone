@@ -298,9 +298,10 @@ interface Props {
   tasks: CrmTask[];
   customers: Pick<CrmCustomer, "id" | "name">[];
   goals: GoalWithDetails[];
+  prominent?: boolean;
 }
 
-export default function KillList({ tasks, customers, goals }: Props) {
+export default function KillList({ tasks, customers, goals, prominent = false }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -336,10 +337,19 @@ export default function KillList({ tasks, customers, goals }: Props) {
   }
 
   return (
-    <section className="ms-card-app overflow-hidden flex flex-col" style={{ opacity: isPending ? 0.7 : 1 }}>
-      <div className="flex items-start justify-between px-4 pt-4 pb-3 border-b border-milestone-line dark:border-white/[0.06]">
+    <section
+      className={`ms-card-app overflow-hidden flex flex-col ${prominent ? "xl:min-h-[calc(100vh-220px)]" : ""}`}
+      style={{ opacity: isPending ? 0.7 : 1 }}
+    >
+      <div className={`flex items-start justify-between px-4 border-b border-milestone-line dark:border-white/[0.06] shrink-0 ${
+        prominent ? "pt-4 pb-3.5 bg-gradient-to-r from-milestone-navy/5 to-transparent dark:from-milestone-blue/10" : "pt-4 pb-3"
+      }`}>
         <div>
-          <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white tracking-tight">Kill list</h2>
+          <h2 className={`font-semibold text-gray-900 dark:text-white tracking-tight ${
+            prominent ? "text-base" : "text-[15px]"
+          }`}>
+            Kill list
+          </h2>
           <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
             {openCount + milestoneCount} open actions
           </p>
@@ -392,7 +402,7 @@ export default function KillList({ tasks, customers, goals }: Props) {
         </form>
       )}
 
-      <div className="flex-1 md:overflow-y-auto md:max-h-[calc(100vh-220px)]">
+      <div className={`flex-1 ${prominent ? "xl:overflow-y-auto" : "md:overflow-y-auto md:max-h-[calc(100vh-220px)]"}`}>
         {milestoneCount > 0 && (
           <div>
             <div className="flex items-center gap-2 px-4 pt-3 pb-1">
