@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CriticalPaths from "@/components/home/CriticalPaths";
-import FocusToday from "@/components/home/FocusToday";
 import AgendaView from "@/components/home/AgendaView";
 import CalendarView from "@/components/home/CalendarView";
 import KillList from "@/components/home/KillList";
@@ -135,16 +134,15 @@ export default function DashboardShell({
         </div>
 
         {view === "focus" && (
-          <div className="space-y-4 md:space-y-4">
-            <FocusToday goals={goals} onNewGoal={openWizard} />
-            <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-6">
-              {/* Mobile: kill list before goal cards — actions first */}
-              <div className="order-1 lg:order-2 lg:col-span-1">
-                <KillList goals={goals} tasks={tasks} customers={customers} />
-              </div>
-              <div className="order-2 lg:order-1 lg:col-span-2">
-                <CriticalPaths goals={goals} onNewGoal={openWizard} />
-              </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:gap-5 xl:items-start">
+            <div className="xl:col-span-4 xl:sticky xl:top-[4.5rem]">
+              <KillList goals={goals} tasks={tasks} customers={customers} prominent />
+            </div>
+            <div className="xl:col-span-4">
+              <AgendaView goals={goals} tasks={tasks} scope="today" />
+            </div>
+            <div className="xl:col-span-4 xl:sticky xl:top-[4.5rem]">
+              <CriticalPaths goals={goals} onNewGoal={openWizard} compact />
             </div>
           </div>
         )}
