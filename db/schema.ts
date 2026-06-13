@@ -39,6 +39,7 @@ export const user_settings = pgTable("user_settings", {
   terminology: jsonb("terminology").$type<Record<string, string>>().notNull().default({}),
   preferences: jsonb("preferences").$type<Record<string, boolean>>().notNull().default({}),
   custom_fields: jsonb("custom_fields").$type<Record<string, unknown>>().notNull().default({}),
+  calendar_settings: jsonb("calendar_settings").$type<Record<string, unknown>>().notNull().default({}),
   customer_types: jsonb("customer_types").$type<string[]>().notNull().default([]),
   onboarding_completed_at: timestamp("onboarding_completed_at", { withTimezone: true, mode: "string" }),
   created_at: ts("created_at"),

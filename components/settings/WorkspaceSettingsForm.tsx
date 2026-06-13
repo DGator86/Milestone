@@ -5,7 +5,9 @@ import { Building2, Palette, Tags, Check, Users, Plus, X } from "lucide-react";
 import { updateWorkspaceSettings } from "@/app/settings/actions";
 import { EDITABLE_TERMS, type Terms } from "@/lib/terms";
 import { type CustomFieldDefs } from "@/lib/customFields";
+import { type CalendarSettings } from "@/lib/calendarSettings";
 import CustomFieldsEditor from "./CustomFieldsEditor";
+import CalendarSettingsEditor from "./CalendarSettingsEditor";
 
 const INPUT = "ms-input";
 const LABEL = "ms-label";
@@ -19,9 +21,18 @@ interface Props {
   preferences: Record<string, boolean>;
   customerTypes: string[];
   customFields: CustomFieldDefs;
+  calendarSettings: CalendarSettings;
 }
 
-export default function WorkspaceSettingsForm({ companyName, brandColor, terms, preferences, customerTypes, customFields }: Props) {
+export default function WorkspaceSettingsForm({
+  companyName,
+  brandColor,
+  terms,
+  preferences,
+  customerTypes,
+  customFields,
+  calendarSettings,
+}: Props) {
   const [state, action, pending] = useActionState(updateWorkspaceSettings, {} as { error?: string; success?: boolean });
   const [color, setColor] = useState(brandColor);
   const [types, setTypes] = useState<string[]>(customerTypes);
@@ -197,6 +208,8 @@ export default function WorkspaceSettingsForm({ companyName, brandColor, terms, 
           { key: "opportunity", label: `${terms.opportunity} fields` },
         ]}
       />
+
+      <CalendarSettingsEditor initial={calendarSettings} />
 
       {/* Preferences */}
       <div className="ms-card">

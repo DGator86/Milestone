@@ -70,6 +70,7 @@ export default async function SettingsPage() {
             preferences={settings.preferences}
             customerTypes={settings.customerTypes}
             customFields={settings.customFields}
+            calendarSettings={settings.calendarSettings}
           />
 
           <div className="ms-card">

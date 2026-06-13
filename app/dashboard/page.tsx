@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
+import { getSettings } from "@/lib/settings";
 import { db } from "@/db";
 import { goals, groups, crm_tasks, crm_customers, users } from "@/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
@@ -35,7 +36,7 @@ export default async function DashboardPage() {
     console.error("ensureDefaults failed during dashboard bootstrap", err);
   }
 
-  const [goalsRaw, safeGroups, tasksRaw, customersRaw] = await Promise.all([
+  const [goalsRaw, safeGroups, tasksRaw, customersRaw, workspaceSettings] = await Promise.all([
     db.query.goals.findMany({
       where: and(eq(goals.user_id, userId), eq(goals.status, "active")),
       with: { groups: true, milestones: true, crm_customers: true, contacts: true },
@@ -53,6 +54,7 @@ export default async function DashboardPage() {
       .from(crm_customers)
       .where(eq(crm_customers.user_id, userId))
       .orderBy(asc(crm_customers.name)),
+    getSettings(userId),
   ]);
 
   const goalsList = goalsRaw.map((g) => ({
@@ -78,6 +80,7 @@ export default async function DashboardPage() {
           groups={safeGroups as Group[]}
           tasks={tasks}
           customers={customers}
+          calendarSettings={workspaceSettings.calendarSettings}
         />
       </Suspense>
     </AppShell>
