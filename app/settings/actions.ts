@@ -8,6 +8,16 @@ import { db } from "@/db";
 import { contacts, goals, groups, milestones, user_settings } from "@/db/schema";
 import { EDITABLE_TERMS, singularize } from "@/lib/terms";
 import { sanitizeCustomFieldDefs } from "@/lib/customFields";
+import { sanitizeCalendarSettings } from "@/lib/calendarSettings";
+
+function parseCalendarSettings(raw: string | null) {
+  if (!raw) return sanitizeCalendarSettings(null);
+  try {
+    return sanitizeCalendarSettings(JSON.parse(raw));
+  } catch {
+    return sanitizeCalendarSettings(null);
+  }
+}
 
 function parseCustomFieldDefs(raw: string | null) {
   if (!raw) return undefined;
@@ -73,6 +83,7 @@ export async function updateWorkspaceSettings(
 
   const customerTypes = parseCustomerTypes(formData.get("customer_types") as string | null);
   const customFields = parseCustomFieldDefs(formData.get("custom_fields") as string | null);
+  const calendarSettings = parseCalendarSettings(formData.get("calendar_settings") as string | null);
 
   // Only overwrite custom_fields when the form submitted a valid payload.
   const customFieldsPatch = customFields ? { custom_fields: customFields } : {};
@@ -80,10 +91,28 @@ export async function updateWorkspaceSettings(
   try {
     await db
       .insert(user_settings)
-      .values({ user_id: userId, company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch })
+      .values({
+        user_id: userId,
+        company_name: companyName,
+        brand_color: brandColor,
+        terminology,
+        preferences,
+        customer_types: customerTypes,
+        calendar_settings: calendarSettings as unknown as Record<string, unknown>,
+        ...customFieldsPatch,
+      })
       .onConflictDoUpdate({
         target: user_settings.user_id,
-        set: { company_name: companyName, brand_color: brandColor, terminology, preferences, customer_types: customerTypes, ...customFieldsPatch, updated_at: new Date().toISOString() },
+        set: {
+          company_name: companyName,
+          brand_color: brandColor,
+          terminology,
+          preferences,
+          customer_types: customerTypes,
+          calendar_settings: calendarSettings as unknown as Record<string, unknown>,
+          ...customFieldsPatch,
+          updated_at: new Date().toISOString(),
+        },
       });
   } catch {
     return { error: "Could not save — the settings table may not be migrated yet (run npm run db:push)." };

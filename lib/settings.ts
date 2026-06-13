@@ -4,6 +4,7 @@ import { user_settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { DEFAULT_TERMS, type Terms } from "./terms";
 import { sanitizeCustomFieldDefs, type CustomFieldDefs } from "./customFields";
+import { sanitizeCalendarSettings, type CalendarSettings } from "./calendarSettings";
 
 export interface WorkspaceSettings {
   companyName: string | null;
@@ -12,6 +13,7 @@ export interface WorkspaceSettings {
   preferences: Record<string, boolean>;
   customerTypes: string[];
   customFields: CustomFieldDefs;
+  calendarSettings: CalendarSettings;
 }
 
 const DEFAULT_BRAND = "#1769FF";
@@ -36,5 +38,6 @@ export const getSettings = cache(async (userId: string): Promise<WorkspaceSettin
     preferences: (row?.preferences as Record<string, boolean>) ?? {},
     customerTypes: storedTypes.length > 0 ? storedTypes : DEFAULT_CUSTOMER_TYPES,
     customFields: sanitizeCustomFieldDefs(row?.custom_fields),
+    calendarSettings: sanitizeCalendarSettings(row?.calendar_settings),
   };
 });

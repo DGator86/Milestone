@@ -8,10 +8,11 @@ import CalendarView from "@/components/home/CalendarView";
 import KillList from "@/components/home/KillList";
 import GoalWizard from "@/components/dashboard/GoalWizard";
 import type { GoalWithDetails, Group, CrmTask, CrmCustomer } from "@/lib/types";
+import type { CalendarSettings } from "@/lib/calendarSettings";
 
 const WIZARD_KEY = "wizard_dismissed";
 
-type ViewTab = "focus" | "agenda" | "calendar";
+type ViewTab = "focus" | "calendar";
 type GoalPrefill = { title?: string; goal_type?: string; milestones?: string[] };
 
 function isGoalPrefill(v: unknown): v is GoalPrefill {
@@ -27,7 +28,6 @@ function isGoalPrefill(v: unknown): v is GoalPrefill {
 
 const TABS: { key: ViewTab; label: string }[] = [
   { key: "focus", label: "Today" },
-  { key: "agenda", label: "Agenda" },
   { key: "calendar", label: "Calendar" },
 ];
 
@@ -44,11 +44,13 @@ export default function DashboardShell({
   groups,
   tasks,
   customers,
+  calendarSettings,
 }: {
   goals: GoalWithDetails[];
   groups: Group[];
   tasks: CrmTask[];
   customers: Pick<CrmCustomer, "id" | "name">[];
+  calendarSettings: CalendarSettings;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,10 +58,19 @@ export default function DashboardShell({
   const [prefill, setPrefill] = useState<GoalPrefill | null>(null);
 
   const tabParam = searchParams.get("tab");
-  const view: ViewTab =
-    tabParam === "agenda" || tabParam === "calendar" || tabParam === "focus" ? tabParam : "focus";
+  const view: ViewTab = tabParam === "calendar" ? "calendar" : "focus";
 
   const mobileDate = useMemo(() => formatMobileDate(), []);
+
+  // Legacy ?tab=agenda URLs redirect to Today (agenda lives on the home screen).
+  useEffect(() => {
+    if (tabParam === "agenda") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("tab");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    }
+  }, [tabParam, router, searchParams]);
 
   const setView = useCallback(
     (next: ViewTab) => {
@@ -110,7 +121,7 @@ export default function DashboardShell({
             {mobileDate}
           </p>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight mt-0.5">
-            {view === "focus" ? "Today" : view === "agenda" ? "Agenda" : "Calendar"}
+            {view === "focus" ? "Today" : "Calendar"}
           </h1>
         </div>
 
@@ -147,9 +158,9 @@ export default function DashboardShell({
           </div>
         )}
 
-        {view === "agenda" && <AgendaView goals={goals} tasks={tasks} />}
-
-        {view === "calendar" && <CalendarView goals={goals} tasks={tasks} />}
+        {view === "calendar" && (
+          <CalendarView goals={goals} tasks={tasks} calendarSettings={calendarSettings} />
+        )}
       </div>
     </>
   );
