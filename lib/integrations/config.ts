@@ -5,8 +5,13 @@ export const INTEGRATION_PROVIDERS: IntegrationProvider[] = ["google", "microsof
 export const INTEGRATION_SERVICES: IntegrationService[] = ["mail", "calendar"];
 
 export const PROVIDER_LABELS: Record<IntegrationProvider, string> = {
+  google: "Gmail & Google Calendar",
+  microsoft: "Outlook & Microsoft 365",
+};
+
+export const PROVIDER_SHORT_LABELS: Record<IntegrationProvider, string> = {
   google: "Google",
-  microsoft: "Microsoft",
+  microsoft: "Outlook",
 };
 
 export const SERVICE_LABELS: Record<IntegrationService, string> = {

@@ -34,6 +34,7 @@ export function buildMicrosoftConnectUrl(userId: string): string | null {
     response_type: "code",
     scope: MICROSOFT_INTEGRATION_SCOPES.join(" "),
     response_mode: "query",
+    prompt: "consent",
     state: createOAuthState(userId, "microsoft"),
   });
   return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;

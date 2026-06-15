@@ -19,6 +19,7 @@ import {
   isGoogleIntegrationConfigured,
   isMicrosoftIntegrationConfigured,
 } from "@/lib/integrations/config";
+import { integrationRedirectUri } from "@/lib/integrations/connect";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function SettingsPage({
   const connectedProvider = typeof params.integration_connected === "string" ? params.integration_connected : null;
   const integrationError = typeof params.integration_error === "string" ? params.integration_error : null;
   const flashMessage = connectedProvider
-    ? `${connectedProvider === "google" ? "Google" : connectedProvider === "microsoft" ? "Microsoft" : connectedProvider} connected.`
+    ? `${connectedProvider === "google" ? "Gmail & Google Calendar" : connectedProvider === "microsoft" ? "Outlook & Microsoft 365" : connectedProvider} connected.`
     : null;
   const flashError = integrationError
     ? ({
@@ -95,6 +96,10 @@ export default async function SettingsPage({
             providers={{
               google: { configured: isGoogleIntegrationConfigured() },
               microsoft: { configured: isMicrosoftIntegrationConfigured() },
+            }}
+            redirectUris={{
+              google: integrationRedirectUri("google"),
+              microsoft: integrationRedirectUri("microsoft"),
             }}
             flashMessage={flashMessage}
             flashError={flashError}

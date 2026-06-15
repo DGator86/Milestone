@@ -8,6 +8,7 @@ import {
 } from "@/app/settings/integrations/actions";
 import {
   PROVIDER_LABELS,
+  PROVIDER_SHORT_LABELS,
 } from "@/lib/integrations/config";
 import type { ConnectedIntegrationSummary, IntegrationProvider } from "@/lib/integrations/types";
 
@@ -18,6 +19,7 @@ interface ProviderStatus {
 interface Props {
   initialConnected: ConnectedIntegrationSummary[];
   providers: Record<IntegrationProvider, ProviderStatus>;
+  redirectUris: Record<IntegrationProvider, string>;
   flashMessage?: string | null;
   flashError?: string | null;
 }
@@ -26,6 +28,7 @@ interface Props {
 export default function IntegrationsPanel({
   initialConnected,
   providers,
+  redirectUris,
   flashMessage,
   flashError,
 }: Props) {
@@ -97,29 +100,58 @@ export default function IntegrationsPanel({
           {(["google", "microsoft"] as IntegrationProvider[]).map((provider) => {
             const configured = providers[provider]?.configured;
             const label = PROVIDER_LABELS[provider];
+            const shortLabel = PROVIDER_SHORT_LABELS[provider];
             const isConnected = connected.some((item) => item.provider === provider);
+            const redirectUri = redirectUris[provider];
             return (
-              <button
-                key={provider}
-                type="button"
-                disabled={!configured || pending}
-                onClick={() => connect(provider)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-white hover:border-milestone-blue/30 transition-all text-left disabled:opacity-50"
-              >
-                <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                  <Link2 size={16} className="text-milestone-blue" />
+              <div key={provider} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                    <Link2 size={16} className="text-milestone-blue" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800">{label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {configured
+                        ? isConnected
+                          ? "Connect another account"
+                          : "Read mail and calendar to create goals"
+                        : "Server credentials not set yet"}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{label}</p>
-                  <p className="text-[11px] text-gray-400 truncate">
-                    {!configured
-                      ? "Not configured on server"
-                      : isConnected
-                        ? "Connect another account"
-                        : "Mail + Calendar"}
-                  </p>
-                </div>
-              </button>
+
+                {configured ? (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => connect(provider)}
+                    className="w-full px-3 py-2 rounded-lg bg-milestone-blue text-white text-xs font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                  >
+                    Connect {shortLabel}
+                  </button>
+                ) : (
+                  <div className="text-[11px] text-gray-500 bg-white border border-gray-200 rounded-lg p-3 space-y-1.5">
+                    <p className="font-semibold text-gray-700">Setup required</p>
+                    {provider === "google" ? (
+                      <>
+                        <p>Add redirect URI in Google Cloud Console:</p>
+                        <code className="block text-[10px] break-all text-milestone-blue">{redirectUri}</code>
+                        <p>Enable Gmail API + Calendar API. Uses existing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Register an app in Microsoft Entra ID (Azure), then set:</p>
+                        <code className="block text-[10px] text-gray-600">MICROSOFT_CLIENT_ID</code>
+                        <code className="block text-[10px] text-gray-600">MICROSOFT_CLIENT_SECRET</code>
+                        <p>Redirect URI (Web platform):</p>
+                        <code className="block text-[10px] break-all text-milestone-blue">{redirectUri}</code>
+                        <p>Permissions: Mail.Read, Calendars.Read, offline_access, User.Read</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>

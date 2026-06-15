@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDataOwnerId } from "@/lib/workspace";
 import { buildConnectUrl } from "@/lib/integrations/connect";
@@ -7,13 +7,17 @@ import type { IntegrationProvider } from "@/lib/integrations/types";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ provider: string }> },
+) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const provider = new URL(req.url).searchParams.get("provider") as IntegrationProvider | null;
+  const { provider: rawProvider } = await params;
+  const provider = rawProvider as IntegrationProvider;
   if (provider !== "google" && provider !== "microsoft") {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
   }
