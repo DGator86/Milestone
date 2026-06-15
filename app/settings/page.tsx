@@ -8,20 +8,47 @@ import { getIsAdmin } from "@/lib/admin";
 import { getDataOwnerId } from "@/lib/workspace";
 import { isPro } from "@/lib/billing";
 import WorkspaceSettingsForm from "@/components/settings/WorkspaceSettingsForm";
+import IntegrationsPanel from "@/components/settings/IntegrationsPanel";
 import Link from "next/link";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { AppUser } from "@/lib/types";
+import { listConnectedIntegrations } from "@/lib/integrations/store";
+import {
+  isGoogleIntegrationConfigured,
+  isMicrosoftIntegrationConfigured,
+} from "@/lib/integrations/config";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const params = await searchParams;
+  const connectedProvider = typeof params.integration_connected === "string" ? params.integration_connected : null;
+  const integrationError = typeof params.integration_error === "string" ? params.integration_error : null;
+  const flashMessage = connectedProvider
+    ? `${connectedProvider === "google" ? "Google" : connectedProvider === "microsoft" ? "Microsoft" : connectedProvider} connected.`
+    : null;
+  const flashError = integrationError
+    ? ({
+        access_denied: "Connection was cancelled.",
+        missing_code: "Authorization did not complete. Please try again.",
+        invalid_state: "Security check failed. Please try connecting again.",
+        exchange_failed: "Could not finish connecting. Check your OAuth app settings.",
+        invalid_provider: "Unknown provider.",
+      }[integrationError] ?? "Connection failed. Please try again.")
+    : null;
   const user: AppUser = { id: session.user.id, email: session.user.email };
   if (!(await getIsAdmin(user.id))) redirect("/dashboard");
   const settings = await getSettings(await getDataOwnerId());
+  const ownerId = await getDataOwnerId();
+  const connectedIntegrations = await listConnectedIntegrations(ownerId);
   const dbUser = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   const pro = isPro(dbUser?.subscription_status);
 
@@ -62,6 +89,16 @@ export default async function SettingsPage() {
               </div>
             </div>
           </div>
+
+          <IntegrationsPanel
+            initialConnected={connectedIntegrations}
+            providers={{
+              google: { configured: isGoogleIntegrationConfigured() },
+              microsoft: { configured: isMicrosoftIntegrationConfigured() },
+            }}
+            flashMessage={flashMessage}
+            flashError={flashError}
+          />
 
           <WorkspaceSettingsForm
             companyName={settings.companyName}
