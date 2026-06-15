@@ -4,10 +4,12 @@ import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   X, ChevronRight, ChevronLeft, Target, Zap, Calendar, RefreshCw,
-  Flag, Plus, Trash2, CalendarDays, Repeat, Sparkles, Send, Bot, RotateCcw,
+  Flag, Plus, Trash2, CalendarDays, Repeat, Sparkles, Send, Bot, RotateCcw, Plug,
 } from "lucide-react";
 import { createGoal } from "@/app/dashboard/actions";
 import type { Group } from "@/lib/types";
+import IntegrationItemPicker from "@/components/integrations/IntegrationItemPicker";
+import type { GoalPrefillFromIntegration } from "@/lib/integrations/types";
 
 const MAX_MILESTONES = 10;
 
@@ -68,7 +70,7 @@ export default function GoalWizard({
   prefill?: { title?: string; goal_type?: string; milestones?: string[] } | null;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"ai" | "manual">("ai");
+  const [mode, setMode] = useState<"ai" | "manual" | "apps">("ai");
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -171,6 +173,20 @@ export default function GoalWizard({
     }
   }, [aiMessages, aiPending, router, onClose]);
 
+  function applyIntegrationPrefill(prefill: GoalPrefillFromIntegration) {
+    const type = prefill.goal_type ?? "concrete";
+    setMode("manual");
+    setStep(1);
+    setTitle(prefill.title);
+    setGoalType(type);
+    setEndDate(prefill.due_date ?? "");
+    setItems(
+      prefill.milestones?.length
+        ? prefill.milestones.map((t) => ({ ...newItem(type), title: t }))
+        : [newItem(type), newItem(type), newItem(type)],
+    );
+  }
+
   function dismiss() {
     onClose();
   }
@@ -245,7 +261,13 @@ export default function GoalWizard({
                 </span>
               </div>
               <p className="text-white text-lg font-bold leading-tight">
-                {mode === "ai" ? "Describe it. I'll plan the steps." : step === 1 ? "What do you want to achieve?" : "Break it into steps"}
+                {mode === "ai"
+                  ? "Describe it. I'll plan the steps."
+                  : mode === "apps"
+                    ? "Pick something from your apps"
+                    : step === 1
+                      ? "What do you want to achieve?"
+                      : "Break it into steps"}
               </p>
             </div>
             <button
@@ -262,6 +284,11 @@ export default function GoalWizard({
               <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
                 <Sparkles size={11} className="text-blue-200" />
                 <span className="text-blue-100 text-xs font-semibold">AI</span>
+              </div>
+            ) : mode === "apps" ? (
+              <div className="flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
+                <Plug size={11} className="text-blue-200" />
+                <span className="text-blue-100 text-xs font-semibold">Apps</span>
               </div>
             ) : (
               <>
@@ -366,6 +393,41 @@ export default function GoalWizard({
                   <Send size={16} />
                 </button>
               </div>
+              <button
+                onClick={() => setMode("manual")}
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Create manually instead →
+              </button>
+              <button
+                onClick={() => setMode("apps")}
+                className="w-full text-center text-xs text-milestone-blue hover:underline transition-colors"
+              >
+                From Gmail, Calendar, or Outlook →
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── APPS MODE ─────────────────────────────────────────────── */}
+        {mode === "apps" && (
+          <>
+            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-[220px]">
+              <IntegrationItemPicker
+                onSelect={applyIntegrationPrefill}
+                onConnectApps={() => {
+                  onClose();
+                  router.push("/settings");
+                }}
+              />
+            </div>
+            <div className="px-4 pb-3 pt-2 border-t border-milestone-line dark:border-white/[0.08] shrink-0 space-y-2">
+              <button
+                onClick={() => setMode("ai")}
+                className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Use AI instead →
+              </button>
               <button
                 onClick={() => setMode("manual")}
                 className="w-full text-center text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -482,6 +544,15 @@ export default function GoalWizard({
             >
               <Sparkles size={14} />
               Use AI
+            </button>
+          )}
+          {step === 1 && (
+            <button
+              onClick={() => setMode("apps")}
+              className="flex items-center gap-1 text-sm font-semibold text-gray-400 hover:text-milestone-blue transition-colors ml-2"
+            >
+              <Plug size={14} />
+              Apps
             </button>
           )}
           <div className="flex-1" />

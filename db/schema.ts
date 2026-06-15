@@ -46,6 +46,32 @@ export const user_settings = pgTable("user_settings", {
   updated_at: ts("updated_at"),
 });
 
+// ─── Connected integrations (Google, Microsoft, etc.) ───────────────────────────
+export const connected_integrations = pgTable(
+  "connected_integrations",
+  {
+    id,
+    user_id: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(), // google | microsoft
+    account_email: text("account_email").notNull(),
+    access_token: text("access_token").notNull(),
+    refresh_token: text("refresh_token"),
+    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    scopes: jsonb("scopes").$type<string[]>().notNull().default([]),
+    enabled_services: jsonb("enabled_services")
+      .$type<Record<string, boolean>>()
+      .notNull()
+      .default({ mail: true, calendar: true }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    created_at: ts("created_at"),
+    updated_at: ts("updated_at"),
+  },
+  (t) => [
+    index("connected_integrations_user_id_idx").on(t.user_id),
+    index("connected_integrations_provider_idx").on(t.provider),
+  ],
+);
+
 // ─── Password Reset Tokens ─────────────────────────────────────────────────────
 export const password_reset_tokens = pgTable("password_reset_tokens", {
   id,
