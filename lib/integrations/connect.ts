@@ -1,15 +1,13 @@
-import { getSiteUrl } from "@/lib/site-url";
 import {
   GOOGLE_INTEGRATION_SCOPES,
   MICROSOFT_INTEGRATION_SCOPES,
   isProviderConfigured,
 } from "./config";
 import { createOAuthState } from "./oauth-state";
+import { integrationRedirectUri } from "./setup-urls";
 import type { IntegrationProvider } from "./types";
 
-export function integrationRedirectUri(provider: IntegrationProvider): string {
-  return `${getSiteUrl()}/api/integrations/${provider}/callback`;
-}
+export { integrationRedirectUri } from "./setup-urls";
 
 export function buildGoogleConnectUrl(userId: string): string | null {
   if (!isProviderConfigured("google")) return null;

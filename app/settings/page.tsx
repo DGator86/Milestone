@@ -19,7 +19,7 @@ import {
   isGoogleIntegrationConfigured,
   isMicrosoftIntegrationConfigured,
 } from "@/lib/integrations/config";
-import { integrationRedirectUri } from "@/lib/integrations/connect";
+import { integrationRedirectUri, googleLoginRedirectUri } from "@/lib/integrations/setup-urls";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +101,7 @@ export default async function SettingsPage({
               google: integrationRedirectUri("google"),
               microsoft: integrationRedirectUri("microsoft"),
             }}
+            googleLoginRedirectUri={googleLoginRedirectUri()}
             flashMessage={flashMessage}
             flashError={flashError}
           />

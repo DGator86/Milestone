@@ -10,6 +10,11 @@ import {
   PROVIDER_LABELS,
   PROVIDER_SHORT_LABELS,
 } from "@/lib/integrations/config";
+import {
+  GOOGLE_API_LIBRARY_URL,
+  GOOGLE_CLOUD_CREDENTIALS_URL,
+  MICROSOFT_APP_REGISTRATIONS_URL,
+} from "@/lib/integrations/setup-urls";
 import type { ConnectedIntegrationSummary, IntegrationProvider } from "@/lib/integrations/types";
 
 interface ProviderStatus {
@@ -20,6 +25,7 @@ interface Props {
   initialConnected: ConnectedIntegrationSummary[];
   providers: Record<IntegrationProvider, ProviderStatus>;
   redirectUris: Record<IntegrationProvider, string>;
+  googleLoginRedirectUri: string;
   flashMessage?: string | null;
   flashError?: string | null;
 }
@@ -29,13 +35,25 @@ export default function IntegrationsPanel({
   initialConnected,
   providers,
   redirectUris,
+  googleLoginRedirectUri,
   flashMessage,
   flashError,
 }: Props) {
   const [connected, setConnected] = useState(initialConnected);
   const [message, setMessage] = useState<string | null>(flashMessage ?? null);
   const [error, setError] = useState<string | null>(flashError ?? null);
+  const [copiedUri, setCopiedUri] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  async function copyUri(uri: string) {
+    try {
+      await navigator.clipboard.writeText(uri);
+      setCopiedUri(uri);
+      setTimeout(() => setCopiedUri(null), 2000);
+    } catch {
+      setError("Could not copy to clipboard");
+    }
+  }
 
   function connect(provider: IntegrationProvider) {
     window.location.href = `/api/integrations/${provider}/connect`;
@@ -122,26 +140,76 @@ export default function IntegrationsPanel({
                 </div>
 
                 {configured ? (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => connect(provider)}
-                    className="w-full px-3 py-2 rounded-lg bg-milestone-blue text-white text-xs font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
-                  >
-                    Connect {shortLabel}
-                  </button>
+                  <div className="space-y-2">
+                    {provider === "google" && !isConnected && (
+                      <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+                        <p className="font-semibold">Before connecting — add this redirect URI in Google Cloud</p>
+                        <p className="text-amber-700">
+                          Sign-in with Google uses a different callback URL. Integrations need this one too:
+                        </p>
+                        <div className="flex items-start gap-2">
+                          <code className="flex-1 text-[10px] break-all text-milestone-blue bg-white border border-amber-200 rounded px-2 py-1">
+                            {redirectUri}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => copyUri(redirectUri)}
+                            className="text-[10px] font-semibold text-milestone-blue hover:underline shrink-0"
+                          >
+                            {copiedUri === redirectUri ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="text-amber-700">
+                          <a
+                            href={GOOGLE_CLOUD_CREDENTIALS_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-milestone-blue font-semibold hover:underline"
+                          >
+                            Open Google credentials →
+                          </a>
+                          {" "}OAuth client → Authorized redirect URIs → Add URI → Save.
+                          Enable{" "}
+                          <a href={`${GOOGLE_API_LIBRARY_URL}/gmail.googleapis.com`} target="_blank" rel="noopener noreferrer" className="underline">Gmail API</a>
+                          {" + "}
+                          <a href={`${GOOGLE_API_LIBRARY_URL}/calendar-json.googleapis.com`} target="_blank" rel="noopener noreferrer" className="underline">Calendar API</a>.
+                        </p>
+                        <p className="text-[10px] text-amber-600">
+                          Login callback (usually already added): {googleLoginRedirectUri}
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => connect(provider)}
+                      className="w-full px-3 py-2 rounded-lg bg-milestone-blue text-white text-xs font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                    >
+                      Connect {shortLabel}
+                    </button>
+                  </div>
                 ) : (
                   <div className="text-[11px] text-gray-500 bg-white border border-gray-200 rounded-lg p-3 space-y-1.5">
                     <p className="font-semibold text-gray-700">Setup required</p>
                     {provider === "google" ? (
                       <>
-                        <p>Add redirect URI in Google Cloud Console:</p>
+                        <p>Add this redirect URI in Google Cloud Console:</p>
                         <code className="block text-[10px] break-all text-milestone-blue">{redirectUri}</code>
-                        <p>Enable Gmail API + Calendar API. Uses existing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.</p>
+                        <p>
+                          <a href={GOOGLE_CLOUD_CREDENTIALS_URL} target="_blank" rel="noopener noreferrer" className="text-milestone-blue font-semibold hover:underline">
+                            Open credentials →
+                          </a>
+                          {" "}Enable Gmail API + Calendar API. Uses GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.
+                        </p>
                       </>
                     ) : (
                       <>
-                        <p>Register an app in Microsoft Entra ID (Azure), then set:</p>
+                        <p>
+                          <a href={MICROSOFT_APP_REGISTRATIONS_URL} target="_blank" rel="noopener noreferrer" className="text-milestone-blue font-semibold hover:underline">
+                            Register in Microsoft Entra →
+                          </a>
+                          {" "}then set:
+                        </p>
                         <code className="block text-[10px] text-gray-600">MICROSOFT_CLIENT_ID</code>
                         <code className="block text-[10px] text-gray-600">MICROSOFT_CLIENT_SECRET</code>
                         <p>Redirect URI (Web platform):</p>
